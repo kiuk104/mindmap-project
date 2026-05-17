@@ -10,4 +10,6 @@
  * OAuth 클라이언트 ID는 공개되어도 안전 — 보안은 "승인된 자바스크립트 원본"으로 통제됩니다.
  */
 
-export const GOOGLE_CLIENT_ID = '';
+export const GOOGLE_CLIENT_ID = '1035486677678-626rneijrtbeojbftvnnes24djbqi9el.apps.googleusercontent.com';
+
+
