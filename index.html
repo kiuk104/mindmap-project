@@ -20,8 +20,12 @@
     <input type="file" id="file-in" accept=".json" style="display:none" />
     <div class="sep"></div>
     <button class="btn btn-ghost" id="btn-reset">⌖ 화면 맞춤</button>
+    <div class="sep"></div>
+    <div class="search-box">
+      <input type="text" id="search-input" placeholder="🔍 노드 검색 (Ctrl+F)" autocomplete="off" />
+      <span id="search-count"></span>
+    </div>
     <span id="last-saved" class="toolbar-saved"></span>
-    <span class="toolbar-hint">💡 자동저장됨 · 팀 공유는 JSON 내보내기로</span>
   </div>
 
   <!-- ── 캔버스 ── -->

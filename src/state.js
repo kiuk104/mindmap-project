@@ -24,8 +24,17 @@ export const state = {
   /** @type {string|null} 우클릭 메뉴 대상 노드 ID */
   ctxTargetId: null,
 
-  /** @type {string|null} 현재 열린 모달 종류 ('link' | 'color') */
+  /** @type {string|null} 현재 열린 모달 종류 ('link' | 'color' | 'save') */
   modalKind: null,
+
+  /** @type {string} 검색어 (비어있으면 비활성) */
+  searchQuery: '',
+
+  /** @type {string[]} 검색 결과 노드 ID 목록 */
+  searchHits: [],
+
+  /** @type {number} 현재 활성 검색 결과 인덱스 (0-based) */
+  searchIdx: 0,
 };
 
 /**

@@ -18,6 +18,7 @@ import { onNodeMouseDown }                 from './canvas.js';
 import { openLinkModal, openColorModal, openSaveModal, closeModal, handleModalOK } from './modal.js';
 import { showContextMenu, hideContextMenu, hideAllMenus, showBgMenu, initContextMenu } from './menu.js';
 import { doImport, schedulePersist, restoreLocal, onSaveStateChange } from './io.js';
+import { runSearch, gotoHit, clearSearch }    from './search.js';
 
 // ── render.js에 핸들러 주입 ──
 // render.js는 다른 모듈을 직접 import하지 않고
@@ -99,6 +100,19 @@ $('btn-import').addEventListener('click', () => $('file-in').click());
 $('file-in').addEventListener('change',   doImport);
 $('btn-reset').addEventListener('click',  resetView);
 
+// ── 검색 input ──
+$('search-input').addEventListener('input', (e) => runSearch(e.target.value));
+$('search-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    gotoHit(e.shiftKey ? -1 : 1);
+  } else if (e.key === 'Escape') {
+    e.preventDefault();
+    clearSearch();
+    e.target.blur();
+  }
+});
+
 // ── 모달 버튼 ──
 $('modal-ok').addEventListener('click',     handleModalOK);
 $('modal-cancel').addEventListener('click', closeModal);
@@ -125,6 +139,15 @@ document.addEventListener('keydown', (e) => {
   if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
     e.preventDefault();
     openSaveModal();
+    return;
+  }
+
+  // Ctrl+F / Cmd+F → 검색 input 포커스 (입력 필드에서도 동작)
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'f' || e.key === 'F')) {
+    e.preventDefault();
+    const si = $('search-input');
+    si.focus();
+    si.select();
     return;
   }
 

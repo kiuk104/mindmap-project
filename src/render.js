@@ -108,17 +108,25 @@ export function render() {
     });
   });
 
+  // 검색 매치 ID Set (성능)
+  const hitSet = new Set(state.searchHits);
+  const activeHitId = hitSet.size > 0 ? state.searchHits[state.searchIdx] : null;
+
   // ── 노드 div ──
   Object.values(state.nodes).forEach((n) => {
     const isRoot = !n.parentId;
     const isSel  = n.id === state.selectedId;
     const isRelSource = state.relationDraft && state.relationDraft.fromId === n.id;
+    const isHit  = hitSet.has(n.id);
+    const isActiveHit = n.id === activeHitId;
 
     const el = document.createElement('div');
     el.className = 'node'
       + (isRoot ? ' root' : '')
       + (isSel ? ' selected' : '')
-      + (isRelSource ? ' rel-source' : '');
+      + (isRelSource ? ' rel-source' : '')
+      + (isHit ? ' search-hit' : '')
+      + (isActiveHit ? ' search-active' : '');
     el.id = 'nd-' + n.id;
     el.style.left       = n.x + 'px';
     el.style.top        = n.y + 'px';

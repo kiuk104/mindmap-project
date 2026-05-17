@@ -45,6 +45,23 @@ body {
 .btn-ghost { background: transparent; color: #8b949e; border: 1px solid #30363d; }
 .btn-ghost:hover { background: #21262d; color: #e6edf3; }
 
+/* ── 검색 박스 ── */
+.search-box {
+  position: relative; display: flex; align-items: center; gap: 6px;
+}
+.search-box input {
+  width: 180px; padding: 6px 10px;
+  background: #0d1117; border: 1px solid #30363d;
+  border-radius: 7px; color: #e6edf3; font-size: 12px;
+  outline: none; transition: border-color .15s, width .2s;
+}
+.search-box input:focus { border-color: #1f6feb; width: 230px; }
+.search-box input::placeholder { color: #6e7681; }
+#search-count {
+  font-size: 11px; color: #8b949e; min-width: 36px;
+  font-variant-numeric: tabular-nums;
+}
+
 /* ── 캔버스 ── */
 #canvas-wrap {
   position: fixed; top: 54px; left: 0; right: 0; bottom: 0; overflow: hidden;
@@ -74,6 +91,16 @@ body {
 .node.selected {
   border-color: #f85149 !important;
   box-shadow: 0 0 0 3px rgba(248,81,73,0.35), 0 4px 14px rgba(0,0,0,0.5) !important;
+}
+
+/* ── 검색 일치 노드 ── */
+.node.search-hit {
+  box-shadow: 0 0 0 2px rgba(255, 211, 61, 0.55), 0 4px 14px rgba(0,0,0,0.5);
+}
+.node.search-hit.search-active {
+  box-shadow: 0 0 0 4px rgba(255, 211, 61, 0.9),
+              0 0 16px rgba(255, 211, 61, 0.6),
+              0 4px 14px rgba(0,0,0,0.5);
 }
 
 /* ── 링크 배지 ── */
