@@ -10,17 +10,24 @@
 
 import { state } from './state.js';
 import { render, updateLines } from './render.js';
-import { $ } from './utils.js';
+import { $, setNodeSelection, clearNodeSelection } from './utils.js';
 
 // ── Pan/드래그 상태 ──
 let panning = false;
 let panStartX = 0;
 let panStartY = 0;
+let panRightDragMoved = false;  // 우클릭 드래그가 실제로 이동했는지 (contextmenu 억제용)
 
 let dragging = false;
 let dragId   = null;
 let dragOffX = 0;
 let dragOffY = 0;
+let multiDragOffsets = null;    // 여러 노드 동시 드래그 시 각 노드 상대 좌표
+
+// ── 셀렉트 박스 (왼쪽 클릭 드래그) ──
+let selBoxActive = false;
+let selBoxStart  = { x: 0, y: 0 };
+let selBoxClientStart = { x: 0, y: 0 };  // 화면 좌표
 
 // ── 관계선 곡률 핸들 드래그 상태 ──
 let relHandleDragging = false;
@@ -43,6 +50,13 @@ const LONG_PRESS_THRESHOLD = 10; // px
 
 // ── Zoom 상태 ──
 export const view = { px: 0, py: 0, sc: 1 };
+
+/** 직전 우클릭 드래그가 실제로 이동했는지 — main.js의 contextmenu 핸들러가 메뉴 표시 여부 결정 시 사용 */
+export function consumePanDragFlag() {
+  const moved = panRightDragMoved;
+  panRightDragMoved = false;
+  return moved;
+}
 
 /** 화면 좌표 → 캔버스 좌표 변환 */
 export function canvasCoord(clientX, clientY) {
@@ -134,7 +148,7 @@ export function onRelationHandleDown(e, rid) {
   render();
 }
 
-// ── 노드 포인터다운 (드래그 시작 / 관계선 완성) ──
+// ── 노드 포인터다운 (드래그 시작 / 관계선 완성 / 다중 선택) ──
 export function onNodeMouseDown(e, nodeId) {
   if (e.button !== 0) return;
   if (
@@ -159,58 +173,104 @@ export function onNodeMouseDown(e, nodeId) {
     }
     state.relationDraft = null;
     document.body.classList.remove('relation-drafting');
-    state.selectedId = nodeId;
+    setNodeSelection(state, [nodeId]);
     render();
     return;
   }
 
-  // 선택
-  state.selectedId         = nodeId;
+  // 선택 로직: shift = 토글, 일반 클릭 = 단일 선택 (이미 선택돼 있으면 유지하고 다중 드래그)
+  const alreadySelected = state.selectedIds.includes(nodeId);
+  if (e.shiftKey) {
+    if (alreadySelected) {
+      setNodeSelection(state, state.selectedIds.filter((id) => id !== nodeId));
+    } else {
+      setNodeSelection(state, [...state.selectedIds, nodeId]);
+    }
+  } else if (!alreadySelected) {
+    setNodeSelection(state, [nodeId]);
+  }
   state.selectedRelationId = null;
   render();
 
-  // 드래그 준비
+  // 드래그 준비 — 다중 선택 시엔 그룹 전체 이동
   dragging = true;
   dragId   = nodeId;
   const cp = canvasCoord(e.clientX, e.clientY);
   dragOffX = cp.x - state.nodes[nodeId].x;
   dragOffY = cp.y - state.nodes[nodeId].y;
+
+  if (state.selectedIds.length > 1 && state.selectedIds.includes(nodeId)) {
+    multiDragOffsets = state.selectedIds.map((id) => {
+      const n = state.nodes[id];
+      return { id, dx: n.x - state.nodes[nodeId].x, dy: n.y - state.nodes[nodeId].y };
+    });
+  } else {
+    multiDragOffsets = null;
+  }
 }
 
 // ── 이벤트 등록 ──
 export function initCanvas() {
   const wrap = $('canvas-wrap');
 
-  // 배경 포인터다운 → Pan 시작 + 선택 해제
+  // 배경 포인터다운 → 입력 종류·버튼에 따라 분기
+  //   - 터치: 한 손가락 = Pan
+  //   - 마우스 우클릭(button 2): Pan
+  //   - 마우스 좌클릭(button 0): 셀렉트 박스
   wrap.addEventListener('pointerdown', (e) => {
-    if (e.button !== 0) return;
     if (pinching) return;
     const t = e.target;
-    if (t.id === 'canvas-wrap' || t.id === 'canvas' || t.id === 'svg-layer') {
-      // 관계선 그리기 중이면 배경 클릭으로 취소
-      if (state.relationDraft) {
-        state.relationDraft = null;
-        document.body.classList.remove('relation-drafting');
-      }
+    const isBg = t.id === 'canvas-wrap' || t.id === 'canvas' || t.id === 'svg-layer';
+    if (!isBg) return;
 
-      // 길게 누름 감지 시작
-      startLongPress(e);
+    // 관계선 그리기 중이면 배경 클릭으로 취소 (좌클릭만)
+    if (state.relationDraft && e.button === 0) {
+      state.relationDraft = null;
+      document.body.classList.remove('relation-drafting');
+      render();
+      return;
+    }
 
-      panning  = true;
+    // 길게 누름 감지 (터치)
+    startLongPress(e);
+
+    // 마우스 우클릭 OR 터치: Pan
+    if (e.pointerType === 'touch' || e.button === 2) {
+      panning = true;
+      panRightDragMoved = false;
       panStartX = e.clientX - view.px;
       panStartY = e.clientY - view.py;
-      state.selectedId         = null;
+      return;
+    }
+
+    // 마우스 좌클릭: 셀렉트 박스 시작
+    if (e.button === 0) {
+      selBoxActive = true;
+      selBoxStart = canvasCoord(e.clientX, e.clientY);
+      const rect = wrap.getBoundingClientRect();
+      selBoxClientStart = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+      clearNodeSelection(state);
       state.selectedRelationId = null;
+      // 셀렉트 박스 DOM 초기화
+      const box = $('selection-box');
+      if (box) {
+        box.hidden = false;
+        box.style.left = selBoxClientStart.x + 'px';
+        box.style.top  = selBoxClientStart.y + 'px';
+        box.style.width  = '0px';
+        box.style.height = '0px';
+      }
       render();
     }
   });
 
-  // 포인터 이동 → Pan / 노드 드래그 / 관계선 핸들 드래그
+  // 포인터 이동 → Pan / 노드 드래그 / 관계선 핸들 드래그 / 셀렉트 박스
   document.addEventListener('pointermove', (e) => {
     if (pinching) return;
     checkLongPressMove(e);
 
     if (panning) {
+      panRightDragMoved = true;
       view.px = e.clientX - panStartX;
       view.py = e.clientY - panStartY;
       applyTransform();
@@ -218,15 +278,58 @@ export function initCanvas() {
 
     if (dragging && dragId) {
       const cp = canvasCoord(e.clientX, e.clientY);
-      state.nodes[dragId].x = cp.x - dragOffX;
-      state.nodes[dragId].y = cp.y - dragOffY;
+      const newAnchorX = cp.x - dragOffX;
+      const newAnchorY = cp.y - dragOffY;
 
-      const el = $('nd-' + dragId);
-      if (el) {
-        el.style.left = state.nodes[dragId].x + 'px';
-        el.style.top  = state.nodes[dragId].y + 'px';
+      if (multiDragOffsets) {
+        // 다중 선택 드래그 — 모든 선택 노드를 함께 이동
+        multiDragOffsets.forEach(({ id, dx, dy }) => {
+          const n = state.nodes[id];
+          if (!n) return;
+          n.x = newAnchorX + dx;
+          n.y = newAnchorY + dy;
+          const el = $('nd-' + id);
+          if (el) { el.style.left = n.x + 'px'; el.style.top = n.y + 'px'; }
+        });
+      } else {
+        state.nodes[dragId].x = newAnchorX;
+        state.nodes[dragId].y = newAnchorY;
+        const el = $('nd-' + dragId);
+        if (el) { el.style.left = state.nodes[dragId].x + 'px'; el.style.top  = state.nodes[dragId].y + 'px'; }
       }
       updateLines();
+    }
+
+    if (selBoxActive) {
+      const cp = canvasCoord(e.clientX, e.clientY);
+      const rect = wrap.getBoundingClientRect();
+      const cx = e.clientX - rect.left;
+      const cy = e.clientY - rect.top;
+
+      // 박스 DOM 갱신 (화면 좌표)
+      const box = $('selection-box');
+      if (box) {
+        const left = Math.min(selBoxClientStart.x, cx);
+        const top  = Math.min(selBoxClientStart.y, cy);
+        const w    = Math.abs(cx - selBoxClientStart.x);
+        const h    = Math.abs(cy - selBoxClientStart.y);
+        box.style.left   = left + 'px';
+        box.style.top    = top  + 'px';
+        box.style.width  = w    + 'px';
+        box.style.height = h    + 'px';
+      }
+
+      // 캔버스 좌표 박스 hit-testing
+      const x1 = Math.min(selBoxStart.x, cp.x);
+      const y1 = Math.min(selBoxStart.y, cp.y);
+      const x2 = Math.max(selBoxStart.x, cp.x);
+      const y2 = Math.max(selBoxStart.y, cp.y);
+      const inside = [];
+      Object.values(state.nodes).forEach((n) => {
+        if (n.x >= x1 && n.x <= x2 && n.y >= y1 && n.y <= y2) inside.push(n.id);
+      });
+      setNodeSelection(state, inside);
+      render();
     }
 
     if (relHandleDragging && relHandleId) {
@@ -245,12 +348,24 @@ export function initCanvas() {
     }
   });
 
-  // 포인터 업 → 드래그/Pan 종료
+  // 포인터 업 → 드래그/Pan/셀렉트박스 종료
   function endPointer() {
     if (relHandleDragging) {
-      // 곡률 변경은 자동 저장 트리거 필요 — render() 한 번 호출
       relHandleDragging = false;
       relHandleId = null;
+      render();
+    }
+    if (dragging && multiDragOffsets) {
+      // 다중 드래그 종료 시 한 번 render로 자동 저장 트리거
+      multiDragOffsets = null;
+      render();
+    } else if (dragging) {
+      render();
+    }
+    if (selBoxActive) {
+      selBoxActive = false;
+      const box = $('selection-box');
+      if (box) box.hidden = true;
       render();
     }
     panning  = false;

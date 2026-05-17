@@ -4,7 +4,7 @@
 
 import { state } from './state.js';
 import { render } from './render.js';
-import { uid, makeNode, currentPalette, $ } from './utils.js';
+import { uid, makeNode, currentPalette, setNodeSelection, $ } from './utils.js';
 
 /**
  * 자식 노드 추가
@@ -32,7 +32,7 @@ export function addChild(parentId) {
     color,
   );
 
-  state.selectedId = id;
+  setNodeSelection(state, [id]);
   render();
 
   // 추가 즉시 이름 편집 모드로
@@ -68,7 +68,10 @@ export function deleteNode(id) {
     (r) => !removed.has(r.fromId) && !removed.has(r.toId),
   );
 
-  if (state.selectedId === id) state.selectedId = null;
+  // 선택 목록에서 삭제된 ID 제거
+  state.selectedIds = (state.selectedIds ?? []).filter((sid) => !removed.has(sid));
+  if (state.selectedId && removed.has(state.selectedId)) state.selectedId = null;
+  if (state.selectedIds.length === 1) state.selectedId = state.selectedIds[0];
   render();
 }
 

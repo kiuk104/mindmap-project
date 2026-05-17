@@ -8,7 +8,7 @@ import { addChild, deleteNode, startEdit } from './nodes.js';
 import { openLinkModal, openColorModal, openIconModal, openSaveModal } from './modal.js';
 import { resetView } from './canvas.js';
 import { clearLocal } from './io.js';
-import { $, uid, makeNode } from './utils.js';
+import { $, uid, makeNode, setNodeSelection, clearNodeSelection } from './utils.js';
 
 /**
  * 노드 우클릭 메뉴 표시
@@ -20,7 +20,10 @@ export function showContextMenu(e, nodeId) {
   e.stopPropagation();
 
   state.ctxTargetId        = nodeId;
-  state.selectedId         = nodeId;
+  // 우클릭한 노드가 이미 다중 선택의 일부면 그대로 유지, 아니면 단일 선택으로 교체
+  if (!state.selectedIds.includes(nodeId)) {
+    setNodeSelection(state, [nodeId]);
+  }
   state.selectedRelationId = null;
   render();
 
@@ -81,7 +84,7 @@ export function initContextMenu() {
   // ── 노드 메뉴 ──
   $('ctx-edit').addEventListener('click', () => {
     hideContextMenu();
-    state.selectedId = state.ctxTargetId;
+    setNodeSelection(state, [state.ctxTargetId]);
     render();
     setTimeout(() => {
       const el = $('nd-' + state.ctxTargetId);
@@ -158,7 +161,7 @@ export function initContextMenu() {
 
     state.nodes              = {};
     state.relations          = [];
-    state.selectedId         = null;
+    clearNodeSelection(state);
     state.selectedRelationId = null;
     state.relationDraft      = null;
     document.body.classList.remove('relation-drafting');

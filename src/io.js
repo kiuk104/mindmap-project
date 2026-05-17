@@ -42,6 +42,7 @@ export function loadFromString(jsonStr) {
     state.nodes              = data.nodes;
     state.relations          = Array.isArray(data.relations) ? data.relations : [];
     state.selectedId         = null;
+    state.selectedIds        = [];
     state.selectedRelationId = null;
     state.relationDraft      = null;
     // 스타일/라인스타일 복원 (없으면 현재 값 유지)
@@ -99,6 +100,7 @@ export function restoreLocal() {
     state.nodes              = data.nodes;
     state.relations          = Array.isArray(data.relations) ? data.relations : [];
     state.selectedId         = null;
+    state.selectedIds        = [];
     state.selectedRelationId = null;
     state.relationDraft      = null;
     return true;

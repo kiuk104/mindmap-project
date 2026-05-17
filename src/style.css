@@ -154,6 +154,15 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 body.style-panel-open #canvas-wrap { right: 320px; }
+
+/* ── 셀렉션 박스 (좌클릭 드래그) ── */
+#selection-box {
+  position: absolute;
+  border: 1px dashed var(--accent);
+  background: rgba(248, 81, 73, 0.08);
+  pointer-events: none;
+  z-index: 50;
+}
 #canvas {
   position: absolute; width: 5000px; height: 5000px;
 }

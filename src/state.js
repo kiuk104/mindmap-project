@@ -12,8 +12,11 @@ export const state = {
   /** @type {Relation[]} 임의 노드 간 관계선 (부모-자식 외) */
   relations: [],
 
-  /** @type {string|null} 현재 선택된 노드 ID */
+  /** @type {string|null} 현재 'primary' 선택 노드 (selectedIds[0] when single, else null) */
   selectedId: null,
+
+  /** @type {string[]} 다중 선택 노드 ID (셀렉트 박스로 선택된 것들 포함) */
+  selectedIds: [],
 
   /** @type {string|null} 현재 선택된 관계선 ID */
   selectedRelationId: null,

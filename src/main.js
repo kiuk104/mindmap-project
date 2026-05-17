@@ -10,11 +10,11 @@
 
 import { state }                           from './state.js';
 import { render, registerHandlers, setPostRender } from './render.js';
-import { $, uid, makeNode, COLORS }        from './utils.js';
+import { $, uid, makeNode, COLORS, setNodeSelection, clearNodeSelection } from './utils.js';
 import { showPreview, hidePreview }        from './preview.js';
 import { addChild, deleteNode, startEdit, removeLink } from './nodes.js';
 import { initCanvas, view, applyTransform, resetView } from './canvas.js';
-import { onNodeMouseDown, onRelationHandleDown } from './canvas.js';
+import { onNodeMouseDown, onRelationHandleDown, consumePanDragFlag } from './canvas.js';
 import { openLinkModal, openColorModal, openSaveModal, openDriveLoadModal, closeModal, handleModalOK, applyStyle } from './modal.js';
 import * as drive                            from './drive.js';
 import { showContextMenu, hideContextMenu, hideAllMenus, showBgMenu, initContextMenu } from './menu.js';
@@ -34,7 +34,7 @@ registerHandlers({
   onLinkDelete:          removeLink,
   onRelationClick:       (rid) => {
     state.selectedRelationId = rid;
-    state.selectedId         = null;
+    clearNodeSelection(state);
     render();
   },
   onRelationDblClick: (rid) => {
@@ -228,8 +228,13 @@ document.addEventListener('click', (e) => {
   if (!e.target.closest('#ctx-menu') && !e.target.closest('#ctx-bg-menu')) hideAllMenus();
 });
 
-// ── 배경 우클릭 → 커스텀 메뉴 (브라우저 기본 메뉴 차단) ──
+// ── 배경 우클릭 → 커스텀 메뉴 (단, 우클릭 드래그 후엔 메뉴 띄우지 않음) ──
 $('canvas-wrap').addEventListener('contextmenu', (e) => {
+  // 직전에 우클릭 드래그(Pan)가 있었다면 contextmenu는 그 끝맺음일 뿐 → 메뉴 차단
+  if (consumePanDragFlag()) {
+    e.preventDefault();
+    return;
+  }
   const t = e.target;
   if (t.id === 'canvas-wrap' || t.id === 'canvas' || t.id === 'svg-layer') {
     showBgMenu(e);
@@ -269,8 +274,15 @@ document.addEventListener('keydown', (e) => {
         state.relations = state.relations.filter((r) => r.id !== state.selectedRelationId);
         state.selectedRelationId = null;
         render();
-      } else if (state.selectedId) {
-        deleteNode(state.selectedId);
+      } else if (state.selectedIds.length > 0) {
+        const ids = [...state.selectedIds];
+        if (ids.length === 1) {
+          deleteNode(ids[0]);
+        } else {
+          if (confirm(`선택된 ${ids.length}개 노드를 모두 삭제할까요?`)) {
+            ids.forEach((id) => deleteNode(id));
+          }
+        }
       }
       break;
     case 'Escape':
@@ -281,7 +293,7 @@ document.addEventListener('keydown', (e) => {
         state.relationDraft = null;
         document.body.classList.remove('relation-drafting');
       }
-      state.selectedId         = null;
+      clearNodeSelection(state);
       state.selectedRelationId = null;
       render();
       break;

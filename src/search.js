@@ -78,7 +78,8 @@ function centerOnNode(nodeId) {
   view.py = wrap.clientHeight / 2 - node.y * view.sc;
   applyTransform();
 
-  state.selectedId         = nodeId;
-  state.selectedRelationId = null;
+  state.selectedIds         = [nodeId];
+  state.selectedId          = nodeId;
+  state.selectedRelationId  = null;
   render();
 }

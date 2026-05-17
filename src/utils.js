@@ -168,3 +168,18 @@ export const ICON_TAB_NAMES = {
   marker: '마커',
   sticker: '스티커',
 };
+
+/**
+ * 노드 다중 선택 헬퍼 — state.selectedIds와 state.selectedId를 일관되게 갱신.
+ * 단일 선택은 selectedId에 반영하고, 다중일 땐 selectedId = null.
+ */
+export function setNodeSelection(state, ids) {
+  state.selectedIds = Array.isArray(ids) ? [...ids] : [];
+  state.selectedId  = state.selectedIds.length === 1 ? state.selectedIds[0] : null;
+}
+
+/** 노드 선택 모두 해제 */
+export function clearNodeSelection(state) {
+  state.selectedIds = [];
+  state.selectedId  = null;
+}

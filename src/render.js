@@ -185,10 +185,14 @@ export function render() {
   const hitSet = new Set(state.searchHits);
   const activeHitId = hitSet.size > 0 ? state.searchHits[state.searchIdx] : null;
 
+  // 선택된 노드 Set (다중 선택 포함)
+  const selSet = new Set(state.selectedIds ?? []);
+  if (state.selectedId && !selSet.has(state.selectedId)) selSet.add(state.selectedId);
+
   // ── 노드 div ──
   Object.values(state.nodes).forEach((n) => {
     const isRoot = !n.parentId;
-    const isSel  = n.id === state.selectedId;
+    const isSel  = selSet.has(n.id);
     const isRelSource = state.relationDraft && state.relationDraft.fromId === n.id;
     const isHit  = hitSet.has(n.id);
     const isActiveHit = n.id === activeHitId;
