@@ -4,7 +4,7 @@
 
 import { state } from './state.js';
 import { render } from './render.js';
-import { $, COLORS, COLOR_THEMES, THEME_NAMES, currentPalette, linkIcon, linkDefault } from './utils.js';
+import { $, COLORS, COLOR_THEMES, THEME_NAMES, FONT_FAMILIES, FONT_NAMES, currentPalette, linkIcon, linkDefault } from './utils.js';
 import { removeLink } from './nodes.js';
 import { doDownload, copyJsonToClipboard, defaultFilename, serialize, loadFromString } from './io.js';
 import * as drive from './drive.js';
@@ -141,6 +141,16 @@ export function openStyleModal() {
     </div>
 
     <div class="fg">
+      <label class="fl">노드 폰트</label>
+      <select class="fi" id="sv-font">
+        ${Object.entries(FONT_NAMES).map(([key, name]) => `
+          <option value="${key}" ${s.font === key ? 'selected' : ''}
+            style="font-family: ${FONT_FAMILIES[key]}">${name} — 가나다 ABC</option>
+        `).join('')}
+      </select>
+    </div>
+
+    <div class="fg">
       <label style="display:flex; align-items:center; gap:8px; cursor:pointer; user-select:none;">
         <input type="checkbox" id="sv-colored" ${s.coloredBranch ? 'checked' : ''} />
         <span>자식 노드 색상으로 연결선 색상 사용</span>
@@ -274,14 +284,21 @@ export async function openDriveLoadModal() {
   }
 }
 
-/** state.style.bgColor를 body에 반영 */
-export function applyBgColor() {
+/** state.style의 배경 색·폰트를 DOM에 반영 (CSS 변수 기반) */
+export function applyStyle() {
+  // 배경 색
   if (state.style?.bgColor) {
     document.body.style.background = state.style.bgColor;
   } else {
     document.body.style.background = '';
   }
+  // 폰트
+  const font = FONT_FAMILIES[state.style?.font] ?? FONT_FAMILIES.default;
+  document.documentElement.style.setProperty('--node-font', font);
 }
+
+/** 하위 호환 별칭 */
+export const applyBgColor = applyStyle;
 
 function escapeHTML(s) {
   return String(s ?? '').replace(/[&<>"']/g, (c) => ({
@@ -409,6 +426,7 @@ export function handleModalOK() {
     state.style.bgColor       = $('sv-bgcolor').dataset.reset ? null : $('sv-bgcolor').value;
     state.style.lineWidth     = $('modal-body').querySelector('input[name="lw"]:checked')?.value ?? 'normal';
     state.style.coloredBranch = $('sv-colored').checked;
+    state.style.font          = $('sv-font').value;
 
     if (themeChanged) {
       if (confirm('테마가 변경되었습니다. 기존 노드들도 새 테마 색상으로 다시 칠할까요?')) {
@@ -421,9 +439,9 @@ export function handleModalOK() {
       }
     }
 
-    // 영속화 + 배경 적용
+    // 영속화 + 배경·폰트 적용
     try { localStorage.setItem('mindmap.style', JSON.stringify(state.style)); } catch {}
-    applyBgColor();
+    applyStyle();
 
     closeModal();
     render();

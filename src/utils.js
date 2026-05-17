@@ -40,6 +40,21 @@ export function currentPalette(state) {
 /** 연결선 두께 매핑 */
 export const LINE_WIDTHS = { thin: 1.5, normal: 2.5, thick: 4 };
 
+/** 노드용 폰트 패밀리 (외부 의존 없음, 시스템 폰트만) */
+export const FONT_FAMILIES = {
+  default: `-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`,
+  gothic:  `'Malgun Gothic', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif`,
+  serif:   `'AppleMyungjo', 'Batang', '바탕', Georgia, 'Times New Roman', serif`,
+  mono:    `Consolas, Menlo, 'Courier New', monospace`,
+};
+
+export const FONT_NAMES = {
+  default: '기본',
+  gothic:  '고딕',
+  serif:   '명조',
+  mono:    '고정폭',
+};
+
 /** 기본 스타일 객체 */
 export function defaultStyle() {
   return {
@@ -47,6 +62,7 @@ export function defaultStyle() {
     bgColor: null,           // null = CSS 변수 사용 (테마 따라감)
     lineWidth: 'normal',     // 'thin' | 'normal' | 'thick'
     coloredBranch: false,    // true: 자식 색상으로 연결선 표시
+    font: 'default',         // FONT_FAMILIES 키
   };
 }
 

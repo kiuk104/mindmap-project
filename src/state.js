@@ -48,6 +48,7 @@ export const state = {
     bgColor: null,
     lineWidth: 'normal',
     coloredBranch: false,
+    font: 'default',
   },
 };
 

@@ -168,6 +168,7 @@ body {
   padding: 10px 14px; border-radius: 14px;
   cursor: pointer; user-select: none;
   border: 2px solid transparent; text-align: center;
+  font-family: var(--node-font, inherit);
   font-size: 13px; font-weight: 500; word-break: break-word;
   box-shadow: var(--shadow-node);
   transition: box-shadow 0.15s, border-color 0.15s;

@@ -15,7 +15,7 @@ import { showPreview, hidePreview }        from './preview.js';
 import { addChild, deleteNode, startEdit, removeLink } from './nodes.js';
 import { initCanvas, view, applyTransform, resetView } from './canvas.js';
 import { onNodeMouseDown }                 from './canvas.js';
-import { openLinkModal, openColorModal, openSaveModal, openDriveLoadModal, openStyleModal, closeModal, handleModalOK, applyBgColor } from './modal.js';
+import { openLinkModal, openColorModal, openSaveModal, openDriveLoadModal, openStyleModal, closeModal, handleModalOK, applyStyle } from './modal.js';
 import * as drive                            from './drive.js';
 import { showContextMenu, hideContextMenu, hideAllMenus, showBgMenu, initContextMenu } from './menu.js';
 import { doImport, schedulePersist, restoreLocal, onSaveStateChange } from './io.js';
@@ -109,7 +109,7 @@ try {
     state.style = { ...state.style, ...savedStyle };
   }
 } catch {}
-applyBgColor();
+applyStyle();
 
 $('btn-style').addEventListener('click', openStyleModal);
 
