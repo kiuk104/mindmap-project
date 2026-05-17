@@ -19,12 +19,20 @@ const H = {
   onRelationClick:      () => {},
 };
 
+// 렌더 후에 호출되는 훅 (예: 자동 저장)
+let postRenderHook = () => {};
+
 /**
  * main.js에서 호출해서 핸들러를 등록합니다.
  * @param {Partial<typeof H>} handlers
  */
 export function registerHandlers(handlers) {
   Object.assign(H, handlers);
+}
+
+/** 매 render() 끝에 호출될 함수 등록 */
+export function setPostRender(fn) {
+  postRenderHook = fn ?? (() => {});
 }
 
 // ── SVG 화살표 마커 + 부모-자식 선 + 관계선 path 빌드 ──
@@ -167,6 +175,8 @@ export function render() {
 
     canvas.appendChild(el);
   });
+
+  postRenderHook();
 }
 
 /** 드래그 중 SVG 선만 빠르게 업데이트 (성능 최적화) */

@@ -9,15 +9,15 @@
  */
 
 import { state }                           from './state.js';
-import { render, registerHandlers }        from './render.js';
+import { render, registerHandlers, setPostRender } from './render.js';
 import { $, uid, makeNode, COLORS }        from './utils.js';
 import { showPreview, hidePreview }        from './preview.js';
 import { addChild, deleteNode, startEdit, removeLink } from './nodes.js';
 import { initCanvas, view, applyTransform, resetView } from './canvas.js';
 import { onNodeMouseDown }                 from './canvas.js';
-import { openLinkModal, openColorModal, closeModal, handleModalOK } from './modal.js';
+import { openLinkModal, openColorModal, openSaveModal, closeModal, handleModalOK } from './modal.js';
 import { showContextMenu, hideContextMenu, hideAllMenus, showBgMenu, initContextMenu } from './menu.js';
-import { doExport, doImport }              from './io.js';
+import { doImport, schedulePersist, restoreLocal, onSaveStateChange } from './io.js';
 
 // ── render.js에 핸들러 주입 ──
 // render.js는 다른 모듈을 직접 import하지 않고
@@ -36,8 +36,23 @@ registerHandlers({
   },
 });
 
+// ── 매 render() 끝에 자동 저장 예약 ──
+setPostRender(schedulePersist);
+
+// ── 마지막 저장 시각 인디케이터 ──
+onSaveStateChange((ts) => {
+  const el = $('last-saved');
+  if (!el) return;
+  if (!ts) { el.textContent = ''; return; }
+  const t = new Date(ts);
+  const hh = String(t.getHours()).padStart(2, '0');
+  const mm = String(t.getMinutes()).padStart(2, '0');
+  const ss = String(t.getSeconds()).padStart(2, '0');
+  el.textContent = `💾 자동저장 ${hh}:${mm}:${ss}`;
+});
+
 // ── 초기 노드 생성 ──
-function init() {
+function createSamples() {
   const rootId = uid();
   state.nodes[rootId] = makeNode(rootId, '중심 주제', 2500, 2500, null, '#f85149');
 
@@ -51,14 +66,23 @@ function init() {
     const id = uid();
     state.nodes[id] = makeNode(id, text, 2500 + dx, 2500 + dy, rootId, color);
   });
+}
+
+function init() {
+  const restored = restoreLocal();
+  if (!restored) createSamples();
 
   render();
 
   // 뷰를 중앙으로
-  const wrap = $('canvas-wrap');
-  view.px = wrap.clientWidth  / 2 - 2500;
-  view.py = wrap.clientHeight / 2 - 2500;
-  applyTransform();
+  if (restored) {
+    resetView();
+  } else {
+    const wrap = $('canvas-wrap');
+    view.px = wrap.clientWidth  / 2 - 2500;
+    view.py = wrap.clientHeight / 2 - 2500;
+    applyTransform();
+  }
 }
 
 // ── 캔버스 이벤트 초기화 ──
@@ -70,7 +94,7 @@ initContextMenu();
 // ── 툴바 버튼 ──
 $('btn-add').addEventListener('click',    () => addChild());
 $('btn-link').addEventListener('click',   () => openLinkModal(state.selectedId));
-$('btn-export').addEventListener('click', doExport);
+$('btn-export').addEventListener('click', openSaveModal);
 $('btn-import').addEventListener('click', () => $('file-in').click());
 $('file-in').addEventListener('change',   doImport);
 $('btn-reset').addEventListener('click',  resetView);
@@ -97,6 +121,13 @@ $('canvas-wrap').addEventListener('contextmenu', (e) => {
 
 // ── 키보드 단축키 ──
 document.addEventListener('keydown', (e) => {
+  // Ctrl+S / Cmd+S → 저장 모달 (입력 필드에서도 동작)
+  if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
+    e.preventDefault();
+    openSaveModal();
+    return;
+  }
+
   // 입력 필드에서는 단축키 무시
   const tag = document.activeElement.tagName;
   if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;

@@ -23,7 +23,11 @@ body {
   margin-right: 6px; white-space: nowrap;
 }
 .toolbar-hint {
-  margin-left: auto; font-size: 11px; color: #484f58; white-space: nowrap;
+  margin-left: 8px; font-size: 11px; color: #484f58; white-space: nowrap;
+}
+.toolbar-saved {
+  margin-left: auto; font-size: 11px; color: #6e7681; white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 .sep { width: 1px; height: 26px; background: #30363d; margin: 0 2px; }
 

@@ -6,6 +6,7 @@ import { state } from './state.js';
 import { render } from './render.js';
 import { $, COLORS, linkIcon, linkDefault } from './utils.js';
 import { removeLink } from './nodes.js';
+import { doDownload, copyJsonToClipboard, defaultFilename } from './io.js';
 
 /** 모달 열기 */
 function showModal() {
@@ -96,6 +97,36 @@ function updateLinkPlaceholder() {
   $('lk-url').placeholder = placeholders[$('lk-type').value];
 }
 
+/** 저장 모달 열기 (다른 이름으로 저장) */
+export function openSaveModal() {
+  state.modalKind = 'save';
+  $('modal-title').textContent = '💾 다른 이름으로 저장';
+
+  $('modal-body').innerHTML = `
+    <div class="fg">
+      <label class="fl">파일 이름</label>
+      <input class="fi" id="sv-name" type="text" value="${defaultFilename()}" />
+    </div>
+    <div class="fg">
+      <label class="fl">형식</label>
+      <select class="fi" id="sv-format">
+        <option value="download">📥 JSON 파일 다운로드 (.json)</option>
+        <option value="clipboard">📋 JSON 클립보드에 복사</option>
+      </select>
+    </div>
+    <div class="fg" style="font-size:11px; color:#6e7681; line-height:1.6;">
+      💡 로컬스토리지에 자동 저장됩니다. 팀 공유는 JSON을 구글 드라이브에 업로드하세요.
+    </div>
+  `;
+
+  showModal();
+  // 파일명 전체 선택
+  setTimeout(() => {
+    const el = $('sv-name');
+    if (el) { el.focus(); el.select(); }
+  }, 30);
+}
+
 /**
  * 색상 변경 모달 열기
  * @param {string} nodeId
@@ -150,5 +181,18 @@ export function handleModalOK() {
     }
     closeModal();
     render();
+
+  } else if (state.modalKind === 'save') {
+    const name   = $('sv-name').value.trim();
+    const format = $('sv-format').value;
+    if (format === 'clipboard') {
+      copyJsonToClipboard().then((ok) => {
+        if (ok) alert('JSON이 클립보드에 복사되었습니다.');
+        else    alert('클립보드 복사에 실패했습니다.');
+      });
+    } else {
+      doDownload(name);
+    }
+    closeModal();
   }
 }

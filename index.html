@@ -15,12 +15,13 @@
     <button class="btn btn-red"   id="btn-add">＋ 노드 추가 <small>(Tab)</small></button>
     <button class="btn btn-blue"  id="btn-link">🔗 링크 추가</button>
     <div class="sep"></div>
-    <button class="btn btn-ghost" id="btn-export">💾 내보내기</button>
+    <button class="btn btn-ghost" id="btn-export">💾 저장 <small>(Ctrl+S)</small></button>
     <button class="btn btn-ghost" id="btn-import">📂 불러오기</button>
     <input type="file" id="file-in" accept=".json" style="display:none" />
     <div class="sep"></div>
     <button class="btn btn-ghost" id="btn-reset">⌖ 화면 맞춤</button>
-    <span class="toolbar-hint">💡 JSON 내보내기 → 구글 드라이브 저장 → 팀과 공유</span>
+    <span id="last-saved" class="toolbar-saved"></span>
+    <span class="toolbar-hint">💡 자동저장됨 · 팀 공유는 JSON 내보내기로</span>
   </div>
 
   <!-- ── 캔버스 ── -->
@@ -46,11 +47,12 @@
     <div class="ctx-item" id="ctxbg-add">➕ 노드 추가</div>
     <div class="ctx-item" id="ctxbg-fit">⌖ 화면 맞춤</div>
     <div class="ctx-sep"></div>
-    <div class="ctx-item" id="ctxbg-export">💾 내보내기</div>
+    <div class="ctx-item" id="ctxbg-export">💾 저장 (Ctrl+S)</div>
     <div class="ctx-item" id="ctxbg-import">📂 불러오기</div>
     <div class="ctx-sep"></div>
     <div class="ctx-item danger" id="ctxbg-cancel-rel" style="display:none">✕ 관계선 그리기 취소</div>
     <div class="ctx-item danger" id="ctxbg-del-rel" style="display:none">🗑️ 선택한 관계선 삭제 (Del)</div>
+    <div class="ctx-item danger" id="ctxbg-clear">🗑️ 모두 지우고 처음 상태로</div>
   </div>
 
   <!-- ── 모달 ── -->

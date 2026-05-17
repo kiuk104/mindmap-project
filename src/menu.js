@@ -5,10 +5,10 @@
 import { state } from './state.js';
 import { render } from './render.js';
 import { addChild, deleteNode, startEdit } from './nodes.js';
-import { openLinkModal, openColorModal } from './modal.js';
+import { openLinkModal, openColorModal, openSaveModal } from './modal.js';
 import { resetView } from './canvas.js';
-import { doExport } from './io.js';
-import { $ } from './utils.js';
+import { clearLocal } from './io.js';
+import { $, uid, makeNode } from './utils.js';
 
 /**
  * 노드 우클릭 메뉴 표시
@@ -127,7 +127,7 @@ export function initContextMenu() {
   });
   $('ctxbg-export').addEventListener('click', () => {
     hideBgMenu();
-    doExport();
+    openSaveModal();
   });
   $('ctxbg-import').addEventListener('click', () => {
     hideBgMenu();
@@ -145,5 +145,35 @@ export function initContextMenu() {
     state.relations = state.relations.filter((r) => r.id !== state.selectedRelationId);
     state.selectedRelationId = null;
     render();
+  });
+
+  $('ctxbg-clear').addEventListener('click', () => {
+    hideBgMenu();
+    if (!confirm('현재 마인드맵을 모두 지우고 처음 상태로 되돌릴까요?\n(자동저장 데이터도 삭제됩니다)')) return;
+
+    state.nodes              = {};
+    state.relations          = [];
+    state.selectedId         = null;
+    state.selectedRelationId = null;
+    state.relationDraft      = null;
+    document.body.classList.remove('relation-drafting');
+    clearLocal();
+
+    // 샘플 다시 생성
+    const rootId = uid();
+    state.nodes[rootId] = makeNode(rootId, '중심 주제', 2500, 2500, null, '#f85149');
+    const samples = [
+      { text: '📄 자료 링크',   dx: -230, dy: -160, color: '#1f6feb' },
+      { text: '▶️ 영상 자료',   dx:  230, dy: -160, color: '#f85149' },
+      { text: '🖼️ 이미지 참고', dx: -230, dy:  160, color: '#8957e5' },
+      { text: '💡 아이디어',    dx:  230, dy:  160, color: '#3fb950' },
+    ];
+    samples.forEach(({ text, dx, dy, color }) => {
+      const id = uid();
+      state.nodes[id] = makeNode(id, text, 2500 + dx, 2500 + dy, rootId, color);
+    });
+
+    render();
+    resetView();
   });
 }
