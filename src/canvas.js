@@ -10,7 +10,7 @@
 
 import { state } from './state.js';
 import { render, updateLines } from './render.js';
-import { $, setNodeSelection, clearNodeSelection, setRelationSelection, clearRelationSelection } from './utils.js';
+import { $, setNodeSelection, clearNodeSelection, setRelationSelection, clearRelationSelection, getRelationControls } from './utils.js';
 
 // ── Pan/드래그 상태 ──
 let panning = false;
@@ -32,6 +32,7 @@ let selBoxClientStart = { x: 0, y: 0 };  // 화면 좌표
 // ── 관계선 곡률 핸들 드래그 상태 ──
 let relHandleDragging = false;
 let relHandleId       = null;
+let relHandleKey      = null;  // 'c1' | 'c2'
 
 // ── 핀치 줌 상태 ──
 let pinching      = false;
@@ -135,15 +136,36 @@ function checkLongPressMove(e) {
   if (dx > LONG_PRESS_THRESHOLD || dy > LONG_PRESS_THRESHOLD) cancelLongPress();
 }
 
-/** 관계선 곡률 핸들 마우스다운 — 드래그 시작 */
-export function onRelationHandleDown(e, rid) {
+/**
+ * 관계선 곡률 핸들 마우스다운 — 드래그 시작
+ * @param {string} rid       관계선 ID
+ * @param {'c1'|'c2'} handle 어느 쪽 핸들인지
+ */
+export function onRelationHandleDown(e, rid, handle) {
   if (e.button !== 0) return;
   panning = false;
   dragging = false;
   dragId = null;
   cancelLongPress();
+
+  // 첫 드래그라면 양쪽 핸들 위치를 현재 렌더 좌표로 'materialize'
+  const r = state.relations.find((rr) => rr.id === rid);
+  if (r && !r.handles) {
+    const a = state.nodes[r.fromId];
+    const b = state.nodes[r.toId];
+    if (a && b) {
+      const { c1, c2 } = getRelationControls(r, a, b);
+      r.handles = {
+        c1: { dx: c1.x - a.x, dy: c1.y - a.y },
+        c2: { dx: c2.x - b.x, dy: c2.y - b.y },
+      };
+      delete r.curveOffset; // legacy 데이터 정리
+    }
+  }
+
   relHandleDragging = true;
-  relHandleId = rid;
+  relHandleId  = rid;
+  relHandleKey = handle || 'c1';
   setRelationSelection(state, [rid]);
   render();
 }
@@ -356,9 +378,12 @@ export function initCanvas() {
         const b = state.nodes[r.toId];
         if (a && b) {
           const cp = canvasCoord(e.clientX, e.clientY);
-          const midX = (a.x + b.x) / 2;
-          const midY = (a.y + b.y) / 2;
-          r.curveOffset = { dx: cp.x - midX, dy: cp.y - midY };
+          if (!r.handles) r.handles = { c1: { dx: 0, dy: 0 }, c2: { dx: 0, dy: 0 } };
+          if (relHandleKey === 'c2') {
+            r.handles.c2 = { dx: cp.x - b.x, dy: cp.y - b.y };
+          } else {
+            r.handles.c1 = { dx: cp.x - a.x, dy: cp.y - a.y };
+          }
           updateLines();
         }
       }
@@ -370,6 +395,7 @@ export function initCanvas() {
     if (relHandleDragging) {
       relHandleDragging = false;
       relHandleId = null;
+      relHandleKey = null;
       render();
     }
     if (dragging && multiDragOffsets) {

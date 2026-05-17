@@ -130,6 +130,49 @@ export const DASH_PATTERNS = {
   dotted: '1.5 4',
 };
 
+/**
+ * 관계선의 cubic Bezier 제어점 두 개 계산.
+ *
+ *   - r.handles.c1, c2 가 있으면 그 값을 사용 (사용자 조정 결과)
+ *   - 옛 r.curveOffset (quadratic) 만 있으면 cubic 두 점으로 변환
+ *   - 둘 다 없으면 기본 수직 오프셋
+ *
+ * @param {{handles?, curveOffset?}} r
+ * @param {{x:number,y:number}} a 시작 노드
+ * @param {{x:number,y:number}} b 끝 노드
+ * @returns {{c1:{x,y}, c2:{x,y}}}
+ */
+export function getRelationControls(r, a, b) {
+  // 사용자 조정 — 두 핸들 모두 있을 때
+  if (r?.handles?.c1 && r?.handles?.c2) {
+    return {
+      c1: { x: a.x + r.handles.c1.dx, y: a.y + r.handles.c1.dy },
+      c2: { x: b.x + r.handles.c2.dx, y: b.y + r.handles.c2.dy },
+    };
+  }
+
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const len = Math.sqrt(dx * dx + dy * dy) || 1;
+  const curve = Math.min(80, len * 0.25);
+  const px = -dy / len * curve;
+  const py =  dx / len * curve;
+
+  // 옛 quadratic 데이터 변환 — curveOffset(중점 기준) 을 양쪽 control에 그대로 적용
+  if (r?.curveOffset && typeof r.curveOffset.dx === 'number') {
+    return {
+      c1: { x: a.x + dx / 3   + r.curveOffset.dx, y: a.y + dy / 3   + r.curveOffset.dy },
+      c2: { x: a.x + 2*dx / 3 + r.curveOffset.dx, y: a.y + 2*dy / 3 + r.curveOffset.dy },
+    };
+  }
+
+  // 기본: 1/3·2/3 지점에 수직 오프셋
+  return {
+    c1: { x: a.x + dx / 3   + px, y: a.y + dy / 3   + py },
+    c2: { x: a.x + 2*dx / 3 + px, y: a.y + 2*dy / 3 + py },
+  };
+}
+
 /** 노드 텍스트 크기 매핑 (px) */
 export const NODE_SIZES = { small: '11px', medium: '13px', large: '17px' };
 /** 노드 모양 → border-radius */

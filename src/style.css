@@ -190,7 +190,12 @@ body.style-panel-open #canvas-wrap { right: 320px; }
 .node.root     { font-size: 15px; font-weight: 700; min-width: 140px; border-radius: 18px; }
 .node.selected {
   border-color: var(--accent) !important;
-  box-shadow: 0 0 0 3px rgba(248,81,73,0.35), var(--shadow-node) !important;
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  box-shadow:
+    0 0 0 3px rgba(248,81,73,0.45),
+    0 0 16px 4px rgba(248,81,73,0.3),
+    var(--shadow-node) !important;
 }
 
 /* ── 검색 일치 노드 ── */
@@ -325,6 +330,21 @@ select.fi   { cursor: pointer; }
   transition: opacity 0.15s;
 }
 #svg-layer .rel-path:hover { opacity: 0.75; }
+
+/* 선택된 관계선의 외곽 글로우 (halo) — 본선 뒤에 그려짐 */
+#svg-layer .rel-halo {
+  fill: none;
+  pointer-events: none;
+}
+
+/* 곡률 핸들 가이드 라인 (제어점과 끝점을 잇는 보조선) */
+#svg-layer .rel-guide {
+  stroke: var(--accent);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  opacity: 0.5;
+  pointer-events: none;
+}
 
 /* ── 관계선 라벨 ── */
 #svg-layer .rel-label {

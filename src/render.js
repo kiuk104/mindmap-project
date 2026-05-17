@@ -6,7 +6,7 @@
  */
 
 import { state } from './state.js';
-import { $, linkIcon, linkDefault, lighten, LINE_WIDTHS, NODE_SIZES, NODE_SHAPES, NODE_BORDERS, DASH_PATTERNS } from './utils.js';
+import { $, linkIcon, linkDefault, lighten, LINE_WIDTHS, NODE_SIZES, NODE_SHAPES, NODE_BORDERS, DASH_PATTERNS, getRelationControls } from './utils.js';
 
 // main.js가 주입할 핸들러 (기본값은 빈 함수)
 const H = {
@@ -102,27 +102,14 @@ function buildSvgMarkup() {
     relSelSet.add(state.selectedRelationId);
   }
 
-  // 관계선 (점선 + 곡선 + 화살표 + 라벨 + 곡률 핸들)
+  // 관계선 (cubic Bezier 곡선 + 화살표 + 라벨 + 양쪽 핸들 + 선택 halo)
   state.relations.forEach((r) => {
     const a = state.nodes[r.fromId];
     const b = state.nodes[r.toId];
     if (!a || !b) return;
 
-    // 제어점 위치: 사용자가 조정한 curveOffset이 있으면 사용, 없으면 자동 계산
-    const midX = (a.x + b.x) / 2;
-    const midY = (a.y + b.y) / 2;
-    let cx, cy;
-    if (r.curveOffset && typeof r.curveOffset.dx === 'number') {
-      cx = midX + r.curveOffset.dx;
-      cy = midY + r.curveOffset.dy;
-    } else {
-      const dx = b.x - a.x;
-      const dy = b.y - a.y;
-      const len = Math.sqrt(dx * dx + dy * dy) || 1;
-      const curve = Math.min(80, len * 0.25);
-      cx = midX + (-dy / len) * curve;
-      cy = midY + ( dx / len) * curve;
-    }
+    const { c1, c2 } = getRelationControls(r, a, b);
+    const pathD = `M ${a.x} ${a.y} C ${c1.x} ${c1.y} ${c2.x} ${c2.y} ${b.x} ${b.y}`;
 
     const sel = relSelSet.has(r.id);
     const rs = r.style ?? {};
@@ -149,23 +136,39 @@ function buildSvgMarkup() {
 
     const css = `stroke:${strokeColor};stroke-width:${strokeWidth};stroke-dasharray:${dashAttr || 'none'};`;
 
+    // ── 선택 시 halo (본선 뒤에 두꺼운 반투명 accent path) ──
+    if (sel) {
+      const haloW = Math.max(strokeWidth + 6, 8);
+      h += `<path class="rel-halo"
+        d="${pathD}" fill="none"
+        style="stroke:var(--accent);stroke-width:${haloW};opacity:0.25;stroke-linecap:round;"
+        pointer-events="none"/>`;
+    }
+
     h += `<path class="rel-path${sel ? ' selected' : ''}" data-rid="${r.id}"
-      d="M ${a.x} ${a.y} Q ${cx} ${cy} ${b.x} ${b.y}"
+      d="${pathD}"
       style="${css}"
       marker-start="${markerStart}" marker-end="${markerEnd}"/>`;
 
-    // 라벨 (Bezier 곡선의 t=0.5 위치)
+    // 라벨 (cubic Bezier의 t=0.5 위치: (a + 3c1 + 3c2 + b) / 8)
     if (r.label) {
-      const lx = 0.25 * a.x + 0.5 * cx + 0.25 * b.x;
-      const ly = 0.25 * a.y + 0.5 * cy + 0.25 * b.y;
+      const lx = (a.x + 3 * c1.x + 3 * c2.x + b.x) / 8;
+      const ly = (a.y + 3 * c1.y + 3 * c2.y + b.y) / 8;
       h += `<text class="rel-label" data-rid="${r.id}"
         x="${lx}" y="${ly - 8}" text-anchor="middle">${escapeXml(r.label)}</text>`;
     }
 
-    // 곡률 조정 핸들 — 정확히 1개만 선택됐을 때만 표시 (다중 선택 시엔 숨김)
+    // 곡률 조정 핸들 두 개 — 단일 선택일 때만 표시
     if (sel && relSelSet.size === 1) {
-      h += `<circle class="rel-handle" data-rid="${r.id}"
-        cx="${cx}" cy="${cy}" r="6"/>`;
+      // 가이드 라인 (control point와 endpoint 연결, 시각적 단서)
+      h += `<line class="rel-guide" x1="${a.x}" y1="${a.y}" x2="${c1.x}" y2="${c1.y}"
+        pointer-events="none"/>`;
+      h += `<line class="rel-guide" x1="${b.x}" y1="${b.y}" x2="${c2.x}" y2="${c2.y}"
+        pointer-events="none"/>`;
+      h += `<circle class="rel-handle" data-rid="${r.id}" data-handle="c1"
+        cx="${c1.x}" cy="${c1.y}" r="6"/>`;
+      h += `<circle class="rel-handle" data-rid="${r.id}" data-handle="c2"
+        cx="${c2.x}" cy="${c2.y}" r="6"/>`;
     }
   });
 
@@ -314,7 +317,7 @@ function bindRelationHandlers(svg) {
   svg.querySelectorAll('.rel-handle').forEach((c) => {
     c.addEventListener('pointerdown', (e) => {
       e.stopPropagation();
-      H.onRelationHandleDown(e, c.getAttribute('data-rid'));
+      H.onRelationHandleDown(e, c.getAttribute('data-rid'), c.getAttribute('data-handle'));
     });
   });
 }
