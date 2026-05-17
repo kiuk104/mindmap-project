@@ -387,3 +387,30 @@ body.relation-drafting .node { cursor: crosshair !important; }
 }
 .cdot:hover { transform: scale(1.15); }
 .cdot.sel   { border-color: var(--sel-ring); transform: scale(1.1); }
+
+/* ── 아이콘 선택 그리드 ── */
+.icon-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 6px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.icon-pick {
+  display: flex; align-items: center; justify-content: center;
+  width: 100%; aspect-ratio: 1 / 1;
+  font-size: 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  background: var(--bg-input);
+  transition: background .15s, border-color .15s, transform .1s;
+  user-select: none;
+}
+.icon-pick:hover { background: var(--bg-hover); transform: scale(1.08); }
+.icon-pick.sel   { border-color: var(--accent); background: var(--bg-hover); }
+
+@media (max-width: 768px) {
+  .icon-grid { grid-template-columns: repeat(6, 1fr); }
+  .icon-pick { font-size: 22px; }
+}

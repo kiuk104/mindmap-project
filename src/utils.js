@@ -53,5 +53,5 @@ export function ytThumb(url) {
 
 /** 새 노드 객체 생성 */
 export function makeNode(id, text, x, y, parentId, color) {
-  return { id, text, x, y, parentId, color: color ?? '#1f6feb', links: [] };
+  return { id, text, x, y, parentId, color: color ?? '#1f6feb', links: [], icon: '' };
 }

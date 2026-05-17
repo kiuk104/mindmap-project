@@ -214,6 +214,52 @@ function formatTime(iso) {
   }
 }
 
+/** 자주 쓰는 마인드맵 아이콘 셋 */
+const NODE_ICONS = [
+  '⭐', '🔥', '💡', '🎯', '🚀', '⚡', '🌟', '✨',
+  '✅', '❌', '⚠️', '⏳', '🔄', '❓', '🤔', '🔔',
+  '📄', '📊', '📈', '📌', '🔖', '📁', '🏷️', '🔍',
+  '💻', '🌐', '📱', '⚙️', '🔧', '🛠️',
+  '👤', '👥', '💬', '📞', '📧',
+  '📅', '⏰', '✏️', '📝', '🎨',
+  '🎓', '🏠', '💰', '🎁',
+];
+
+/**
+ * 노드 아이콘 선택 모달
+ * @param {string} nodeId
+ */
+export function openIconModal(nodeId) {
+  if (!nodeId) { alert('노드를 먼저 선택하세요.'); return; }
+  state.ctxTargetId = nodeId;
+  state.modalKind   = 'icon';
+  $('modal-title').textContent = '🙂 노드 아이콘 선택';
+
+  const current = state.nodes[nodeId]?.icon ?? '';
+  $('modal-body').innerHTML = `
+    <div class="fg" style="font-size:11px; color:var(--text-dim);">
+      클릭하면 즉시 적용됩니다.
+    </div>
+    <div class="icon-grid">
+      <span class="icon-pick ${!current ? 'sel' : ''}" data-icon="" title="아이콘 제거">🚫</span>
+      ${NODE_ICONS.map((i) => `
+        <span class="icon-pick ${i === current ? 'sel' : ''}" data-icon="${i}">${i}</span>
+      `).join('')}
+    </div>
+  `;
+
+  $('modal-body').querySelectorAll('.icon-pick').forEach((el) => {
+    el.addEventListener('click', () => {
+      const node = state.nodes[state.ctxTargetId];
+      if (node) node.icon = el.dataset.icon;
+      closeModal();
+      render();
+    });
+  });
+
+  showModal();
+}
+
 /**
  * 색상 변경 모달 열기
  * @param {string} nodeId

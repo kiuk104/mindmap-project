@@ -150,10 +150,10 @@ export function render() {
     el.style.background = n.color;
     if (!isRoot) el.style.borderColor = lighten(n.color, 30);
 
-    // 텍스트
+    // 텍스트 (아이콘이 있으면 앞에 표시)
     const textDiv = document.createElement('div');
     textDiv.className   = 'node-text';
-    textDiv.textContent = n.text;
+    textDiv.textContent = (n.icon ? n.icon + ' ' : '') + (n.text ?? '');
     el.appendChild(textDiv);
 
     // 링크 배지
