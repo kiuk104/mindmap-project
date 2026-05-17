@@ -6,7 +6,7 @@
  */
 
 import { state } from './state.js';
-import { $, linkIcon, linkDefault, lighten, LINE_WIDTHS, NODE_SIZES, NODE_SHAPES, NODE_BORDERS } from './utils.js';
+import { $, linkIcon, linkDefault, lighten, LINE_WIDTHS, NODE_SIZES, NODE_SHAPES, NODE_BORDERS, DASH_PATTERNS } from './utils.js';
 
 // main.js가 주입할 핸들러 (기본값은 빈 함수)
 const H = {
@@ -46,13 +46,22 @@ function escapeXml(s) {
 
 /**
  * 부모-자식 연결선 한 줄을 SVG 마크업으로 반환
- * 스타일 옵션(state.style)에 따라 두께·색을 적용
+ * 우선순위: n.branchStyle 오버라이드 > state.style.coloredBranch > 기본 CSS 변수
  */
 function renderParentLine(p, n, style) {
-  const sw = LINE_WIDTHS[state.style?.lineWidth] ?? LINE_WIDTHS.normal;
-  const customStroke = state.style?.coloredBranch && n.color ? n.color : null;
-  // 인라인 속성으로 stroke 덮어쓰기 (없으면 CSS 변수 사용)
-  const attrs = `stroke-width="${sw}"${customStroke ? ` stroke="${customStroke}"` : ''}`;
+  const bs = n.branchStyle ?? {};
+
+  const defaultWidth = LINE_WIDTHS[state.style?.lineWidth] ?? LINE_WIDTHS.normal;
+  const finalWidth   = bs.width || defaultWidth;
+
+  const themeStroke  = state.style?.coloredBranch && n.color ? n.color : null;
+  const finalStroke  = bs.color || themeStroke;
+
+  const dashPattern  = DASH_PATTERNS[bs.dash] ?? '';
+
+  let attrs = `stroke-width="${finalWidth}"`;
+  if (finalStroke) attrs += ` stroke="${finalStroke}"`;
+  if (dashPattern) attrs += ` stroke-dasharray="${dashPattern}"`;
 
   if (style === 'curved') {
     const midX = (p.x + n.x) / 2;
@@ -112,11 +121,27 @@ function buildSvgMarkup() {
     }
 
     const sel = r.id === state.selectedRelationId;
-    const marker = sel ? 'url(#rel-arrow-sel)' : 'url(#rel-arrow)';
+    const rs = r.style ?? {};
+
+    // 화살표 방향
+    const arrow = rs.arrow ?? 'end';
+    const markerRef = sel ? 'url(#rel-arrow-sel)' : 'url(#rel-arrow)';
+    const markerEnd   = (arrow === 'end'   || arrow === 'both') ? markerRef : 'none';
+    const markerStart = (arrow === 'start' || arrow === 'both') ? markerRef : 'none';
+
+    // 점선 패턴 (기본은 dashed)
+    const dashKey  = rs.dash ?? 'dashed';
+    const dashAttr = DASH_PATTERNS[dashKey] ?? DASH_PATTERNS.dashed;
+
+    // 색상·두께 오버라이드
+    let pathAttrs = '';
+    if (rs.color) pathAttrs += ` stroke="${rs.color}"`;
+    if (rs.width) pathAttrs += ` stroke-width="${rs.width}"`;
+    pathAttrs += ` stroke-dasharray="${dashAttr}"`;
 
     h += `<path class="rel-path${sel ? ' selected' : ''}" data-rid="${r.id}"
       d="M ${a.x} ${a.y} Q ${cx} ${cy} ${b.x} ${b.y}"
-      marker-end="${marker}"/>`;
+      marker-start="${markerStart}" marker-end="${markerEnd}"${pathAttrs}/>`;
 
     // 라벨 (Bezier 곡선의 t=0.5 위치)
     if (r.label) {

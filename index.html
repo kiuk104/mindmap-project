@@ -151,6 +151,77 @@
           </select>
         </div>
 
+        <div class="sp-sub">
+          <div class="sp-mini-label">부모 연결선</div>
+          <div class="sp-row" style="margin-bottom:6px;">
+            <input type="color" id="nd-branch-color" class="sp-color-input" />
+            <button class="btn btn-ghost sp-row-btn" id="nd-branch-color-reset">기본</button>
+          </div>
+          <select class="fi" id="nd-branch-dash" style="margin-bottom:6px;">
+            <option value="">기본 (실선)</option>
+            <option value="solid">실선</option>
+            <option value="dashed">점선</option>
+            <option value="dotted">점</option>
+          </select>
+          <select class="fi" id="nd-branch-width">
+            <option value="">기본 두께</option>
+            <option value="1">1 (가늘게)</option>
+            <option value="2">2 (보통)</option>
+            <option value="3">3 (조금 굵게)</option>
+            <option value="5">5 (굵게)</option>
+          </select>
+        </div>
+
+        <hr class="sp-divider" />
+      </section>
+
+      <!-- 선택 관계선 스타일 -->
+      <section class="sp-section" id="sp-relation-section" hidden>
+        <div class="sp-section-title">📎 선택 관계선 스타일</div>
+
+        <div class="sp-sub">
+          <div class="sp-mini-label">색상</div>
+          <div class="sp-row">
+            <input type="color" id="rel-color" class="sp-color-input" />
+            <button class="btn btn-ghost sp-row-btn" id="rel-color-reset">기본</button>
+          </div>
+        </div>
+
+        <div class="sp-sub">
+          <div class="sp-mini-label">선 모양</div>
+          <select class="fi" id="rel-dash">
+            <option value="dashed">점선 (기본)</option>
+            <option value="solid">실선</option>
+            <option value="dotted">점</option>
+          </select>
+        </div>
+
+        <div class="sp-sub">
+          <div class="sp-mini-label">두께</div>
+          <select class="fi" id="rel-width">
+            <option value="">기본</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="5">5</option>
+          </select>
+        </div>
+
+        <div class="sp-sub">
+          <div class="sp-mini-label">화살표</div>
+          <select class="fi" id="rel-arrow">
+            <option value="end">→ 끝만 (기본)</option>
+            <option value="start">← 시작만</option>
+            <option value="both">↔ 양쪽</option>
+            <option value="none">∅ 없음</option>
+          </select>
+        </div>
+
+        <div class="sp-sub">
+          <div class="sp-mini-label">라벨</div>
+          <input class="fi" type="text" id="rel-label" placeholder="예: 참고, 의존, 유사 …" />
+        </div>
+
         <hr class="sp-divider" />
       </section>
 

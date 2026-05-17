@@ -115,8 +115,20 @@ export function makeNode(id, text, x, y, parentId, color) {
     },
     shape: 'rounded',     // 'rounded' | 'sharp' | 'pill'
     borderWidth: 'thin',  // 'none' | 'thin' | 'normal' | 'thick'
+    branchStyle: {
+      color: null,        // 부모-이 노드 연결선 색 오버라이드. null = 기본/coloredBranch 따름
+      width: null,        // 두께 오버라이드. null = 전역 lineWidth
+      dash:  null,        // 'solid' | 'dashed' | 'dotted'. null = 실선
+    },
   };
 }
+
+/** 점선 패턴 (stroke-dasharray) */
+export const DASH_PATTERNS = {
+  solid:  '',
+  dashed: '6 4',
+  dotted: '1.5 4',
+};
 
 /** 노드 텍스트 크기 매핑 (px) */
 export const NODE_SIZES = { small: '11px', medium: '13px', large: '17px' };
