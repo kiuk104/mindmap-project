@@ -44,6 +44,8 @@ body {
 .btn-blue:hover  { background: #1158c7; }
 .btn-ghost { background: transparent; color: #8b949e; border: 1px solid #30363d; }
 .btn-ghost:hover { background: #21262d; color: #e6edf3; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn:disabled:hover { background: inherit; }
 
 /* ── 검색 박스 ── */
 .search-box {
@@ -169,6 +171,21 @@ body {
 }
 .fi:focus   { border-color: #f85149; }
 select.fi   { cursor: pointer; }
+
+/* ── 드라이브 파일 목록 ── */
+.drive-list {
+  max-height: 360px; overflow-y: auto;
+  border: 1px solid #30363d; border-radius: 8px;
+}
+.drive-item {
+  padding: 10px 14px; cursor: pointer;
+  border-bottom: 1px solid #21262d;
+  transition: background 0.15s;
+}
+.drive-item:last-child { border-bottom: none; }
+.drive-item:hover { background: #21262d; }
+.drive-name { font-size: 13px; color: #e6edf3; margin-bottom: 3px; }
+.drive-meta { font-size: 11px; color: #6e7681; }
 
 /* ── 미리보기 팝업 ── */
 #preview-pop {

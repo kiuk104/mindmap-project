@@ -20,12 +20,35 @@ let lastSavedTs = 0;
 const listeners = new Set();
 
 /** 현재 상태를 JSON 문자열로 직렬화 */
-function serialize() {
+export function serialize() {
   return JSON.stringify({
     nodes: state.nodes,
     relations: state.relations ?? [],
     version: 3,
   }, null, 2);
+}
+
+/**
+ * JSON 문자열로부터 상태 복원
+ * @param {string} jsonStr
+ * @returns {boolean} 성공 여부
+ */
+export function loadFromString(jsonStr) {
+  try {
+    const data = JSON.parse(jsonStr);
+    if (!data.nodes) throw new Error('nodes 없음');
+    state.nodes              = data.nodes;
+    state.relations          = Array.isArray(data.relations) ? data.relations : [];
+    state.selectedId         = null;
+    state.selectedRelationId = null;
+    state.relationDraft      = null;
+    document.body.classList.remove('relation-drafting');
+    render();
+    resetView();
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /** localStorage 변경 알림 구독 */
@@ -132,19 +155,7 @@ export function doImport(event) {
 
   const reader = new FileReader();
   reader.onload = (e) => {
-    try {
-      const data = JSON.parse(e.target.result);
-      if (!data.nodes) throw new Error('nodes 없음');
-
-      state.nodes              = data.nodes;
-      state.relations          = Array.isArray(data.relations) ? data.relations : [];
-      state.selectedId         = null;
-      state.selectedRelationId = null;
-      state.relationDraft      = null;
-      document.body.classList.remove('relation-drafting');
-      render();
-      resetView();
-    } catch {
+    if (!loadFromString(e.target.result)) {
       alert('올바른 마인드맵 JSON 파일이 아닙니다.');
     }
   };

@@ -15,7 +15,8 @@ import { showPreview, hidePreview }        from './preview.js';
 import { addChild, deleteNode, startEdit, removeLink } from './nodes.js';
 import { initCanvas, view, applyTransform, resetView } from './canvas.js';
 import { onNodeMouseDown }                 from './canvas.js';
-import { openLinkModal, openColorModal, openSaveModal, closeModal, handleModalOK } from './modal.js';
+import { openLinkModal, openColorModal, openSaveModal, openDriveLoadModal, closeModal, handleModalOK } from './modal.js';
+import * as drive                            from './drive.js';
 import { showContextMenu, hideContextMenu, hideAllMenus, showBgMenu, initContextMenu } from './menu.js';
 import { doImport, schedulePersist, restoreLocal, onSaveStateChange } from './io.js';
 import { runSearch, gotoHit, clearSearch }    from './search.js';
@@ -99,6 +100,39 @@ $('btn-export').addEventListener('click', openSaveModal);
 $('btn-import').addEventListener('click', () => $('file-in').click());
 $('file-in').addEventListener('change',   doImport);
 $('btn-reset').addEventListener('click',  resetView);
+
+// ── Drive 연결 버튼 ──
+$('btn-drive').addEventListener('click', () => {
+  if (!drive.isAvailable()) {
+    alert('Drive 연동이 설정되지 않았습니다.\nDRIVE_SETUP.md를 참고해 OAuth 클라이언트 ID를 설정해주세요.');
+    return;
+  }
+  if (drive.isSignedIn()) {
+    if (confirm(`현재 ${drive.getEmail()}로 연결됨.\n연결을 해제할까요?`)) drive.signOut();
+  } else {
+    drive.signIn();
+  }
+});
+$('btn-drive-load').addEventListener('click', openDriveLoadModal);
+
+// Drive 인증 상태에 따라 버튼 라벨 갱신
+drive.onAuthChange((s) => {
+  const btn = $('btn-drive');
+  if (!btn) return;
+  if (!s.available) {
+    btn.textContent = '☁️ Drive 설정 필요';
+    btn.title = 'DRIVE_SETUP.md 참조';
+  } else if (s.signedIn) {
+    btn.textContent = '✅ ' + (s.email ?? 'Drive 연결됨');
+    btn.title = '클릭하면 연결 해제';
+  } else {
+    btn.textContent = '☁️ Drive 연결';
+    btn.title = '구글 계정으로 로그인';
+  }
+});
+
+// Drive 초기화 (스크립트 로드)는 비동기로 진행
+drive.initDrive().catch((e) => console.warn('Drive init 실패:', e));
 
 // ── 검색 input ──
 $('search-input').addEventListener('input', (e) => runSearch(e.target.value));

@@ -6,7 +6,8 @@ import { state } from './state.js';
 import { render } from './render.js';
 import { $, COLORS, linkIcon, linkDefault } from './utils.js';
 import { removeLink } from './nodes.js';
-import { doDownload, copyJsonToClipboard, defaultFilename } from './io.js';
+import { doDownload, copyJsonToClipboard, defaultFilename, serialize, loadFromString } from './io.js';
+import * as drive from './drive.js';
 
 /** 모달 열기 */
 function showModal() {
@@ -102,29 +103,115 @@ export function openSaveModal() {
   state.modalKind = 'save';
   $('modal-title').textContent = '💾 다른 이름으로 저장';
 
+  const driveOptionEnabled = drive.isAvailable() && drive.isSignedIn();
+  const driveLabel = driveOptionEnabled
+    ? `☁️ 구글 드라이브 (${drive.getEmail() ?? '연결됨'})`
+    : (drive.isAvailable()
+        ? '☁️ 구글 드라이브 (먼저 연결 필요)'
+        : '☁️ 구글 드라이브 (DRIVE_SETUP.md 참고)');
+
   $('modal-body').innerHTML = `
     <div class="fg">
       <label class="fl">파일 이름</label>
       <input class="fi" id="sv-name" type="text" value="${defaultFilename()}" />
     </div>
     <div class="fg">
-      <label class="fl">형식</label>
+      <label class="fl">위치</label>
       <select class="fi" id="sv-format">
-        <option value="download">📥 JSON 파일 다운로드 (.json)</option>
-        <option value="clipboard">📋 JSON 클립보드에 복사</option>
+        <option value="download">📥 내 컴퓨터로 다운로드 (.json)</option>
+        <option value="clipboard">📋 클립보드에 복사</option>
+        <option value="drive" ${driveOptionEnabled ? '' : 'disabled'}>${driveLabel}</option>
       </select>
     </div>
     <div class="fg" style="font-size:11px; color:#6e7681; line-height:1.6;">
-      💡 로컬스토리지에 자동 저장됩니다. 팀 공유는 JSON을 구글 드라이브에 업로드하세요.
+      💡 로컬스토리지에 자동 저장됩니다. 팀 공유는 드라이브 또는 JSON 파일을 사용하세요.
     </div>
   `;
 
   showModal();
-  // 파일명 전체 선택
   setTimeout(() => {
     const el = $('sv-name');
     if (el) { el.focus(); el.select(); }
   }, 30);
+}
+
+/** Drive에서 불러오기 모달 — 파일 목록 표시 */
+export async function openDriveLoadModal() {
+  if (!drive.isAvailable()) {
+    alert('Drive 연동이 설정되지 않았습니다.\nDRIVE_SETUP.md를 참고해 클라이언트 ID를 설정해주세요.');
+    return;
+  }
+  if (!drive.isSignedIn()) {
+    drive.signIn();
+    return;
+  }
+
+  state.modalKind = 'drive-load';
+  $('modal-title').textContent = '☁️ 드라이브에서 불러오기';
+  $('modal-body').innerHTML = `<div style="text-align:center; padding:30px; color:#8b949e;">목록 불러오는 중…</div>`;
+  showModal();
+
+  try {
+    const files = await drive.listMindmaps();
+    if (files.length === 0) {
+      $('modal-body').innerHTML = `
+        <div style="text-align:center; padding:30px; color:#8b949e;">
+          드라이브에 저장된 마인드맵이 없습니다.
+        </div>`;
+      return;
+    }
+
+    $('modal-body').innerHTML = `
+      <div class="fg" style="font-size:11px; color:#8b949e;">
+        ${files.length}개 파일 (최근 수정순)
+      </div>
+      <div class="drive-list">
+        ${files.map((f) => `
+          <div class="drive-item" data-fid="${f.id}">
+            <div class="drive-name">📄 ${escapeHTML(f.name)}</div>
+            <div class="drive-meta">${formatTime(f.modifiedTime)}${f.size ? ' · ' + Math.round(+f.size / 1024) + ' KB' : ''}</div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+
+    $('modal-body').querySelectorAll('.drive-item').forEach((row) => {
+      row.addEventListener('click', async () => {
+        const fid = row.dataset.fid;
+        row.style.opacity = '0.5';
+        try {
+          const content = await drive.loadFromDrive(fid);
+          if (loadFromString(content)) {
+            closeModal();
+          } else {
+            alert('올바른 마인드맵 JSON이 아닙니다.');
+            row.style.opacity = '1';
+          }
+        } catch (e) {
+          alert('드라이브 읽기 실패: ' + e.message);
+          row.style.opacity = '1';
+        }
+      });
+    });
+  } catch (e) {
+    $('modal-body').innerHTML = `
+      <div style="color:#f85149; padding:20px;">목록 불러오기 실패: ${escapeHTML(e.message)}</div>`;
+  }
+}
+
+function escapeHTML(s) {
+  return String(s ?? '').replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[c]));
+}
+
+function formatTime(iso) {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleString('ko-KR', { dateStyle: 'medium', timeStyle: 'short' });
+  } catch {
+    return iso;
+  }
 }
 
 /**
@@ -187,12 +274,29 @@ export function handleModalOK() {
     const format = $('sv-format').value;
     if (format === 'clipboard') {
       copyJsonToClipboard().then((ok) => {
-        if (ok) alert('JSON이 클립보드에 복사되었습니다.');
-        else    alert('클립보드 복사에 실패했습니다.');
+        alert(ok ? 'JSON이 클립보드에 복사되었습니다.' : '클립보드 복사에 실패했습니다.');
       });
+      closeModal();
+    } else if (format === 'drive') {
+      // 드라이브 업로드
+      const okBtn = $('modal-ok');
+      okBtn.disabled = true;
+      okBtn.textContent = '저장 중…';
+      drive.saveToDrive(name, serialize())
+        .then((file) => {
+          alert(`드라이브에 저장되었습니다.\n파일명: ${file.name}`);
+          closeModal();
+        })
+        .catch((e) => {
+          alert('드라이브 저장 실패: ' + e.message);
+        })
+        .finally(() => {
+          okBtn.disabled = false;
+          okBtn.textContent = '확인';
+        });
     } else {
       doDownload(name);
+      closeModal();
     }
-    closeModal();
   }
 }
