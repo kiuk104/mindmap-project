@@ -16,6 +16,7 @@ const H = {
   onLinkBadgeMouseEnter: () => {},
   onLinkBadgeMouseLeave: () => {},
   onLinkDelete:         () => {},
+  onRelationClick:      () => {},
 };
 
 /**
@@ -24,6 +25,58 @@ const H = {
  */
 export function registerHandlers(handlers) {
   Object.assign(H, handlers);
+}
+
+// ── SVG 화살표 마커 + 부모-자식 선 + 관계선 path 빌드 ──
+function buildSvgMarkup() {
+  // 화살표 marker는 항상 포함 (관계선이 참조)
+  let h = `<defs>
+    <marker id="rel-arrow" viewBox="0 0 10 10" refX="9" refY="5"
+      markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#8b949e"/>
+    </marker>
+    <marker id="rel-arrow-sel" viewBox="0 0 10 10" refX="9" refY="5"
+      markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#f85149"/>
+    </marker>
+  </defs>`;
+
+  // 부모-자식 연결선
+  Object.values(state.nodes).forEach((n) => {
+    if (n.parentId && state.nodes[n.parentId]) {
+      const p = state.nodes[n.parentId];
+      h += `<line x1="${p.x}" y1="${p.y}" x2="${n.x}" y2="${n.y}"
+        stroke="#30363d" stroke-width="2.5" stroke-linecap="round"/>`;
+    }
+  });
+
+  // 관계선 (점선 + 곡선 + 화살표)
+  state.relations.forEach((r) => {
+    const a = state.nodes[r.fromId];
+    const b = state.nodes[r.toId];
+    if (!a || !b) return;
+
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const len = Math.sqrt(dx * dx + dy * dy) || 1;
+    // 수직 방향으로 살짝 휜 곡선
+    const curve = Math.min(80, len * 0.25);
+    const mx = (a.x + b.x) / 2 + (-dy / len) * curve;
+    const my = (a.y + b.y) / 2 + ( dx / len) * curve;
+
+    const sel = r.id === state.selectedRelationId;
+    const stroke = sel ? '#f85149' : '#8b949e';
+    const width  = sel ? 3 : 2;
+    const marker = sel ? 'url(#rel-arrow-sel)' : 'url(#rel-arrow)';
+
+    h += `<path class="rel-path" data-rid="${r.id}"
+      d="M ${a.x} ${a.y} Q ${mx} ${my} ${b.x} ${b.y}"
+      fill="none" stroke="${stroke}" stroke-width="${width}"
+      stroke-dasharray="8 5" stroke-linecap="round"
+      marker-end="${marker}" pointer-events="stroke"/>`;
+  });
+
+  return h;
 }
 
 /** 캔버스 전체 재렌더 */
@@ -36,27 +89,28 @@ export function render() {
     if (c.id !== 'svg-layer') c.remove();
   });
 
-  // ── SVG 연결선 ──
-  let svgHTML = '';
-  Object.values(state.nodes).forEach((n) => {
-    if (n.parentId && state.nodes[n.parentId]) {
-      const p = state.nodes[n.parentId];
-      svgHTML += `<line
-        x1="${p.x}" y1="${p.y}"
-        x2="${n.x}" y2="${n.y}"
-        stroke="#30363d" stroke-width="2.5" stroke-linecap="round"
-      />`;
-    }
+  // ── SVG (부모-자식 선 + 관계선 + 화살표 marker) ──
+  svg.innerHTML = buildSvgMarkup();
+
+  // 관계선 클릭 핸들러
+  svg.querySelectorAll('.rel-path').forEach((p) => {
+    p.addEventListener('mousedown', (e) => {
+      e.stopPropagation();
+      H.onRelationClick(p.getAttribute('data-rid'));
+    });
   });
-  svg.innerHTML = svgHTML;
 
   // ── 노드 div ──
   Object.values(state.nodes).forEach((n) => {
     const isRoot = !n.parentId;
     const isSel  = n.id === state.selectedId;
+    const isRelSource = state.relationDraft && state.relationDraft.fromId === n.id;
 
     const el = document.createElement('div');
-    el.className = 'node' + (isRoot ? ' root' : '') + (isSel ? ' selected' : '');
+    el.className = 'node'
+      + (isRoot ? ' root' : '')
+      + (isSel ? ' selected' : '')
+      + (isRelSource ? ' rel-source' : '');
     el.id = 'nd-' + n.id;
     el.style.left       = n.x + 'px';
     el.style.top        = n.y + 'px';
@@ -117,12 +171,12 @@ export function render() {
 
 /** 드래그 중 SVG 선만 빠르게 업데이트 (성능 최적화) */
 export function updateLines() {
-  let h = '';
-  Object.values(state.nodes).forEach((n) => {
-    if (n.parentId && state.nodes[n.parentId]) {
-      const p = state.nodes[n.parentId];
-      h += `<line x1="${p.x}" y1="${p.y}" x2="${n.x}" y2="${n.y}" stroke="#30363d" stroke-width="2.5" stroke-linecap="round"/>`;
-    }
+  $('svg-layer').innerHTML = buildSvgMarkup();
+  // 관계선 클릭 핸들러 재등록
+  $('svg-layer').querySelectorAll('.rel-path').forEach((p) => {
+    p.addEventListener('mousedown', (e) => {
+      e.stopPropagation();
+      H.onRelationClick(p.getAttribute('data-rid'));
+    });
   });
-  $('svg-layer').innerHTML = h;
 }

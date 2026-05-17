@@ -52,13 +52,20 @@ export function deleteNode(id) {
     return;
   }
 
+  const removed = new Set();
   function removeRecursive(nodeId) {
     Object.keys(state.nodes)
       .filter((k) => state.nodes[k].parentId === nodeId)
       .forEach(removeRecursive);
+    removed.add(nodeId);
     delete state.nodes[nodeId];
   }
   removeRecursive(id);
+
+  // 삭제된 노드를 참조하는 관계선도 제거
+  state.relations = state.relations.filter(
+    (r) => !removed.has(r.fromId) && !removed.has(r.toId),
+  );
 
   if (state.selectedId === id) state.selectedId = null;
   render();

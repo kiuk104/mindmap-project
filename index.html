@@ -30,14 +30,27 @@
     </div>
   </div>
 
-  <!-- ── 우클릭 메뉴 ── -->
+  <!-- ── 노드 우클릭 메뉴 ── -->
   <div id="ctx-menu">
     <div class="ctx-item" id="ctx-edit">✏️ 텍스트 편집</div>
     <div class="ctx-item" id="ctx-add-child">➕ 자식 노드 추가</div>
     <div class="ctx-item" id="ctx-link">🔗 링크 추가/관리</div>
     <div class="ctx-item" id="ctx-color">🎨 색상 변경</div>
+    <div class="ctx-item" id="ctx-relation">↬ 관계선 시작</div>
     <div class="ctx-sep"></div>
     <div class="ctx-item danger" id="ctx-del">🗑️ 삭제 (Del)</div>
+  </div>
+
+  <!-- ── 배경 우클릭 메뉴 ── -->
+  <div id="ctx-bg-menu">
+    <div class="ctx-item" id="ctxbg-add">➕ 노드 추가</div>
+    <div class="ctx-item" id="ctxbg-fit">⌖ 화면 맞춤</div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-item" id="ctxbg-export">💾 내보내기</div>
+    <div class="ctx-item" id="ctxbg-import">📂 불러오기</div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-item danger" id="ctxbg-cancel-rel" style="display:none">✕ 관계선 그리기 취소</div>
+    <div class="ctx-item danger" id="ctxbg-del-rel" style="display:none">🗑️ 선택한 관계선 삭제 (Del)</div>
   </div>
 
   <!-- ── 모달 ── -->

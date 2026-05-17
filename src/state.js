@@ -9,8 +9,17 @@ export const state = {
   /** @type {Object.<string, Node>} 노드 맵 */
   nodes: {},
 
+  /** @type {Relation[]} 임의 노드 간 관계선 (부모-자식 외) */
+  relations: [],
+
   /** @type {string|null} 현재 선택된 노드 ID */
   selectedId: null,
+
+  /** @type {string|null} 현재 선택된 관계선 ID */
+  selectedRelationId: null,
+
+  /** @type {{fromId: string}|null} 관계선 그리기 중 (시작 노드 지정됨) */
+  relationDraft: null,
 
   /** @type {string|null} 우클릭 메뉴 대상 노드 ID */
   ctxTargetId: null,
@@ -35,4 +44,12 @@ export const state = {
  * @property {'drive'|'youtube'|'image'|'url'} type
  * @property {string} url
  * @property {string} label
+ */
+
+/**
+ * @typedef {Object} Relation
+ * @property {string} id
+ * @property {string} fromId  - 시작 노드 ID
+ * @property {string} toId    - 끝(화살표) 노드 ID
+ * @property {string} label   - 관계선 라벨 (선택)
  */

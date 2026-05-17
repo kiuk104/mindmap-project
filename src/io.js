@@ -11,7 +11,11 @@ import { resetView } from './canvas.js';
 
 /** 현재 마인드맵을 JSON 파일로 저장 */
 export function doExport() {
-  const data = JSON.stringify({ nodes: state.nodes, version: 2 }, null, 2);
+  const data = JSON.stringify({
+    nodes: state.nodes,
+    relations: state.relations ?? [],
+    version: 3,
+  }, null, 2);
   const blob = new Blob([data], { type: 'application/json' });
   const url  = URL.createObjectURL(blob);
 
@@ -37,8 +41,13 @@ export function doImport(event) {
       const data = JSON.parse(e.target.result);
       if (!data.nodes) throw new Error('nodes 없음');
 
-      state.nodes      = data.nodes;
-      state.selectedId = null;
+      state.nodes              = data.nodes;
+      // 구버전 호환: relations가 없으면 빈 배열
+      state.relations          = Array.isArray(data.relations) ? data.relations : [];
+      state.selectedId         = null;
+      state.selectedRelationId = null;
+      state.relationDraft      = null;
+      document.body.classList.remove('relation-drafting');
       render();
       resetView();
     } catch {

@@ -95,10 +95,10 @@ body {
 }
 .lbadge-del:hover { background: #f85149; color: #fff; }
 
-/* ── 우클릭 메뉴 ── */
-#ctx-menu {
+/* ── 우클릭 메뉴 (노드 + 배경 공통) ── */
+#ctx-menu, #ctx-bg-menu {
   position: fixed; background: #1c2128; border: 1px solid #30363d;
-  border-radius: 10px; padding: 5px 0; min-width: 175px;
+  border-radius: 10px; padding: 5px 0; min-width: 195px;
   z-index: 1000; box-shadow: 0 8px 32px rgba(0,0,0,0.7); display: none;
 }
 .ctx-item {
@@ -161,6 +161,28 @@ select.fi   { cursor: pointer; }
   background: #1c2128; border: 1px solid #30363d;
   border-radius: 8px; padding: 7px 13px;
   font-size: 11px; color: #484f58; z-index: 100; line-height: 1.9;
+}
+
+/* ── 관계선 (SVG path) ── */
+#svg-layer { pointer-events: none; }
+#svg-layer .rel-path {
+  cursor: pointer;
+  pointer-events: stroke;
+  transition: stroke 0.15s, stroke-width 0.15s;
+}
+#svg-layer .rel-path:hover { stroke: #cdd9e5 !important; }
+
+/* 관계선 그리기 중: 캔버스 커서 변경 + 시작 노드 강조 */
+body.relation-drafting #canvas-wrap,
+body.relation-drafting .node { cursor: crosshair !important; }
+.node.rel-source {
+  outline: 2px dashed #f85149;
+  outline-offset: 4px;
+  animation: rel-pulse 1.2s ease-in-out infinite;
+}
+@keyframes rel-pulse {
+  0%, 100% { outline-color: #f85149; }
+  50%      { outline-color: #ffb6b1; }
 }
 
 /* ── 인라인 편집 textarea ── */

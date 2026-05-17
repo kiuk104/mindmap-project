@@ -60,7 +60,7 @@ export function resetView() {
   applyTransform();
 }
 
-// ── 노드 마우스다운 (드래그 시작) ──
+// ── 노드 마우스다운 (드래그 시작 / 관계선 완성) ──
 export function onNodeMouseDown(e, nodeId) {
   if (e.button !== 0) return;
   if (
@@ -71,8 +71,25 @@ export function onNodeMouseDown(e, nodeId) {
 
   e.stopPropagation();
 
+  // 관계선 그리기 중이면 두 번째 노드를 클릭한 시점에 완성
+  if (state.relationDraft) {
+    const fromId = state.relationDraft.fromId;
+    if (fromId !== nodeId && state.nodes[fromId]) {
+      state.relations.push({
+        id: 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
+        fromId, toId: nodeId, label: '',
+      });
+    }
+    state.relationDraft = null;
+    document.body.classList.remove('relation-drafting');
+    state.selectedId = nodeId;
+    render();
+    return;
+  }
+
   // 선택
-  state.selectedId = nodeId;
+  state.selectedId         = nodeId;
+  state.selectedRelationId = null;
   render();
 
   // 드래그 준비
@@ -87,14 +104,21 @@ export function onNodeMouseDown(e, nodeId) {
 export function initCanvas() {
   const wrap = $('canvas-wrap');
 
-  // 배경 클릭 → Pan 시작 + 선택 해제
+  // 배경 클릭 → Pan 시작 + 선택 해제 (좌클릭일 때만)
   wrap.addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return;
     const t = e.target;
     if (t.id === 'canvas-wrap' || t.id === 'canvas' || t.id === 'svg-layer') {
+      // 관계선 그리기 중이면 배경 클릭으로 취소
+      if (state.relationDraft) {
+        state.relationDraft = null;
+        document.body.classList.remove('relation-drafting');
+      }
       panning  = true;
       panStartX = e.clientX - view.px;
       panStartY = e.clientY - view.py;
-      state.selectedId = null;
+      state.selectedId         = null;
+      state.selectedRelationId = null;
       render();
     }
   });

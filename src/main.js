@@ -16,7 +16,7 @@ import { addChild, deleteNode, startEdit, removeLink } from './nodes.js';
 import { initCanvas, view, applyTransform, resetView } from './canvas.js';
 import { onNodeMouseDown }                 from './canvas.js';
 import { openLinkModal, openColorModal, closeModal, handleModalOK } from './modal.js';
-import { showContextMenu, hideContextMenu, initContextMenu } from './menu.js';
+import { showContextMenu, hideContextMenu, hideAllMenus, showBgMenu, initContextMenu } from './menu.js';
 import { doExport, doImport }              from './io.js';
 
 // ── render.js에 핸들러 주입 ──
@@ -29,6 +29,11 @@ registerHandlers({
   onLinkBadgeMouseEnter: showPreview,
   onLinkBadgeMouseLeave: hidePreview,
   onLinkDelete:          removeLink,
+  onRelationClick:       (rid) => {
+    state.selectedRelationId = rid;
+    state.selectedId         = null;
+    render();
+  },
 });
 
 // ── 초기 노드 생성 ──
@@ -79,7 +84,15 @@ $('modal-bg').addEventListener('click', (e) => {
 
 // ── 전역 클릭 → 메뉴 닫기 ──
 document.addEventListener('click', (e) => {
-  if (!e.target.closest('#ctx-menu')) hideContextMenu();
+  if (!e.target.closest('#ctx-menu') && !e.target.closest('#ctx-bg-menu')) hideAllMenus();
+});
+
+// ── 배경 우클릭 → 커스텀 메뉴 (브라우저 기본 메뉴 차단) ──
+$('canvas-wrap').addEventListener('contextmenu', (e) => {
+  const t = e.target;
+  if (t.id === 'canvas-wrap' || t.id === 'canvas' || t.id === 'svg-layer') {
+    showBgMenu(e);
+  }
 });
 
 // ── 키보드 단축키 ──
@@ -95,12 +108,23 @@ document.addEventListener('keydown', (e) => {
       break;
     case 'Delete':
     case 'Backspace':
-      if (state.selectedId) deleteNode(state.selectedId);
+      if (state.selectedRelationId) {
+        state.relations = state.relations.filter((r) => r.id !== state.selectedRelationId);
+        state.selectedRelationId = null;
+        render();
+      } else if (state.selectedId) {
+        deleteNode(state.selectedId);
+      }
       break;
     case 'Escape':
       closeModal();
-      hideContextMenu();
-      state.selectedId = null;
+      hideAllMenus();
+      if (state.relationDraft) {
+        state.relationDraft = null;
+        document.body.classList.remove('relation-drafting');
+      }
+      state.selectedId         = null;
+      state.selectedRelationId = null;
       render();
       break;
   }
