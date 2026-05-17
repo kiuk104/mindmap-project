@@ -124,9 +124,10 @@ function buildSvgMarkup() {
     const dashAttr = DASH_PATTERNS[dashKey] ?? DASH_PATTERNS.dashed;
 
     // 최종 stroke/width 결정 (인라인 style — CSS 규칙보다 우선)
+    // 선택된 관계선은 파란색 강조 (노드 선택은 빨강 유지)
     let strokeColor;
     if (rs.color)        strokeColor = rs.color;
-    else if (sel)        strokeColor = 'var(--accent)';
+    else if (sel)        strokeColor = 'var(--accent-blue)';
     else                 strokeColor = 'var(--line-rel)';
 
     let strokeWidth;
@@ -136,12 +137,12 @@ function buildSvgMarkup() {
 
     const css = `stroke:${strokeColor};stroke-width:${strokeWidth};stroke-dasharray:${dashAttr || 'none'};`;
 
-    // ── 선택 시 halo (본선 뒤에 두꺼운 반투명 accent path) ──
+    // ── 선택 시 halo (본선 뒤에 두꺼운 반투명 파란 path) ──
     if (sel) {
       const haloW = Math.max(strokeWidth + 6, 8);
       h += `<path class="rel-halo"
         d="${pathD}" fill="none"
-        style="stroke:var(--accent);stroke-width:${haloW};opacity:0.25;stroke-linecap:round;"
+        style="stroke:var(--accent-blue);stroke-width:${haloW};opacity:0.3;stroke-linecap:round;"
         pointer-events="none"/>`;
     }
 

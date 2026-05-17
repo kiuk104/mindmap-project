@@ -341,29 +341,45 @@ export function initCanvas() {
         box.style.height = h    + 'px';
       }
 
-      // 캔버스 좌표 박스 hit-testing
+      // 캔버스 좌표 박스 hit-testing — 부분 겹침으로 선택
       const x1 = Math.min(selBoxStart.x, cp.x);
       const y1 = Math.min(selBoxStart.y, cp.y);
       const x2 = Math.max(selBoxStart.x, cp.x);
       const y2 = Math.max(selBoxStart.y, cp.y);
 
+      // 노드: 실제 DOM 크기 기준 AABB 교차 검사
       const insideNodes = [];
       Object.values(state.nodes).forEach((n) => {
-        if (n.x >= x1 && n.x <= x2 && n.y >= y1 && n.y <= y2) insideNodes.push(n.id);
+        const el = $('nd-' + n.id);
+        const w = el ? el.offsetWidth  : 150;  // fallback 추정치
+        const h = el ? el.offsetHeight : 44;
+        const nx1 = n.x - w / 2;
+        const ny1 = n.y - h / 2;
+        const nx2 = n.x + w / 2;
+        const ny2 = n.y + h / 2;
+        // AABB 교차 (조금이라도 겹치면 true)
+        if (nx1 < x2 && nx2 > x1 && ny1 < y2 && ny2 > y1) {
+          insideNodes.push(n.id);
+        }
       });
 
-      // 관계선: (a) 양 끝 노드 모두 박스 안 OR (b) 곡선 중점이 박스 안
-      const nodeSet = new Set(insideNodes);
+      // 관계선: cubic Bezier 곡선을 20개 점으로 샘플링, 한 점이라도 박스 안이면 선택
       const insideRels = [];
       state.relations.forEach((r) => {
         const a = state.nodes[r.fromId];
         const b = state.nodes[r.toId];
         if (!a || !b) return;
-        const bothIn = nodeSet.has(r.fromId) && nodeSet.has(r.toId);
-        const mx = (a.x + b.x) / 2 + (r.curveOffset?.dx ?? 0);
-        const my = (a.y + b.y) / 2 + (r.curveOffset?.dy ?? 0);
-        const midIn = mx >= x1 && mx <= x2 && my >= y1 && my <= y2;
-        if (bothIn || midIn) insideRels.push(r.id);
+        const { c1, c2 } = getRelationControls(r, a, b);
+        let hit = false;
+        for (let t = 0; t <= 1; t += 0.05) {
+          const mt = 1 - t;
+          const mt2 = mt * mt;
+          const t2  = t * t;
+          const px = mt2*mt*a.x + 3*mt2*t*c1.x + 3*mt*t2*c2.x + t2*t*b.x;
+          const py = mt2*mt*a.y + 3*mt2*t*c1.y + 3*mt*t2*c2.y + t2*t*b.y;
+          if (px >= x1 && px <= x2 && py >= y1 && py <= y2) { hit = true; break; }
+        }
+        if (hit) insideRels.push(r.id);
       });
 
       setNodeSelection(state, insideNodes);

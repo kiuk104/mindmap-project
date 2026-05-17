@@ -339,10 +339,10 @@ select.fi   { cursor: pointer; }
 
 /* 곡률 핸들 가이드 라인 (제어점과 끝점을 잇는 보조선) */
 #svg-layer .rel-guide {
-  stroke: var(--accent);
+  stroke: var(--accent-blue);
   stroke-width: 1;
   stroke-dasharray: 3 3;
-  opacity: 0.5;
+  opacity: 0.6;
   pointer-events: none;
 }
 
@@ -363,7 +363,7 @@ select.fi   { cursor: pointer; }
 
 /* ── 관계선 곡률 조정 핸들 (선택 시 표시) ── */
 #svg-layer .rel-handle {
-  fill: var(--accent);
+  fill: var(--accent-blue);
   stroke: #fff;
   stroke-width: 2;
   cursor: move;
