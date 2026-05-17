@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🗺️ 마인드맵</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+
+  <!-- ── 툴바 ── -->
+  <div id="toolbar">
+    <span class="toolbar-title">🗺️ 마인드맵</span>
+    <div class="sep"></div>
+    <button class="btn btn-red"   id="btn-add">＋ 노드 추가 <small>(Tab)</small></button>
+    <button class="btn btn-blue"  id="btn-link">🔗 링크 추가</button>
+    <div class="sep"></div>
+    <button class="btn btn-ghost" id="btn-export">💾 내보내기</button>
+    <button class="btn btn-ghost" id="btn-import">📂 불러오기</button>
+    <input type="file" id="file-in" accept=".json" style="display:none" />
+    <div class="sep"></div>
+    <button class="btn btn-ghost" id="btn-reset">⌖ 화면 맞춤</button>
+    <span class="toolbar-hint">💡 JSON 내보내기 → 구글 드라이브 저장 → 팀과 공유</span>
+  </div>
+
+  <!-- ── 캔버스 ── -->
+  <div id="canvas-wrap">
+    <div id="canvas">
+      <svg id="svg-layer"></svg>
+    </div>
+  </div>
+
+  <!-- ── 우클릭 메뉴 ── -->
+  <div id="ctx-menu">
+    <div class="ctx-item" id="ctx-edit">✏️ 텍스트 편집</div>
+    <div class="ctx-item" id="ctx-add-child">➕ 자식 노드 추가</div>
+    <div class="ctx-item" id="ctx-link">🔗 링크 추가/관리</div>
+    <div class="ctx-item" id="ctx-color">🎨 색상 변경</div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-item danger" id="ctx-del">🗑️ 삭제 (Del)</div>
+  </div>
+
+  <!-- ── 모달 ── -->
+  <div id="modal-bg">
+    <div id="modal">
+      <div class="modal-title" id="modal-title"></div>
+      <div id="modal-body"></div>
+      <div class="modal-btns">
+        <button class="btn btn-ghost" id="modal-cancel">취소</button>
+        <button class="btn btn-red"   id="modal-ok">확인</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 호버 미리보기 ── -->
+  <div id="preview-pop"><img id="preview-img" src="" alt="preview" /></div>
+
+  <!-- ── HUD ── -->
+  <div id="hud">100%</div>
+  <div id="help-hud">
+    더블클릭: 텍스트 편집 &nbsp;|&nbsp; 우클릭: 메뉴<br />
+    배경 드래그: 화면 이동 &nbsp;|&nbsp; 스크롤: 줌<br />
+    Tab: 자식 추가 &nbsp;|&nbsp; Del: 선택 삭제
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

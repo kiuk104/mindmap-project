@@ -1,0 +1,21 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# 에디터
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 저장된 마인드맵 데이터 (개인 작업물은 커밋 제외 가능)
+# *.json
+
+# 노드 (나중에 빌드 도구 추가할 경우)
+node_modules/
+dist/

@@ -1,0 +1,180 @@
+/* ════════════════════════════════════════
+   마인드맵 스타일시트
+   ════════════════════════════════════════ */
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #0d1117;
+  color: #eee;
+  overflow: hidden;
+  height: 100vh;
+}
+
+/* ── 툴바 ── */
+#toolbar {
+  position: fixed; top: 0; left: 0; right: 0; height: 54px;
+  background: #161b22; border-bottom: 1px solid #21262d;
+  display: flex; align-items: center; padding: 0 16px; gap: 8px;
+  z-index: 100; box-shadow: 0 2px 12px rgba(0,0,0,0.5);
+}
+.toolbar-title {
+  font-size: 15px; font-weight: 700; color: #f85149;
+  margin-right: 6px; white-space: nowrap;
+}
+.toolbar-hint {
+  margin-left: auto; font-size: 11px; color: #484f58; white-space: nowrap;
+}
+.sep { width: 1px; height: 26px; background: #30363d; margin: 0 2px; }
+
+/* ── 버튼 ── */
+.btn {
+  padding: 7px 13px; border-radius: 8px; border: none; cursor: pointer;
+  font-size: 12px; font-weight: 600; transition: all 0.15s;
+  display: flex; align-items: center; gap: 5px; white-space: nowrap;
+}
+.btn small { opacity: 0.7; }
+.btn-red   { background: #f85149; color: #fff; }
+.btn-red:hover   { background: #da3633; }
+.btn-blue  { background: #1f6feb; color: #fff; }
+.btn-blue:hover  { background: #1158c7; }
+.btn-ghost { background: transparent; color: #8b949e; border: 1px solid #30363d; }
+.btn-ghost:hover { background: #21262d; color: #e6edf3; }
+
+/* ── 캔버스 ── */
+#canvas-wrap {
+  position: fixed; top: 54px; left: 0; right: 0; bottom: 0; overflow: hidden;
+}
+#canvas {
+  position: absolute; width: 5000px; height: 5000px;
+}
+#svg-layer {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  pointer-events: none;
+}
+
+/* ── 노드 ── */
+.node {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  min-width: 110px; max-width: 220px;
+  padding: 10px 14px; border-radius: 14px;
+  cursor: pointer; user-select: none;
+  border: 2px solid transparent; text-align: center;
+  font-size: 13px; font-weight: 500; word-break: break-word;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.5);
+  transition: box-shadow 0.15s, border-color 0.15s;
+}
+.node:hover    { box-shadow: 0 6px 22px rgba(0,0,0,0.7); }
+.node.root     { font-size: 15px; font-weight: 700; min-width: 140px; border-radius: 18px; }
+.node.selected {
+  border-color: #f85149 !important;
+  box-shadow: 0 0 0 3px rgba(248,81,73,0.35), 0 4px 14px rgba(0,0,0,0.5) !important;
+}
+
+/* ── 링크 배지 ── */
+.node-links {
+  display: flex; justify-content: center; gap: 4px; margin-top: 7px; flex-wrap: wrap;
+}
+.lbadge {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 2px 8px; border-radius: 20px;
+  font-size: 10px; font-weight: 600; cursor: pointer;
+  text-decoration: none; transition: filter 0.15s; line-height: 1.6;
+}
+.lbadge:hover    { filter: brightness(1.2); }
+.lbadge.drive    { background: #1a73e8; color: #fff; }
+.lbadge.youtube  { background: #ff0000; color: #fff; }
+.lbadge.image    { background: #188038; color: #fff; }
+.lbadge.url      { background: #444c56; color: #e6edf3; }
+.lbadge-del {
+  background: rgba(0,0,0,0.35); color: #aaa;
+  border-radius: 50%; width: 14px; height: 14px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 10px; cursor: pointer; margin-left: 2px; flex-shrink: 0;
+}
+.lbadge-del:hover { background: #f85149; color: #fff; }
+
+/* ── 우클릭 메뉴 ── */
+#ctx-menu {
+  position: fixed; background: #1c2128; border: 1px solid #30363d;
+  border-radius: 10px; padding: 5px 0; min-width: 175px;
+  z-index: 1000; box-shadow: 0 8px 32px rgba(0,0,0,0.7); display: none;
+}
+.ctx-item {
+  padding: 9px 15px; cursor: pointer; font-size: 13px;
+  display: flex; align-items: center; gap: 9px; color: #cdd9e5;
+}
+.ctx-item:hover { background: #273244; }
+.ctx-item.danger { color: #f85149; }
+.ctx-sep { height: 1px; background: #30363d; margin: 4px 0; }
+
+/* ── 모달 ── */
+#modal-bg {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+  z-index: 500; display: none; align-items: center; justify-content: center;
+}
+#modal-bg.on { display: flex; }
+#modal {
+  background: #1c2128; border: 1px solid #30363d;
+  border-radius: 16px; padding: 26px;
+  width: 430px; max-width: 92vw;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.9);
+}
+.modal-title { font-size: 17px; font-weight: 700; margin-bottom: 18px; color: #f85149; }
+.modal-btns  { display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px; }
+
+/* 모달 폼 */
+.fg { margin-bottom: 13px; }
+.fl {
+  font-size: 11px; color: #8b949e; margin-bottom: 5px;
+  display: block; text-transform: uppercase; letter-spacing: .5px;
+}
+.fi {
+  width: 100%; padding: 9px 12px;
+  background: #0d1117; border: 1px solid #30363d;
+  border-radius: 8px; color: #e6edf3; font-size: 13px;
+  outline: none; transition: border-color .15s;
+}
+.fi:focus   { border-color: #f85149; }
+select.fi   { cursor: pointer; }
+
+/* ── 미리보기 팝업 ── */
+#preview-pop {
+  position: fixed; z-index: 300; pointer-events: none; display: none;
+  border-radius: 10px; overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.7); border: 2px solid #30363d; max-width: 280px;
+}
+#preview-pop img {
+  display: block; max-width: 280px; max-height: 170px; object-fit: cover;
+}
+
+/* ── HUD ── */
+#hud {
+  position: fixed; bottom: 14px; right: 14px;
+  background: #1c2128; border: 1px solid #30363d;
+  border-radius: 8px; padding: 5px 12px;
+  font-size: 12px; color: #8b949e; z-index: 100;
+}
+#help-hud {
+  position: fixed; bottom: 14px; left: 14px;
+  background: #1c2128; border: 1px solid #30363d;
+  border-radius: 8px; padding: 7px 13px;
+  font-size: 11px; color: #484f58; z-index: 100; line-height: 1.9;
+}
+
+/* ── 인라인 편집 textarea ── */
+.node-text-edit {
+  background: transparent; border: none; outline: none;
+  color: inherit; font-size: inherit; font-weight: inherit;
+  font-family: inherit; text-align: center; width: 100%; resize: none;
+}
+
+/* ── 색상 선택 dots ── */
+.cdots { display: flex; gap: 9px; flex-wrap: wrap; }
+.cdot {
+  width: 22px; height: 22px; border-radius: 50%; cursor: pointer;
+  border: 2px solid transparent; transition: transform .15s, border-color .15s;
+}
+.cdot:hover { transform: scale(1.15); }
+.cdot.sel   { border-color: #fff; transform: scale(1.1); }
