@@ -10,7 +10,7 @@
 
 import { state } from './state.js';
 import { render, updateLines } from './render.js';
-import { $, setNodeSelection, clearNodeSelection } from './utils.js';
+import { $, setNodeSelection, clearNodeSelection, setRelationSelection, clearRelationSelection } from './utils.js';
 
 // ── Pan/드래그 상태 ──
 let panning = false;
@@ -144,7 +144,7 @@ export function onRelationHandleDown(e, rid) {
   cancelLongPress();
   relHandleDragging = true;
   relHandleId = rid;
-  state.selectedRelationId = rid;
+  setRelationSelection(state, [rid]);
   render();
 }
 
@@ -250,7 +250,7 @@ export function initCanvas() {
       const rect = wrap.getBoundingClientRect();
       selBoxClientStart = { x: e.clientX - rect.left, y: e.clientY - rect.top };
       clearNodeSelection(state);
-      state.selectedRelationId = null;
+      clearRelationSelection(state);
       // 셀렉트 박스 DOM 초기화
       const box = $('selection-box');
       if (box) {
@@ -324,11 +324,28 @@ export function initCanvas() {
       const y1 = Math.min(selBoxStart.y, cp.y);
       const x2 = Math.max(selBoxStart.x, cp.x);
       const y2 = Math.max(selBoxStart.y, cp.y);
-      const inside = [];
+
+      const insideNodes = [];
       Object.values(state.nodes).forEach((n) => {
-        if (n.x >= x1 && n.x <= x2 && n.y >= y1 && n.y <= y2) inside.push(n.id);
+        if (n.x >= x1 && n.x <= x2 && n.y >= y1 && n.y <= y2) insideNodes.push(n.id);
       });
-      setNodeSelection(state, inside);
+
+      // 관계선: (a) 양 끝 노드 모두 박스 안 OR (b) 곡선 중점이 박스 안
+      const nodeSet = new Set(insideNodes);
+      const insideRels = [];
+      state.relations.forEach((r) => {
+        const a = state.nodes[r.fromId];
+        const b = state.nodes[r.toId];
+        if (!a || !b) return;
+        const bothIn = nodeSet.has(r.fromId) && nodeSet.has(r.toId);
+        const mx = (a.x + b.x) / 2 + (r.curveOffset?.dx ?? 0);
+        const my = (a.y + b.y) / 2 + (r.curveOffset?.dy ?? 0);
+        const midIn = mx >= x1 && mx <= x2 && my >= y1 && my <= y2;
+        if (bothIn || midIn) insideRels.push(r.id);
+      });
+
+      setNodeSelection(state, insideNodes);
+      setRelationSelection(state, insideRels);
       render();
     }
 

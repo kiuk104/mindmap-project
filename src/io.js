@@ -41,10 +41,11 @@ export function loadFromString(jsonStr) {
     if (!data.nodes) throw new Error('nodes 없음');
     state.nodes              = data.nodes;
     state.relations          = Array.isArray(data.relations) ? data.relations : [];
-    state.selectedId         = null;
-    state.selectedIds        = [];
-    state.selectedRelationId = null;
-    state.relationDraft      = null;
+    state.selectedId          = null;
+    state.selectedIds         = [];
+    state.selectedRelationId  = null;
+    state.selectedRelationIds = [];
+    state.relationDraft       = null;
     // 스타일/라인스타일 복원 (없으면 현재 값 유지)
     if (data.style && typeof data.style === 'object') {
       state.style = { ...state.style, ...data.style };
@@ -99,10 +100,11 @@ export function restoreLocal() {
 
     state.nodes              = data.nodes;
     state.relations          = Array.isArray(data.relations) ? data.relations : [];
-    state.selectedId         = null;
-    state.selectedIds        = [];
-    state.selectedRelationId = null;
-    state.relationDraft      = null;
+    state.selectedId          = null;
+    state.selectedIds         = [];
+    state.selectedRelationId  = null;
+    state.selectedRelationIds = [];
+    state.relationDraft       = null;
     return true;
   } catch {
     return false;

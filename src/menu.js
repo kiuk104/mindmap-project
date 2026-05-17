@@ -8,7 +8,7 @@ import { addChild, deleteNode, startEdit } from './nodes.js';
 import { openLinkModal, openColorModal, openIconModal, openSaveModal } from './modal.js';
 import { resetView } from './canvas.js';
 import { clearLocal } from './io.js';
-import { $, uid, makeNode, setNodeSelection, clearNodeSelection } from './utils.js';
+import { $, uid, makeNode, setNodeSelection, clearNodeSelection, clearRelationSelection } from './utils.js';
 
 /**
  * 노드 우클릭 메뉴 표시
@@ -43,10 +43,14 @@ export function showBgMenu(e) {
   if (cancelItem) {
     cancelItem.style.display = state.relationDraft ? 'flex' : 'none';
   }
-  // 선택된 관계선이 있으면 "관계선 삭제" 항목 활성화
+  // 선택된 관계선이 있으면 "관계선 삭제" 항목 활성화 (다중 포함)
   const delRelItem = $('ctxbg-del-rel');
   if (delRelItem) {
-    delRelItem.style.display = state.selectedRelationId ? 'flex' : 'none';
+    const count = state.selectedRelationIds?.length || (state.selectedRelationId ? 1 : 0);
+    delRelItem.style.display = count > 0 ? 'flex' : 'none';
+    delRelItem.textContent = count > 1
+      ? `🗑️ 선택한 관계선 ${count}개 삭제 (Del)`
+      : '🗑️ 선택한 관계선 삭제 (Del)';
   }
 
   positionMenu($('ctx-bg-menu'), e.clientX, e.clientY);
@@ -149,9 +153,13 @@ export function initContextMenu() {
   });
   $('ctxbg-del-rel').addEventListener('click', () => {
     hideBgMenu();
-    if (!state.selectedRelationId) return;
-    state.relations = state.relations.filter((r) => r.id !== state.selectedRelationId);
-    state.selectedRelationId = null;
+    const ids = state.selectedRelationIds?.length
+      ? state.selectedRelationIds
+      : (state.selectedRelationId ? [state.selectedRelationId] : []);
+    if (ids.length === 0) return;
+    const toDel = new Set(ids);
+    state.relations = state.relations.filter((r) => !toDel.has(r.id));
+    clearRelationSelection(state);
     render();
   });
 
@@ -162,7 +170,7 @@ export function initContextMenu() {
     state.nodes              = {};
     state.relations          = [];
     clearNodeSelection(state);
-    state.selectedRelationId = null;
+    clearRelationSelection(state);
     state.relationDraft      = null;
     document.body.classList.remove('relation-drafting');
     clearLocal();

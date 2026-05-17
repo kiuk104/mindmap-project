@@ -183,3 +183,15 @@ export function clearNodeSelection(state) {
   state.selectedIds = [];
   state.selectedId  = null;
 }
+
+/** 관계선 다중 선택 — selectedRelationIds와 selectedRelationId를 일관되게 갱신 */
+export function setRelationSelection(state, ids) {
+  state.selectedRelationIds = Array.isArray(ids) ? [...ids] : [];
+  state.selectedRelationId  = state.selectedRelationIds.length === 1 ? state.selectedRelationIds[0] : null;
+}
+
+/** 관계선 선택 모두 해제 */
+export function clearRelationSelection(state) {
+  state.selectedRelationIds = [];
+  state.selectedRelationId  = null;
+}

@@ -96,6 +96,12 @@ function buildSvgMarkup() {
     }
   });
 
+  // 선택된 관계선 Set (다중 선택 포함)
+  const relSelSet = new Set(state.selectedRelationIds ?? []);
+  if (state.selectedRelationId && !relSelSet.has(state.selectedRelationId)) {
+    relSelSet.add(state.selectedRelationId);
+  }
+
   // 관계선 (점선 + 곡선 + 화살표 + 라벨 + 곡률 핸들)
   state.relations.forEach((r) => {
     const a = state.nodes[r.fromId];
@@ -118,7 +124,7 @@ function buildSvgMarkup() {
       cy = midY + ( dx / len) * curve;
     }
 
-    const sel = r.id === state.selectedRelationId;
+    const sel = relSelSet.has(r.id);
     const rs = r.style ?? {};
 
     // 화살표 방향
@@ -156,8 +162,8 @@ function buildSvgMarkup() {
         x="${lx}" y="${ly - 8}" text-anchor="middle">${escapeXml(r.label)}</text>`;
     }
 
-    // 곡률 조정 핸들 (선택된 관계선에만)
-    if (sel) {
+    // 곡률 조정 핸들 — 정확히 1개만 선택됐을 때만 표시 (다중 선택 시엔 숨김)
+    if (sel && relSelSet.size === 1) {
       h += `<circle class="rel-handle" data-rid="${r.id}"
         cx="${cx}" cy="${cy}" r="6"/>`;
     }

@@ -18,8 +18,11 @@ export const state = {
   /** @type {string[]} 다중 선택 노드 ID (셀렉트 박스로 선택된 것들 포함) */
   selectedIds: [],
 
-  /** @type {string|null} 현재 선택된 관계선 ID */
+  /** @type {string|null} 현재 'primary' 선택 관계선 (selectedRelationIds[0] when single) */
   selectedRelationId: null,
+
+  /** @type {string[]} 다중 선택된 관계선 ID */
+  selectedRelationIds: [],
 
   /** @type {{fromId: string}|null} 관계선 그리기 중 (시작 노드 지정됨) */
   relationDraft: null,

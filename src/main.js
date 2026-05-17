@@ -10,7 +10,7 @@
 
 import { state }                           from './state.js';
 import { render, registerHandlers, setPostRender } from './render.js';
-import { $, uid, makeNode, COLORS, setNodeSelection, clearNodeSelection } from './utils.js';
+import { $, uid, makeNode, COLORS, setNodeSelection, clearNodeSelection, setRelationSelection, clearRelationSelection } from './utils.js';
 import { showPreview, hidePreview }        from './preview.js';
 import { addChild, deleteNode, startEdit, removeLink } from './nodes.js';
 import { initCanvas, view, applyTransform, resetView } from './canvas.js';
@@ -33,7 +33,7 @@ registerHandlers({
   onLinkBadgeMouseLeave: hidePreview,
   onLinkDelete:          removeLink,
   onRelationClick:       (rid) => {
-    state.selectedRelationId = rid;
+    setRelationSelection(state, [rid]);
     clearNodeSelection(state);
     render();
   },
@@ -269,22 +269,27 @@ document.addEventListener('keydown', (e) => {
       addChild();
       break;
     case 'Delete':
-    case 'Backspace':
-      if (state.selectedRelationId) {
-        state.relations = state.relations.filter((r) => r.id !== state.selectedRelationId);
-        state.selectedRelationId = null;
+    case 'Backspace': {
+      const selRels  = [...(state.selectedRelationIds ?? [])];
+      const selNodes = [...state.selectedIds];
+      const total = selRels.length + selNodes.length;
+      if (total === 0) break;
+      if (total > 1 && !confirm(`선택된 ${total}개 항목을 모두 삭제할까요?`)) break;
+
+      // 관계선 먼저 삭제
+      if (selRels.length) {
+        const toDel = new Set(selRels);
+        state.relations = state.relations.filter((r) => !toDel.has(r.id));
+        clearRelationSelection(state);
+      }
+      // 노드 삭제 (deleteNode가 render 호출)
+      if (selNodes.length) {
+        selNodes.forEach((id) => deleteNode(id));
+      } else {
         render();
-      } else if (state.selectedIds.length > 0) {
-        const ids = [...state.selectedIds];
-        if (ids.length === 1) {
-          deleteNode(ids[0]);
-        } else {
-          if (confirm(`선택된 ${ids.length}개 노드를 모두 삭제할까요?`)) {
-            ids.forEach((id) => deleteNode(id));
-          }
-        }
       }
       break;
+    }
     case 'Escape':
       closeModal();
       hideAllMenus();
@@ -294,7 +299,7 @@ document.addEventListener('keydown', (e) => {
         document.body.classList.remove('relation-drafting');
       }
       clearNodeSelection(state);
-      state.selectedRelationId = null;
+      clearRelationSelection(state);
       render();
       break;
   }
