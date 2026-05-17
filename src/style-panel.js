@@ -60,6 +60,32 @@ function syncControlsFromState() {
   $('sp-linestyle').value   = state.lineStyle ?? 'straight';
   $('sp-linewidth').value   = s.lineWidth;
   $('sp-colored').checked   = !!s.coloredBranch;
+
+  syncSelectedNodeSection();
+}
+
+/** 선택된 노드의 스타일을 패널 컨트롤에 반영 + 섹션 표시/숨김 */
+export function syncSelectedNodeSection() {
+  const sec = $('sp-node-section');
+  if (!sec) return;
+  const n = state.selectedId ? state.nodes[state.selectedId] : null;
+  if (!n) { sec.hidden = true; return; }
+  sec.hidden = false;
+
+  const ts = n.textStyle ?? {};
+  $('nd-bold')      .classList.toggle('on', !!ts.bold);
+  $('nd-italic')    .classList.toggle('on', !!ts.italic);
+  $('nd-underline') .classList.toggle('on', !!ts.underline);
+  $('nd-strike')    .classList.toggle('on', !!ts.strikethrough);
+  $('nd-size').value = ts.size ?? 'medium';
+
+  const align = ts.align ?? 'center';
+  ['left', 'center', 'right'].forEach((a) => {
+    $('nd-align-' + a).classList.toggle('on', a === align);
+  });
+
+  $('nd-shape').value  = n.shape       ?? 'rounded';
+  $('nd-border').value = n.borderWidth ?? 'thin';
 }
 
 /** localStorage에 저장 */
@@ -174,4 +200,29 @@ export function initStylePanel() {
 
   // ── 닫기 ──
   $('sp-close').addEventListener('click', closePanel);
+
+  // ── 선택 노드 스타일 핸들러 ──
+  function withNode(fn) {
+    const n = state.nodes[state.selectedId];
+    if (!n) return;
+    if (!n.textStyle) {
+      n.textStyle = { bold: false, italic: false, underline: false, strikethrough: false, size: 'medium', align: 'center' };
+    }
+    fn(n);
+    render();
+  }
+
+  $('nd-bold')     .addEventListener('click', () => withNode((n) => { n.textStyle.bold      = !n.textStyle.bold; }));
+  $('nd-italic')   .addEventListener('click', () => withNode((n) => { n.textStyle.italic    = !n.textStyle.italic; }));
+  $('nd-underline').addEventListener('click', () => withNode((n) => { n.textStyle.underline = !n.textStyle.underline; }));
+  $('nd-strike')   .addEventListener('click', () => withNode((n) => { n.textStyle.strikethrough = !n.textStyle.strikethrough; }));
+
+  $('nd-size')  .addEventListener('change', (e) => withNode((n) => { n.textStyle.size = e.target.value; }));
+
+  ['left', 'center', 'right'].forEach((a) => {
+    $('nd-align-' + a).addEventListener('click', () => withNode((n) => { n.textStyle.align = a; }));
+  });
+
+  $('nd-shape') .addEventListener('change', (e) => withNode((n) => { n.shape       = e.target.value; }));
+  $('nd-border').addEventListener('change', (e) => withNode((n) => { n.borderWidth = e.target.value; }));
 }

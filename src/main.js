@@ -20,7 +20,7 @@ import * as drive                            from './drive.js';
 import { showContextMenu, hideContextMenu, hideAllMenus, showBgMenu, initContextMenu } from './menu.js';
 import { doImport, schedulePersist, restoreLocal, onSaveStateChange } from './io.js';
 import { runSearch, gotoHit, clearSearch }    from './search.js';
-import { initStylePanel, togglePanel, closePanel, isPanelOpen, setOnStyleApplied } from './style-panel.js';
+import { initStylePanel, togglePanel, closePanel, isPanelOpen, setOnStyleApplied, syncSelectedNodeSection } from './style-panel.js';
 
 // ── render.js에 핸들러 주입 ──
 // render.js는 다른 모듈을 직접 import하지 않고
@@ -39,8 +39,11 @@ registerHandlers({
   },
 });
 
-// ── 매 render() 끝에 자동 저장 예약 ──
-setPostRender(schedulePersist);
+// ── 매 render() 끝에: 자동 저장 + 패널 동기화 ──
+setPostRender(() => {
+  schedulePersist();
+  syncSelectedNodeSection();
+});
 
 // ── 마지막 저장 시각 인디케이터 ──
 onSaveStateChange((ts) => {

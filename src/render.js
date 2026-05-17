@@ -6,7 +6,7 @@
  */
 
 import { state } from './state.js';
-import { $, linkIcon, linkDefault, lighten, LINE_WIDTHS } from './utils.js';
+import { $, linkIcon, linkDefault, lighten, LINE_WIDTHS, NODE_SIZES, NODE_SHAPES, NODE_BORDERS } from './utils.js';
 
 // main.js가 주입할 핸들러 (기본값은 빈 함수)
 const H = {
@@ -149,6 +149,25 @@ export function render() {
     el.style.top        = n.y + 'px';
     el.style.background = n.color;
     if (!isRoot) el.style.borderColor = lighten(n.color, 30);
+
+    // ── 노드별 텍스트 스타일 적용 ──
+    const ts = n.textStyle ?? {};
+    if (ts.bold)   el.style.fontWeight = '700';
+    if (ts.italic) el.style.fontStyle  = 'italic';
+    const deco = [];
+    if (ts.underline)     deco.push('underline');
+    if (ts.strikethrough) deco.push('line-through');
+    if (deco.length) el.style.textDecoration = deco.join(' ');
+    el.style.fontSize  = NODE_SIZES[ts.size]   ?? NODE_SIZES.medium;
+    el.style.textAlign = ts.align              ?? 'center';
+
+    // ── 모양 (border-radius) ──
+    el.style.borderRadius = NODE_SHAPES[n.shape] ?? NODE_SHAPES.rounded;
+
+    // ── 테두리 두께 ──
+    const bw = NODE_BORDERS[n.borderWidth] ?? NODE_BORDERS.thin;
+    el.style.borderWidth = bw;
+    if (n.borderWidth === 'none') el.style.borderColor = 'transparent';
 
     // 텍스트 (아이콘이 있으면 앞에 표시)
     const textDiv = document.createElement('div');

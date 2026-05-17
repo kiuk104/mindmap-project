@@ -103,5 +103,24 @@ export function ytThumb(url) {
 
 /** 새 노드 객체 생성 */
 export function makeNode(id, text, x, y, parentId, color) {
-  return { id, text, x, y, parentId, color: color ?? '#1f6feb', links: [], icon: '' };
+  return {
+    id, text, x, y, parentId,
+    color: color ?? '#1f6feb',
+    links: [],
+    icon: '',
+    textStyle: {
+      bold: false, italic: false, underline: false, strikethrough: false,
+      size: 'medium',   // 'small' | 'medium' | 'large'
+      align: 'center',  // 'left' | 'center' | 'right'
+    },
+    shape: 'rounded',     // 'rounded' | 'sharp' | 'pill'
+    borderWidth: 'thin',  // 'none' | 'thin' | 'normal' | 'thick'
+  };
 }
+
+/** 노드 텍스트 크기 매핑 (px) */
+export const NODE_SIZES = { small: '11px', medium: '13px', large: '17px' };
+/** 노드 모양 → border-radius */
+export const NODE_SHAPES = { rounded: '14px', sharp: '3px', pill: '50px' };
+/** 노드 테두리 두께 */
+export const NODE_BORDERS = { none: '0', thin: '1px', normal: '2px', thick: '4px' };
