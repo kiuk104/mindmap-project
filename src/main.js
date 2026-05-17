@@ -14,7 +14,7 @@ import { $, uid, makeNode, COLORS }        from './utils.js';
 import { showPreview, hidePreview }        from './preview.js';
 import { addChild, deleteNode, startEdit, removeLink } from './nodes.js';
 import { initCanvas, view, applyTransform, resetView } from './canvas.js';
-import { onNodeMouseDown }                 from './canvas.js';
+import { onNodeMouseDown, onRelationHandleDown } from './canvas.js';
 import { openLinkModal, openColorModal, openSaveModal, openDriveLoadModal, closeModal, handleModalOK, applyStyle } from './modal.js';
 import * as drive                            from './drive.js';
 import { showContextMenu, hideContextMenu, hideAllMenus, showBgMenu, initContextMenu } from './menu.js';
@@ -37,6 +37,15 @@ registerHandlers({
     state.selectedId         = null;
     render();
   },
+  onRelationDblClick: (rid) => {
+    const r = state.relations.find((rr) => rr.id === rid);
+    if (!r) return;
+    const newLabel = prompt('관계선 라벨 (비워두면 제거):', r.label ?? '');
+    if (newLabel === null) return; // 취소
+    r.label = newLabel.trim();
+    render();
+  },
+  onRelationHandleDown,
 });
 
 // ── 매 render() 끝에: 자동 저장 + 패널 동기화 ──

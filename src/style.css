@@ -327,6 +327,32 @@ select.fi   { cursor: pointer; }
 #svg-layer .rel-path:hover { stroke: var(--line-rel-hover); }
 #svg-layer .rel-path.selected:hover { stroke: var(--accent); }
 
+/* ── 관계선 라벨 ── */
+#svg-layer .rel-label {
+  fill: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--node-font, inherit);
+  cursor: text;
+  pointer-events: all;
+  user-select: none;
+  paint-order: stroke;
+  stroke: var(--bg-base);
+  stroke-width: 4;
+  stroke-linejoin: round;
+}
+
+/* ── 관계선 곡률 조정 핸들 (선택 시 표시) ── */
+#svg-layer .rel-handle {
+  fill: var(--accent);
+  stroke: #fff;
+  stroke-width: 2;
+  cursor: move;
+  pointer-events: all;
+  transition: r 0.1s;
+}
+#svg-layer .rel-handle:hover { r: 8; }
+
 /* 관계선 그리기 중 */
 body.relation-drafting #canvas-wrap,
 body.relation-drafting .node { cursor: crosshair !important; }

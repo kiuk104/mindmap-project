@@ -22,6 +22,10 @@ let dragId   = null;
 let dragOffX = 0;
 let dragOffY = 0;
 
+// ── 관계선 곡률 핸들 드래그 상태 ──
+let relHandleDragging = false;
+let relHandleId       = null;
+
 // ── 핀치 줌 상태 ──
 let pinching      = false;
 let pinchStartDist = 0;
@@ -117,6 +121,19 @@ function checkLongPressMove(e) {
   if (dx > LONG_PRESS_THRESHOLD || dy > LONG_PRESS_THRESHOLD) cancelLongPress();
 }
 
+/** 관계선 곡률 핸들 마우스다운 — 드래그 시작 */
+export function onRelationHandleDown(e, rid) {
+  if (e.button !== 0) return;
+  panning = false;
+  dragging = false;
+  dragId = null;
+  cancelLongPress();
+  relHandleDragging = true;
+  relHandleId = rid;
+  state.selectedRelationId = rid;
+  render();
+}
+
 // ── 노드 포인터다운 (드래그 시작 / 관계선 완성) ──
 export function onNodeMouseDown(e, nodeId) {
   if (e.button !== 0) return;
@@ -188,7 +205,7 @@ export function initCanvas() {
     }
   });
 
-  // 포인터 이동 → Pan 또는 노드 드래그
+  // 포인터 이동 → Pan / 노드 드래그 / 관계선 핸들 드래그
   document.addEventListener('pointermove', (e) => {
     if (pinching) return;
     checkLongPressMove(e);
@@ -211,10 +228,31 @@ export function initCanvas() {
       }
       updateLines();
     }
+
+    if (relHandleDragging && relHandleId) {
+      const r = state.relations.find((rr) => rr.id === relHandleId);
+      if (r) {
+        const a = state.nodes[r.fromId];
+        const b = state.nodes[r.toId];
+        if (a && b) {
+          const cp = canvasCoord(e.clientX, e.clientY);
+          const midX = (a.x + b.x) / 2;
+          const midY = (a.y + b.y) / 2;
+          r.curveOffset = { dx: cp.x - midX, dy: cp.y - midY };
+          updateLines();
+        }
+      }
+    }
   });
 
   // 포인터 업 → 드래그/Pan 종료
   function endPointer() {
+    if (relHandleDragging) {
+      // 곡률 변경은 자동 저장 트리거 필요 — render() 한 번 호출
+      relHandleDragging = false;
+      relHandleId = null;
+      render();
+    }
     panning  = false;
     dragging = false;
     dragId   = null;

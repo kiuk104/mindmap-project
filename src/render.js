@@ -17,6 +17,8 @@ const H = {
   onLinkBadgeMouseLeave: () => {},
   onLinkDelete:         () => {},
   onRelationClick:      () => {},
+  onRelationDblClick:   () => {},
+  onRelationHandleDown: () => {},
 };
 
 // 렌더 후에 호출되는 훅 (예: 자동 저장)
@@ -33,6 +35,13 @@ export function registerHandlers(handlers) {
 /** 매 render() 끝에 호출될 함수 등록 */
 export function setPostRender(fn) {
   postRenderHook = fn ?? (() => {});
+}
+
+/** SVG text 내부에 안전하게 들어가도록 XML 특수문자 이스케이프 */
+function escapeXml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;',
+  }[c]));
 }
 
 /**
@@ -80,25 +89,48 @@ function buildSvgMarkup() {
     }
   });
 
-  // 관계선 (점선 + 곡선 + 화살표)
+  // 관계선 (점선 + 곡선 + 화살표 + 라벨 + 곡률 핸들)
   state.relations.forEach((r) => {
     const a = state.nodes[r.fromId];
     const b = state.nodes[r.toId];
     if (!a || !b) return;
 
-    const dx = b.x - a.x;
-    const dy = b.y - a.y;
-    const len = Math.sqrt(dx * dx + dy * dy) || 1;
-    const curve = Math.min(80, len * 0.25);
-    const mx = (a.x + b.x) / 2 + (-dy / len) * curve;
-    const my = (a.y + b.y) / 2 + ( dx / len) * curve;
+    // 제어점 위치: 사용자가 조정한 curveOffset이 있으면 사용, 없으면 자동 계산
+    const midX = (a.x + b.x) / 2;
+    const midY = (a.y + b.y) / 2;
+    let cx, cy;
+    if (r.curveOffset && typeof r.curveOffset.dx === 'number') {
+      cx = midX + r.curveOffset.dx;
+      cy = midY + r.curveOffset.dy;
+    } else {
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const len = Math.sqrt(dx * dx + dy * dy) || 1;
+      const curve = Math.min(80, len * 0.25);
+      cx = midX + (-dy / len) * curve;
+      cy = midY + ( dx / len) * curve;
+    }
 
     const sel = r.id === state.selectedRelationId;
     const marker = sel ? 'url(#rel-arrow-sel)' : 'url(#rel-arrow)';
 
     h += `<path class="rel-path${sel ? ' selected' : ''}" data-rid="${r.id}"
-      d="M ${a.x} ${a.y} Q ${mx} ${my} ${b.x} ${b.y}"
+      d="M ${a.x} ${a.y} Q ${cx} ${cy} ${b.x} ${b.y}"
       marker-end="${marker}"/>`;
+
+    // 라벨 (Bezier 곡선의 t=0.5 위치)
+    if (r.label) {
+      const lx = 0.25 * a.x + 0.5 * cx + 0.25 * b.x;
+      const ly = 0.25 * a.y + 0.5 * cy + 0.25 * b.y;
+      h += `<text class="rel-label" data-rid="${r.id}"
+        x="${lx}" y="${ly - 8}" text-anchor="middle">${escapeXml(r.label)}</text>`;
+    }
+
+    // 곡률 조정 핸들 (선택된 관계선에만)
+    if (sel) {
+      h += `<circle class="rel-handle" data-rid="${r.id}"
+        cx="${cx}" cy="${cy}" r="6"/>`;
+    }
   });
 
   return h;
@@ -117,13 +149,7 @@ export function render() {
   // ── SVG (부모-자식 선 + 관계선 + 화살표 marker) ──
   svg.innerHTML = buildSvgMarkup();
 
-  // 관계선 클릭 핸들러
-  svg.querySelectorAll('.rel-path').forEach((p) => {
-    p.addEventListener('pointerdown', (e) => {
-      e.stopPropagation();
-      H.onRelationClick(p.getAttribute('data-rid'));
-    });
-  });
+  bindRelationHandlers(svg);
 
   // 검색 매치 ID Set (성능)
   const hitSet = new Set(state.searchHits);
@@ -223,14 +249,39 @@ export function render() {
   postRenderHook();
 }
 
-/** 드래그 중 SVG 선만 빠르게 업데이트 (성능 최적화) */
-export function updateLines() {
-  $('svg-layer').innerHTML = buildSvgMarkup();
-  // 관계선 클릭 핸들러 재등록
-  $('svg-layer').querySelectorAll('.rel-path').forEach((p) => {
+/** SVG 안의 관계선·라벨·핸들에 이벤트 핸들러를 다시 붙임 */
+function bindRelationHandlers(svg) {
+  svg.querySelectorAll('.rel-path').forEach((p) => {
     p.addEventListener('pointerdown', (e) => {
       e.stopPropagation();
       H.onRelationClick(p.getAttribute('data-rid'));
     });
+    p.addEventListener('dblclick', (e) => {
+      e.stopPropagation();
+      H.onRelationDblClick(p.getAttribute('data-rid'));
+    });
   });
+  svg.querySelectorAll('.rel-label').forEach((t) => {
+    t.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      H.onRelationClick(t.getAttribute('data-rid'));
+    });
+    t.addEventListener('dblclick', (e) => {
+      e.stopPropagation();
+      H.onRelationDblClick(t.getAttribute('data-rid'));
+    });
+  });
+  svg.querySelectorAll('.rel-handle').forEach((c) => {
+    c.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      H.onRelationHandleDown(e, c.getAttribute('data-rid'));
+    });
+  });
+}
+
+/** 드래그 중 SVG 선만 빠르게 업데이트 (성능 최적화) */
+export function updateLines() {
+  const svg = $('svg-layer');
+  svg.innerHTML = buildSvgMarkup();
+  bindRelationHandlers(svg);
 }
