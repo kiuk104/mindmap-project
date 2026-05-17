@@ -6,7 +6,7 @@
 
 import { state } from './state.js';
 import { render } from './render.js';
-import { $, FONT_FAMILIES, currentPalette, linkIcon, linkDefault } from './utils.js';
+import { $, FONT_FAMILIES, currentPalette, linkIcon, linkDefault, ICON_GROUPS, ICON_TAB_NAMES } from './utils.js';
 import { removeLink } from './nodes.js';
 import { doDownload, copyJsonToClipboard, defaultFilename, serialize, loadFromString } from './io.js';
 import * as drive from './drive.js';
@@ -232,40 +232,63 @@ function formatTime(iso) {
   }
 }
 
-/** 자주 쓰는 마인드맵 아이콘 셋 */
-const NODE_ICONS = [
-  '⭐', '🔥', '💡', '🎯', '🚀', '⚡', '🌟', '✨',
-  '✅', '❌', '⚠️', '⏳', '🔄', '❓', '🤔', '🔔',
-  '📄', '📊', '📈', '📌', '🔖', '📁', '🏷️', '🔍',
-  '💻', '🌐', '📱', '⚙️', '🔧', '🛠️',
-  '👤', '👥', '💬', '📞', '📧',
-  '📅', '⏰', '✏️', '📝', '🎨',
-  '🎓', '🏠', '💰', '🎁',
-];
+/** 아이콘 모달 현재 활성 탭 (모듈 스코프 — 모달 다시 열어도 유지) */
+let activeIconTab = 'marker';
 
 /**
- * 노드 아이콘 선택 모달
+ * 노드 아이콘 선택 모달 — 마커/스티커 탭 + 카테고리별 그룹
  * @param {string} nodeId
  */
 export function openIconModal(nodeId) {
   if (!nodeId) { alert('노드를 먼저 선택하세요.'); return; }
   state.ctxTargetId = nodeId;
   state.modalKind   = 'icon';
-  $('modal-title').textContent = '🙂 노드 아이콘 선택';
+  $('modal-title').textContent = '🙂 노드 아이콘';
 
-  const current = state.nodes[nodeId]?.icon ?? '';
+  renderIconBody();
+  showModal();
+}
+
+/** 아이콘 모달 본문 다시 그리기 (탭 전환 시 호출) */
+function renderIconBody() {
+  const current = state.nodes[state.ctxTargetId]?.icon ?? '';
+  const groups  = ICON_GROUPS[activeIconTab];
+
+  // 탭 헤더 + 클리어 + 카테고리들
+  const tabsHTML = Object.entries(ICON_TAB_NAMES).map(([key, name]) => `
+    <button class="icon-tab ${key === activeIconTab ? 'active' : ''}" data-tab="${key}">${name}</button>
+  `).join('');
+
+  const categoriesHTML = Object.entries(groups).map(([cat, icons]) => `
+    <div class="icon-cat">
+      <div class="icon-cat-title">${cat}</div>
+      <div class="icon-grid">
+        ${icons.map((i) => `
+          <span class="icon-pick ${i === current ? 'sel' : ''}" data-icon="${i}">${i}</span>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+
   $('modal-body').innerHTML = `
-    <div class="fg" style="font-size:11px; color:var(--text-dim);">
-      클릭하면 즉시 적용됩니다.
+    <div class="icon-tabs">${tabsHTML}</div>
+    <div class="icon-clear-row">
+      <span class="icon-pick icon-clear ${!current ? 'sel' : ''}" data-icon="">
+        🚫 아이콘 제거
+      </span>
     </div>
-    <div class="icon-grid">
-      <span class="icon-pick ${!current ? 'sel' : ''}" data-icon="" title="아이콘 제거">🚫</span>
-      ${NODE_ICONS.map((i) => `
-        <span class="icon-pick ${i === current ? 'sel' : ''}" data-icon="${i}">${i}</span>
-      `).join('')}
-    </div>
+    <div class="icon-cats">${categoriesHTML}</div>
   `;
 
+  // 탭 전환
+  $('modal-body').querySelectorAll('.icon-tab').forEach((b) => {
+    b.addEventListener('click', () => {
+      activeIconTab = b.dataset.tab;
+      renderIconBody();
+    });
+  });
+
+  // 아이콘 클릭 → 즉시 적용
   $('modal-body').querySelectorAll('.icon-pick').forEach((el) => {
     el.addEventListener('click', () => {
       const node = state.nodes[state.ctxTargetId];
@@ -274,8 +297,6 @@ export function openIconModal(nodeId) {
       render();
     });
   });
-
-  showModal();
 }
 
 /**

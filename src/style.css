@@ -562,13 +562,62 @@ body.style-panel-open #style-panel { transform: translateX(0); }
 .lw-opt input[type=radio] { margin: 0; cursor: pointer; accent-color: var(--accent); }
 .lw-opt:has(input:checked) { border-color: var(--accent); background: var(--bg-hover); }
 
-/* ── 아이콘 선택 그리드 ── */
+/* ── 아이콘 모달: 탭 + 카테고리 + 그리드 ── */
+.icon-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 12px;
+}
+.icon-tab {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 8px 12px;
+  color: var(--text-dim);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color .15s, border-color .15s;
+}
+.icon-tab:hover { color: var(--text-bright); }
+.icon-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.icon-clear-row {
+  margin-bottom: 12px;
+}
+.icon-pick.icon-clear {
+  width: 100%;
+  aspect-ratio: auto;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--text-dim);
+  gap: 6px;
+}
+
+.icon-cats {
+  max-height: 440px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.icon-cat { margin-bottom: 14px; }
+.icon-cat:last-child { margin-bottom: 0; }
+.icon-cat-title {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
 .icon-grid {
   display: grid;
   grid-template-columns: repeat(8, 1fr);
-  gap: 6px;
-  max-height: 320px;
-  overflow-y: auto;
+  gap: 4px;
 }
 .icon-pick {
   display: flex; align-items: center; justify-content: center;
@@ -587,4 +636,5 @@ body.style-panel-open #style-panel { transform: translateX(0); }
 @media (max-width: 768px) {
   .icon-grid { grid-template-columns: repeat(6, 1fr); }
   .icon-pick { font-size: 22px; }
+  .icon-cats { max-height: 60vh; }
 }
