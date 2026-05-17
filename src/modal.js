@@ -1,10 +1,12 @@
 /**
- * modal.js — 링크 추가 / 색상 변경 모달
+ * modal.js — 링크/색상/아이콘/저장/Drive 모달
+ *
+ * 스타일 편집은 별도 우측 패널(style-panel.js)에서 처리.
  */
 
 import { state } from './state.js';
 import { render } from './render.js';
-import { $, COLORS, COLOR_THEMES, THEME_NAMES, FONT_FAMILIES, FONT_NAMES, currentPalette, linkIcon, linkDefault } from './utils.js';
+import { $, FONT_FAMILIES, currentPalette, linkIcon, linkDefault } from './utils.js';
 import { removeLink } from './nodes.js';
 import { doDownload, copyJsonToClipboard, defaultFilename, serialize, loadFromString } from './io.js';
 import * as drive from './drive.js';
@@ -96,91 +98,6 @@ function updateLinkPlaceholder() {
     url:     'https://example.com',
   };
   $('lk-url').placeholder = placeholders[$('lk-type').value];
-}
-
-/**
- * 맵 스타일 설정 모달
- * 색상 테마 / 배경색 / 연결선 두께 / 색상 연결선 토글
- */
-export function openStyleModal() {
-  state.modalKind = 'style';
-  $('modal-title').textContent = '🎨 맵 스타일';
-
-  const s = state.style;
-  const themesHTML = Object.entries(COLOR_THEMES).map(([key, palette]) => `
-    <div class="theme-pick ${s.theme === key ? 'sel' : ''}" data-theme="${key}">
-      <div class="theme-swatches">
-        ${palette.slice(0, 6).map((c) => `<span class="theme-swatch" style="background:${c}"></span>`).join('')}
-      </div>
-      <div class="theme-name">${THEME_NAMES[key]}</div>
-    </div>
-  `).join('');
-
-  $('modal-body').innerHTML = `
-    <div class="fg">
-      <label class="fl">색상 테마</label>
-      <div class="theme-grid">${themesHTML}</div>
-    </div>
-
-    <div class="fg">
-      <label class="fl">배경 색</label>
-      <div style="display:flex; align-items:center; gap:10px;">
-        <input type="color" id="sv-bgcolor" value="${s.bgColor ?? '#0d1117'}"
-          style="width:48px; height:32px; padding:0; border-radius:6px; cursor:pointer; background:none; border:1px solid var(--border);" />
-        <button type="button" class="btn btn-ghost" id="sv-bgreset" style="padding:5px 10px;">테마 기본으로</button>
-      </div>
-    </div>
-
-    <div class="fg">
-      <label class="fl">연결선 두께</label>
-      <div class="line-width-row">
-        <label class="lw-opt"><input type="radio" name="lw" value="thin"   ${s.lineWidth === 'thin'   ? 'checked' : ''}/><span>얇게</span></label>
-        <label class="lw-opt"><input type="radio" name="lw" value="normal" ${s.lineWidth === 'normal' ? 'checked' : ''}/><span>보통</span></label>
-        <label class="lw-opt"><input type="radio" name="lw" value="thick"  ${s.lineWidth === 'thick'  ? 'checked' : ''}/><span>굵게</span></label>
-      </div>
-    </div>
-
-    <div class="fg">
-      <label class="fl">노드 폰트</label>
-      <select class="fi" id="sv-font">
-        ${Object.entries(FONT_NAMES).map(([key, name]) => `
-          <option value="${key}" ${s.font === key ? 'selected' : ''}
-            style="font-family: ${FONT_FAMILIES[key]}">${name} — 가나다 ABC</option>
-        `).join('')}
-      </select>
-    </div>
-
-    <div class="fg">
-      <label style="display:flex; align-items:center; gap:8px; cursor:pointer; user-select:none;">
-        <input type="checkbox" id="sv-colored" ${s.coloredBranch ? 'checked' : ''} />
-        <span>자식 노드 색상으로 연결선 색상 사용</span>
-      </label>
-    </div>
-
-    <div class="fg" style="font-size:11px; color:var(--text-dim); line-height:1.6;">
-      💡 색상 테마를 변경하면 기존 노드 색을 다시 칠할지 묻습니다.
-    </div>
-  `;
-
-  // 테마 선택 (한 번에 하나만 .sel)
-  $('modal-body').querySelectorAll('.theme-pick').forEach((el) => {
-    el.addEventListener('click', () => {
-      $('modal-body').querySelectorAll('.theme-pick').forEach((e) => e.classList.remove('sel'));
-      el.classList.add('sel');
-    });
-  });
-
-  // 배경 색 리셋
-  $('sv-bgreset').addEventListener('click', () => {
-    $('sv-bgcolor').value = '';
-    $('sv-bgcolor').dataset.reset = '1';
-  });
-  // 사용자가 색을 직접 고르면 reset 플래그 해제
-  $('sv-bgcolor').addEventListener('input', () => {
-    delete $('sv-bgcolor').dataset.reset;
-  });
-
-  showModal();
 }
 
 /** 저장 모달 열기 (다른 이름으로 저장) */
@@ -414,35 +331,6 @@ export function handleModalOK() {
     if (selected && state.ctxTargetId) {
       state.nodes[state.ctxTargetId].color = selected.dataset.c;
     }
-    closeModal();
-    render();
-
-  } else if (state.modalKind === 'style') {
-    const themeEl = $('modal-body').querySelector('.theme-pick.sel');
-    const newTheme = themeEl?.dataset.theme ?? state.style.theme;
-    const themeChanged = newTheme !== state.style.theme;
-
-    state.style.theme         = newTheme;
-    state.style.bgColor       = $('sv-bgcolor').dataset.reset ? null : $('sv-bgcolor').value;
-    state.style.lineWidth     = $('modal-body').querySelector('input[name="lw"]:checked')?.value ?? 'normal';
-    state.style.coloredBranch = $('sv-colored').checked;
-    state.style.font          = $('sv-font').value;
-
-    if (themeChanged) {
-      if (confirm('테마가 변경되었습니다. 기존 노드들도 새 테마 색상으로 다시 칠할까요?')) {
-        const palette = COLOR_THEMES[newTheme];
-        let idx = 0;
-        Object.values(state.nodes).forEach((n) => {
-          n.color = palette[idx % palette.length];
-          idx++;
-        });
-      }
-    }
-
-    // 영속화 + 배경·폰트 적용
-    try { localStorage.setItem('mindmap.style', JSON.stringify(state.style)); } catch {}
-    applyStyle();
-
     closeModal();
     render();
 

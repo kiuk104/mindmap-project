@@ -92,6 +92,66 @@
   <!-- ── 호버 미리보기 ── -->
   <div id="preview-pop"><img id="preview-img" src="" alt="preview" /></div>
 
+  <!-- ── 스타일 패널 (우측 슬라이드) ── -->
+  <aside id="style-panel" aria-hidden="true">
+    <header class="sp-header">
+      <span class="sp-title">🎨 맵 스타일</span>
+      <button class="sp-close" id="sp-close" title="닫기 (Esc)">✕</button>
+    </header>
+    <div class="sp-body">
+
+      <section class="sp-section">
+        <div class="sp-label">색상 테마</div>
+        <div class="theme-grid" id="sp-themes"></div>
+        <button class="btn btn-ghost sp-action" id="sp-apply-theme">
+          🔄 기존 노드도 모두 다시 칠하기
+        </button>
+      </section>
+
+      <section class="sp-section">
+        <div class="sp-label">배경 색</div>
+        <div class="sp-row">
+          <input type="color" id="sp-bgcolor" class="sp-color-input" />
+          <button class="btn btn-ghost sp-row-btn" id="sp-bgreset">테마 기본</button>
+        </div>
+      </section>
+
+      <section class="sp-section">
+        <div class="sp-label">노드 폰트</div>
+        <select class="fi" id="sp-font"></select>
+      </section>
+
+      <section class="sp-section">
+        <div class="sp-label">연결선 모양</div>
+        <select class="fi" id="sp-linestyle">
+          <option value="straight">━ 직선</option>
+          <option value="curved">⌒ 곡선</option>
+          <option value="stepped">⌐ 직각</option>
+        </select>
+      </section>
+
+      <section class="sp-section">
+        <div class="sp-label">연결선 두께</div>
+        <select class="fi" id="sp-linewidth">
+          <option value="thin">얇게</option>
+          <option value="normal">보통</option>
+          <option value="thick">굵게</option>
+        </select>
+      </section>
+
+      <section class="sp-section">
+        <label class="sp-check">
+          <input type="checkbox" id="sp-colored" />
+          <span>자식 노드 색상으로 연결선 색상</span>
+        </label>
+      </section>
+
+      <p class="sp-hint">
+        💡 모든 변경은 즉시 적용되고 자동 저장됩니다.
+      </p>
+    </div>
+  </aside>
+
   <!-- ── HUD ── -->
   <div id="hud">100%</div>
   <div id="help-hud">

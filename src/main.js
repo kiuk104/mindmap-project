@@ -15,11 +15,12 @@ import { showPreview, hidePreview }        from './preview.js';
 import { addChild, deleteNode, startEdit, removeLink } from './nodes.js';
 import { initCanvas, view, applyTransform, resetView } from './canvas.js';
 import { onNodeMouseDown }                 from './canvas.js';
-import { openLinkModal, openColorModal, openSaveModal, openDriveLoadModal, openStyleModal, closeModal, handleModalOK, applyStyle } from './modal.js';
+import { openLinkModal, openColorModal, openSaveModal, openDriveLoadModal, closeModal, handleModalOK, applyStyle } from './modal.js';
 import * as drive                            from './drive.js';
 import { showContextMenu, hideContextMenu, hideAllMenus, showBgMenu, initContextMenu } from './menu.js';
 import { doImport, schedulePersist, restoreLocal, onSaveStateChange } from './io.js';
 import { runSearch, gotoHit, clearSearch }    from './search.js';
+import { initStylePanel, togglePanel, closePanel, isPanelOpen, setOnStyleApplied } from './style-panel.js';
 
 // ── render.js에 핸들러 주입 ──
 // render.js는 다른 모듈을 직접 import하지 않고
@@ -111,24 +112,30 @@ try {
 } catch {}
 applyStyle();
 
-$('btn-style').addEventListener('click', openStyleModal);
-
-// ── 연결선 스타일 토글 (직선 → 곡선 → 직각) ──
+// ── 연결선 스타일 (직선/곡선/직각) — 툴바 토글 + 패널 sync ──
 const LINE_STYLE_KEY = 'mindmap.lineStyle';
 const LINE_STYLES    = ['straight', 'curved', 'stepped'];
 const LINE_LABELS    = { straight: '━ 직선', curved: '⌒ 곡선', stepped: '⌐ 직각' };
 
 const savedLineStyle = localStorage.getItem(LINE_STYLE_KEY);
 state.lineStyle = LINE_STYLES.includes(savedLineStyle) ? savedLineStyle : 'straight';
-$('btn-line-style').textContent = LINE_LABELS[state.lineStyle];
+function updateLineStyleBtn() {
+  $('btn-line-style').textContent = LINE_LABELS[state.lineStyle];
+}
+updateLineStyleBtn();
 
 $('btn-line-style').addEventListener('click', () => {
   const idx = LINE_STYLES.indexOf(state.lineStyle);
   state.lineStyle = LINE_STYLES[(idx + 1) % LINE_STYLES.length];
   localStorage.setItem(LINE_STYLE_KEY, state.lineStyle);
-  $('btn-line-style').textContent = LINE_LABELS[state.lineStyle];
+  updateLineStyleBtn();
   render();
 });
+
+// ── 스타일 패널 (우측 슬라이드) ──
+initStylePanel();
+setOnStyleApplied(updateLineStyleBtn);  // 패널에서 lineStyle 바꾸면 툴바 라벨도 갱신
+$('btn-style').addEventListener('click', togglePanel);
 
 // ── 테마 토글 ──
 const THEME_KEY = 'mindmap.theme';
@@ -257,6 +264,7 @@ document.addEventListener('keydown', (e) => {
     case 'Escape':
       closeModal();
       hideAllMenus();
+      if (isPanelOpen()) closePanel();
       if (state.relationDraft) {
         state.relationDraft = null;
         document.body.classList.remove('relation-drafting');
