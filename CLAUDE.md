@@ -1,5 +1,11 @@
 # 마인드맵 프로젝트
 
+## 문서 목록
+- 📖 [USER_GUIDE.md](USER_GUIDE.md) — 사용자 매뉴얼 (단축키·제스처·기능 사용법·FAQ)
+- 🛠️ [DEVELOPMENT.md](DEVELOPMENT.md) — 개발 노트 (아키텍처·모듈·새 기능 추가법)
+- ☁️ [DRIVE_SETUP.md](DRIVE_SETUP.md) — 구글 드라이브 OAuth 설정 가이드
+- 🚀 [SETUP_GUIDE.md](SETUP_GUIDE.md) — 신규 클론 시 초기 셋업
+
 ## 프로젝트 개요
 구글 드라이브 직접 연동 + 로컬스토리지 자동 저장을 지원하는 공동 편집 마인드맵 도구.
 Vite + Vanilla JS로 빌드. JSON / Google Drive로 팀 협업.
