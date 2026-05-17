@@ -104,16 +104,14 @@ function applyVisuals() {
   document.documentElement.style.setProperty('--node-font', font);
 }
 
-/** 모든 노드를 현재 테마 팔레트로 다시 칠하기 */
-function applyThemeToAllNodes() {
-  if (!confirm('현재 노드 색상을 모두 새 테마 팔레트로 다시 칠합니다. 계속할까요?')) return;
-  const palette = COLOR_THEMES[state.style.theme] ?? COLOR_THEMES.default;
+/** 모든 노드를 현재 테마 팔레트로 다시 칠하기 (즉시 적용용 — 확인 없음) */
+function recolorAllNodes(themeKey) {
+  const palette = COLOR_THEMES[themeKey] ?? COLOR_THEMES.default;
   let idx = 0;
   Object.values(state.nodes).forEach((n) => {
     n.color = palette[idx % palette.length];
     idx++;
   });
-  render();
 }
 
 /** 컨트롤 빌드 + 이벤트 바인딩 (앱 시작 시 1회) */
@@ -139,20 +137,19 @@ export function initStylePanel() {
   // 초기 상태 동기화
   syncControlsFromState();
 
-  // ── 이벤트: 테마 선택 ──
+  // ── 이벤트: 테마 선택 — 클릭 즉시 모든 노드에 적용 ──
   $('sp-themes').addEventListener('click', (e) => {
     const card = e.target.closest('.theme-pick');
     if (!card) return;
-    state.style.theme = card.dataset.theme;
+    const themeKey = card.dataset.theme;
+    state.style.theme = themeKey;
     $('sp-themes').querySelectorAll('.theme-pick').forEach((el) => {
       el.classList.toggle('sel', el === card);
     });
+    recolorAllNodes(themeKey);
     persist();
-    // 노드 색상 자동 변경은 하지 않음 (사용자가 명시적으로 클릭)
+    render();
   });
-
-  // 기존 노드 다시 칠하기
-  $('sp-apply-theme').addEventListener('click', applyThemeToAllNodes);
 
   // ── 배경 색 ──
   $('sp-bgcolor').addEventListener('input', (e) => {
