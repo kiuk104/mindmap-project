@@ -101,6 +101,27 @@ $('btn-import').addEventListener('click', () => $('file-in').click());
 $('file-in').addEventListener('change',   doImport);
 $('btn-reset').addEventListener('click',  resetView);
 
+// ── 테마 토글 ──
+const THEME_KEY = 'mindmap.theme';
+function applyTheme(theme) {
+  if (theme === 'light') document.documentElement.setAttribute('data-theme', 'light');
+  else                   document.documentElement.removeAttribute('data-theme');
+  const btn = $('btn-theme');
+  if (btn) btn.textContent = theme === 'light' ? '🌙' : '☀️';
+  btn.title = theme === 'light' ? '다크 모드로' : '라이트 모드로';
+}
+// 초기 테마: localStorage > 시스템 설정 > 다크
+const savedTheme = localStorage.getItem(THEME_KEY);
+const systemLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+applyTheme(savedTheme ?? (systemLight ? 'light' : 'dark'));
+
+$('btn-theme').addEventListener('click', () => {
+  const current = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+  const next = current === 'light' ? 'dark' : 'light';
+  applyTheme(next);
+  localStorage.setItem(THEME_KEY, next);
+});
+
 // ── Drive 연결 버튼 ──
 $('btn-drive').addEventListener('click', () => {
   if (!drive.isAvailable()) {

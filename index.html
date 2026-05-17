@@ -4,6 +4,18 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>🗺️ 마인드맵</title>
+  <script>
+    // 테마 초기 적용 (CSS 로딩 전에 깜빡임 방지)
+    (function() {
+      try {
+        var t = localStorage.getItem('mindmap.theme');
+        var sysLight = window.matchMedia('(prefers-color-scheme: light)').matches;
+        if (t === 'light' || (!t && sysLight)) {
+          document.documentElement.setAttribute('data-theme', 'light');
+        }
+      } catch (e) {}
+    })();
+  </script>
   <link rel="stylesheet" href="/src/style.css" />
 </head>
 <body>
@@ -22,6 +34,7 @@
     <button class="btn btn-ghost" id="btn-drive">☁️ Drive 연결</button>
     <div class="sep"></div>
     <button class="btn btn-ghost" id="btn-reset">⌖ 화면 맞춤</button>
+    <button class="btn btn-ghost" id="btn-theme" title="다크/라이트 테마 전환">🌓</button>
     <div class="sep"></div>
     <div class="search-box">
       <input type="text" id="search-input" placeholder="🔍 노드 검색 (Ctrl+F)" autocomplete="off" />
