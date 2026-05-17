@@ -38,6 +38,17 @@ export const state = {
 
   /** @type {'straight'|'curved'|'stepped'} 부모-자식 연결선 스타일 */
   lineStyle: 'straight',
+
+  /**
+   * 맵 전체 스타일 설정
+   * @type {{theme:string, bgColor:(string|null), lineWidth:string, coloredBranch:boolean}}
+   */
+  style: {
+    theme: 'default',
+    bgColor: null,
+    lineWidth: 'normal',
+    coloredBranch: false,
+  },
 };
 
 /**

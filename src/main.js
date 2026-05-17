@@ -15,7 +15,7 @@ import { showPreview, hidePreview }        from './preview.js';
 import { addChild, deleteNode, startEdit, removeLink } from './nodes.js';
 import { initCanvas, view, applyTransform, resetView } from './canvas.js';
 import { onNodeMouseDown }                 from './canvas.js';
-import { openLinkModal, openColorModal, openSaveModal, openDriveLoadModal, closeModal, handleModalOK } from './modal.js';
+import { openLinkModal, openColorModal, openSaveModal, openDriveLoadModal, openStyleModal, closeModal, handleModalOK, applyBgColor } from './modal.js';
 import * as drive                            from './drive.js';
 import { showContextMenu, hideContextMenu, hideAllMenus, showBgMenu, initContextMenu } from './menu.js';
 import { doImport, schedulePersist, restoreLocal, onSaveStateChange } from './io.js';
@@ -100,6 +100,18 @@ $('btn-export').addEventListener('click', openSaveModal);
 $('btn-import').addEventListener('click', () => $('file-in').click());
 $('file-in').addEventListener('change',   doImport);
 $('btn-reset').addEventListener('click',  resetView);
+
+// ── 맵 스타일 (테마/배경/두께/색상 연결선) ──
+const STYLE_KEY = 'mindmap.style';
+try {
+  const savedStyle = JSON.parse(localStorage.getItem(STYLE_KEY) ?? 'null');
+  if (savedStyle && typeof savedStyle === 'object') {
+    state.style = { ...state.style, ...savedStyle };
+  }
+} catch {}
+applyBgColor();
+
+$('btn-style').addEventListener('click', openStyleModal);
 
 // ── 연결선 스타일 토글 (직선 → 곡선 → 직각) ──
 const LINE_STYLE_KEY = 'mindmap.lineStyle';

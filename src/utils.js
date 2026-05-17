@@ -10,11 +10,45 @@ export const $ = (id) => document.getElementById(id);
 export const uid = () =>
   'n' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
 
-/** 노드 색상 팔레트 */
-export const COLORS = [
-  '#f85149', '#1f6feb', '#8957e5', '#3fb950',
-  '#e3b341', '#39c5cf', '#ff7b72', '#d2a8ff',
-];
+/** 컬러 테마 프리셋 — 노드 색상 팔레트 */
+export const COLOR_THEMES = {
+  default: ['#f85149', '#1f6feb', '#8957e5', '#3fb950', '#e3b341', '#39c5cf', '#ff7b72', '#d2a8ff'],
+  dawn:    ['#ff7eb6', '#ffa07a', '#ffb86c', '#f1c40f', '#74c0fc', '#b197fc', '#ff8cc8', '#e599f7'],
+  ocean:   ['#4dabf7', '#74c0fc', '#3bc9db', '#66d9e8', '#20c997', '#51cf66', '#22b8cf', '#15aabf'],
+  forest:  ['#51cf66', '#94d82d', '#a9e34b', '#fcc419', '#ff922b', '#74c0fc', '#82c91e', '#37b24d'],
+  sunset:  ['#ff6b6b', '#ff8787', '#ffa94d', '#ffd43b', '#ff8cc8', '#e599f7', '#fa5252', '#f76707'],
+  mono:    ['#495057', '#6c757d', '#adb5bd', '#868e96', '#343a40', '#71717a', '#52525b', '#9ca3af'],
+};
+
+export const THEME_NAMES = {
+  default: 'Default',
+  dawn:    'Dawn',
+  ocean:   'Ocean',
+  forest:  'Forest',
+  sunset:  'Sunset',
+  mono:    'Mono',
+};
+
+/** 기본 노드 색상 팔레트 (하위 호환) */
+export const COLORS = COLOR_THEMES.default;
+
+/** 현재 활성 팔레트 반환 (state 참조) */
+export function currentPalette(state) {
+  return COLOR_THEMES[state?.style?.theme] ?? COLOR_THEMES.default;
+}
+
+/** 연결선 두께 매핑 */
+export const LINE_WIDTHS = { thin: 1.5, normal: 2.5, thick: 4 };
+
+/** 기본 스타일 객체 */
+export function defaultStyle() {
+  return {
+    theme: 'default',
+    bgColor: null,           // null = CSS 변수 사용 (테마 따라감)
+    lineWidth: 'normal',     // 'thin' | 'normal' | 'thick'
+    coloredBranch: false,    // true: 자식 색상으로 연결선 표시
+  };
+}
 
 /** 링크 타입별 이모지 아이콘 */
 export function linkIcon(type) {

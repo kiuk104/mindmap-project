@@ -24,7 +24,9 @@ export function serialize() {
   return JSON.stringify({
     nodes: state.nodes,
     relations: state.relations ?? [],
-    version: 3,
+    style: state.style,
+    lineStyle: state.lineStyle,
+    version: 4,
   }, null, 2);
 }
 
@@ -42,6 +44,13 @@ export function loadFromString(jsonStr) {
     state.selectedId         = null;
     state.selectedRelationId = null;
     state.relationDraft      = null;
+    // 스타일/라인스타일 복원 (없으면 현재 값 유지)
+    if (data.style && typeof data.style === 'object') {
+      state.style = { ...state.style, ...data.style };
+    }
+    if (typeof data.lineStyle === 'string') {
+      state.lineStyle = data.lineStyle;
+    }
     document.body.classList.remove('relation-drafting');
     render();
     resetView();

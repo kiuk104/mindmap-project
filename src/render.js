@@ -6,7 +6,7 @@
  */
 
 import { state } from './state.js';
-import { $, linkIcon, linkDefault, lighten } from './utils.js';
+import { $, linkIcon, linkDefault, lighten, LINE_WIDTHS } from './utils.js';
 
 // main.js가 주입할 핸들러 (기본값은 빈 함수)
 const H = {
@@ -37,23 +37,23 @@ export function setPostRender(fn) {
 
 /**
  * 부모-자식 연결선 한 줄을 SVG 마크업으로 반환
- * @param {{x:number,y:number}} p 부모 좌표
- * @param {{x:number,y:number}} n 자식 좌표
- * @param {'straight'|'curved'|'stepped'} style
+ * 스타일 옵션(state.style)에 따라 두께·색을 적용
  */
 function renderParentLine(p, n, style) {
+  const sw = LINE_WIDTHS[state.style?.lineWidth] ?? LINE_WIDTHS.normal;
+  const customStroke = state.style?.coloredBranch && n.color ? n.color : null;
+  // 인라인 속성으로 stroke 덮어쓰기 (없으면 CSS 변수 사용)
+  const attrs = `stroke-width="${sw}"${customStroke ? ` stroke="${customStroke}"` : ''}`;
+
   if (style === 'curved') {
-    // 수평 제어점을 가진 cubic Bezier — 부모에서 수평 방향으로 빠져나와 자식 쪽으로 휘는 자연스러운 곡선
     const midX = (p.x + n.x) / 2;
-    return `<path class="parent-line" d="M ${p.x} ${p.y} C ${midX} ${p.y} ${midX} ${n.y} ${n.x} ${n.y}"/>`;
+    return `<path class="parent-line" ${attrs} d="M ${p.x} ${p.y} C ${midX} ${p.y} ${midX} ${n.y} ${n.x} ${n.y}"/>`;
   }
   if (style === 'stepped') {
-    // L자 직각 — 수평 → 수직 → 수평 (X 중간점 기준)
     const midX = (p.x + n.x) / 2;
-    return `<path class="parent-line" d="M ${p.x} ${p.y} L ${midX} ${p.y} L ${midX} ${n.y} L ${n.x} ${n.y}"/>`;
+    return `<path class="parent-line" ${attrs} d="M ${p.x} ${p.y} L ${midX} ${p.y} L ${midX} ${n.y} L ${n.x} ${n.y}"/>`;
   }
-  // straight (default)
-  return `<line class="parent-line" x1="${p.x}" y1="${p.y}" x2="${n.x}" y2="${n.y}"/>`;
+  return `<line class="parent-line" ${attrs} x1="${p.x}" y1="${p.y}" x2="${n.x}" y2="${n.y}"/>`;
 }
 
 // ── SVG 화살표 마커 + 부모-자식 선 + 관계선 path 빌드 ──

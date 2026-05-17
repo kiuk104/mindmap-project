@@ -4,7 +4,7 @@
 
 import { state } from './state.js';
 import { render } from './render.js';
-import { uid, COLORS, makeNode, $ } from './utils.js';
+import { uid, makeNode, currentPalette, $ } from './utils.js';
 
 /**
  * 자식 노드 추가
@@ -21,7 +21,8 @@ export function addChild(parentId) {
   const angle  = Math.random() * Math.PI * 2;
   const dist   = 200;
   const id     = uid();
-  const color  = COLORS[Math.floor(Math.random() * COLORS.length)];
+  const palette = currentPalette(state);
+  const color  = palette[Math.floor(Math.random() * palette.length)];
 
   state.nodes[id] = makeNode(
     id, '새 노드',

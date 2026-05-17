@@ -388,6 +388,51 @@ body.relation-drafting .node { cursor: crosshair !important; }
 .cdot:hover { transform: scale(1.15); }
 .cdot.sel   { border-color: var(--sel-ring); transform: scale(1.1); }
 
+/* ── 컬러 테마 선택 그리드 ── */
+.theme-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.theme-pick {
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  border: 2px solid var(--border);
+  background: var(--bg-input);
+  transition: border-color .15s, transform .1s;
+}
+.theme-pick:hover { transform: scale(1.02); border-color: var(--text-faint); }
+.theme-pick.sel   { border-color: var(--accent); }
+.theme-swatches {
+  display: flex; gap: 3px; margin-bottom: 6px;
+}
+.theme-swatch {
+  flex: 1; aspect-ratio: 1.5 / 1;
+  border-radius: 3px;
+}
+.theme-name {
+  font-size: 11px; color: var(--text-bright); text-align: center;
+}
+
+/* ── 연결선 두께 라디오 ── */
+.line-width-row {
+  display: flex; gap: 8px;
+}
+.lw-opt {
+  flex: 1;
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 12px; border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-input);
+  cursor: pointer;
+  font-size: 12px;
+  transition: border-color .15s, background .15s;
+}
+.lw-opt:hover { background: var(--bg-hover); }
+.lw-opt input[type=radio] { margin: 0; cursor: pointer; accent-color: var(--accent); }
+.lw-opt:has(input:checked) { border-color: var(--accent); background: var(--bg-hover); }
+
 /* ── 아이콘 선택 그리드 ── */
 .icon-grid {
   display: grid;
