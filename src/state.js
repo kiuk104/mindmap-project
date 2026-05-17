@@ -35,6 +35,9 @@ export const state = {
 
   /** @type {number} 현재 활성 검색 결과 인덱스 (0-based) */
   searchIdx: 0,
+
+  /** @type {'straight'|'curved'|'stepped'} 부모-자식 연결선 스타일 */
+  lineStyle: 'straight',
 };
 
 /**

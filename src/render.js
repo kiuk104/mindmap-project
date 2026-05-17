@@ -35,6 +35,27 @@ export function setPostRender(fn) {
   postRenderHook = fn ?? (() => {});
 }
 
+/**
+ * 부모-자식 연결선 한 줄을 SVG 마크업으로 반환
+ * @param {{x:number,y:number}} p 부모 좌표
+ * @param {{x:number,y:number}} n 자식 좌표
+ * @param {'straight'|'curved'|'stepped'} style
+ */
+function renderParentLine(p, n, style) {
+  if (style === 'curved') {
+    // 수평 제어점을 가진 cubic Bezier — 부모에서 수평 방향으로 빠져나와 자식 쪽으로 휘는 자연스러운 곡선
+    const midX = (p.x + n.x) / 2;
+    return `<path class="parent-line" d="M ${p.x} ${p.y} C ${midX} ${p.y} ${midX} ${n.y} ${n.x} ${n.y}"/>`;
+  }
+  if (style === 'stepped') {
+    // L자 직각 — 수평 → 수직 → 수평 (X 중간점 기준)
+    const midX = (p.x + n.x) / 2;
+    return `<path class="parent-line" d="M ${p.x} ${p.y} L ${midX} ${p.y} L ${midX} ${n.y} L ${n.x} ${n.y}"/>`;
+  }
+  // straight (default)
+  return `<line class="parent-line" x1="${p.x}" y1="${p.y}" x2="${n.x}" y2="${n.y}"/>`;
+}
+
 // ── SVG 화살표 마커 + 부모-자식 선 + 관계선 path 빌드 ──
 // 색상은 모두 CSS 변수로 처리 — 테마 전환 시 자동 반영됨
 function buildSvgMarkup() {
@@ -50,11 +71,12 @@ function buildSvgMarkup() {
     </marker>
   </defs>`;
 
-  // 부모-자식 연결선
+  // 부모-자식 연결선 (스타일에 따라 분기)
+  const style = state.lineStyle ?? 'straight';
   Object.values(state.nodes).forEach((n) => {
     if (n.parentId && state.nodes[n.parentId]) {
       const p = state.nodes[n.parentId];
-      h += `<line class="parent-line" x1="${p.x}" y1="${p.y}" x2="${n.x}" y2="${n.y}"/>`;
+      h += renderParentLine(p, n, style);
     }
   });
 

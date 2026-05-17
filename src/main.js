@@ -101,6 +101,23 @@ $('btn-import').addEventListener('click', () => $('file-in').click());
 $('file-in').addEventListener('change',   doImport);
 $('btn-reset').addEventListener('click',  resetView);
 
+// ── 연결선 스타일 토글 (직선 → 곡선 → 직각) ──
+const LINE_STYLE_KEY = 'mindmap.lineStyle';
+const LINE_STYLES    = ['straight', 'curved', 'stepped'];
+const LINE_LABELS    = { straight: '━ 직선', curved: '⌒ 곡선', stepped: '⌐ 직각' };
+
+const savedLineStyle = localStorage.getItem(LINE_STYLE_KEY);
+state.lineStyle = LINE_STYLES.includes(savedLineStyle) ? savedLineStyle : 'straight';
+$('btn-line-style').textContent = LINE_LABELS[state.lineStyle];
+
+$('btn-line-style').addEventListener('click', () => {
+  const idx = LINE_STYLES.indexOf(state.lineStyle);
+  state.lineStyle = LINE_STYLES[(idx + 1) % LINE_STYLES.length];
+  localStorage.setItem(LINE_STYLE_KEY, state.lineStyle);
+  $('btn-line-style').textContent = LINE_LABELS[state.lineStyle];
+  render();
+});
+
 // ── 테마 토글 ──
 const THEME_KEY = 'mindmap.theme';
 function applyTheme(theme) {
