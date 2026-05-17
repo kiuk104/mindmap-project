@@ -47,6 +47,8 @@ function escapeXml(s) {
 /**
  * 부모-자식 연결선 한 줄을 SVG 마크업으로 반환
  * 우선순위: n.branchStyle 오버라이드 > state.style.coloredBranch > 기본 CSS 변수
+ *
+ * 인라인 style 속성으로 출력 — CSS 클래스 규칙보다 우선순위가 높음 (속성 vs CSS 충돌 방지)
  */
 function renderParentLine(p, n, style) {
   const bs = n.branchStyle ?? {};
@@ -55,37 +57,33 @@ function renderParentLine(p, n, style) {
   const finalWidth   = bs.width || defaultWidth;
 
   const themeStroke  = state.style?.coloredBranch && n.color ? n.color : null;
-  const finalStroke  = bs.color || themeStroke;
+  const finalStroke  = bs.color || themeStroke || 'var(--line)';
 
   const dashPattern  = DASH_PATTERNS[bs.dash] ?? '';
 
-  let attrs = `stroke-width="${finalWidth}"`;
-  if (finalStroke) attrs += ` stroke="${finalStroke}"`;
-  if (dashPattern) attrs += ` stroke-dasharray="${dashPattern}"`;
+  let css = `stroke:${finalStroke};stroke-width:${finalWidth};`;
+  css += `stroke-dasharray:${dashPattern || 'none'};`;
+  const styleAttr = `style="${css}"`;
 
   if (style === 'curved') {
     const midX = (p.x + n.x) / 2;
-    return `<path class="parent-line" ${attrs} d="M ${p.x} ${p.y} C ${midX} ${p.y} ${midX} ${n.y} ${n.x} ${n.y}"/>`;
+    return `<path class="parent-line" ${styleAttr} d="M ${p.x} ${p.y} C ${midX} ${p.y} ${midX} ${n.y} ${n.x} ${n.y}"/>`;
   }
   if (style === 'stepped') {
     const midX = (p.x + n.x) / 2;
-    return `<path class="parent-line" ${attrs} d="M ${p.x} ${p.y} L ${midX} ${p.y} L ${midX} ${n.y} L ${n.x} ${n.y}"/>`;
+    return `<path class="parent-line" ${styleAttr} d="M ${p.x} ${p.y} L ${midX} ${p.y} L ${midX} ${n.y} L ${n.x} ${n.y}"/>`;
   }
-  return `<line class="parent-line" ${attrs} x1="${p.x}" y1="${p.y}" x2="${n.x}" y2="${n.y}"/>`;
+  return `<line class="parent-line" ${styleAttr} x1="${p.x}" y1="${p.y}" x2="${n.x}" y2="${n.y}"/>`;
 }
 
 // ── SVG 화살표 마커 + 부모-자식 선 + 관계선 path 빌드 ──
 // 색상은 모두 CSS 변수로 처리 — 테마 전환 시 자동 반영됨
 function buildSvgMarkup() {
-  // 화살표 marker (테마 색 = style.css의 var)
+  // 화살표 marker — fill="context-stroke"로 path의 stroke 색을 자동 추종
   let h = `<defs>
     <marker id="rel-arrow" viewBox="0 0 10 10" refX="9" refY="5"
       markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path d="M 0 0 L 10 5 L 0 10 z" style="fill: var(--line-rel)"/>
-    </marker>
-    <marker id="rel-arrow-sel" viewBox="0 0 10 10" refX="9" refY="5"
-      markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path d="M 0 0 L 10 5 L 0 10 z" style="fill: var(--accent)"/>
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="context-stroke"/>
     </marker>
   </defs>`;
 
@@ -125,23 +123,30 @@ function buildSvgMarkup() {
 
     // 화살표 방향
     const arrow = rs.arrow ?? 'end';
-    const markerRef = sel ? 'url(#rel-arrow-sel)' : 'url(#rel-arrow)';
-    const markerEnd   = (arrow === 'end'   || arrow === 'both') ? markerRef : 'none';
-    const markerStart = (arrow === 'start' || arrow === 'both') ? markerRef : 'none';
+    const markerEnd   = (arrow === 'end'   || arrow === 'both') ? 'url(#rel-arrow)' : 'none';
+    const markerStart = (arrow === 'start' || arrow === 'both') ? 'url(#rel-arrow)' : 'none';
 
     // 점선 패턴 (기본은 dashed)
     const dashKey  = rs.dash ?? 'dashed';
     const dashAttr = DASH_PATTERNS[dashKey] ?? DASH_PATTERNS.dashed;
 
-    // 색상·두께 오버라이드
-    let pathAttrs = '';
-    if (rs.color) pathAttrs += ` stroke="${rs.color}"`;
-    if (rs.width) pathAttrs += ` stroke-width="${rs.width}"`;
-    pathAttrs += ` stroke-dasharray="${dashAttr}"`;
+    // 최종 stroke/width 결정 (인라인 style — CSS 규칙보다 우선)
+    let strokeColor;
+    if (rs.color)        strokeColor = rs.color;
+    else if (sel)        strokeColor = 'var(--accent)';
+    else                 strokeColor = 'var(--line-rel)';
+
+    let strokeWidth;
+    if (rs.width)        strokeWidth = rs.width;
+    else if (sel)        strokeWidth = 3;
+    else                 strokeWidth = 2;
+
+    const css = `stroke:${strokeColor};stroke-width:${strokeWidth};stroke-dasharray:${dashAttr || 'none'};`;
 
     h += `<path class="rel-path${sel ? ' selected' : ''}" data-rid="${r.id}"
       d="M ${a.x} ${a.y} Q ${cx} ${cy} ${b.x} ${b.y}"
-      marker-start="${markerStart}" marker-end="${markerEnd}"${pathAttrs}/>`;
+      style="${css}"
+      marker-start="${markerStart}" marker-end="${markerEnd}"/>`;
 
     // 라벨 (Bezier 곡선의 t=0.5 위치)
     if (r.label) {

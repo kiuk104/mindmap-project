@@ -300,32 +300,22 @@ select.fi   { cursor: pointer; }
   font-size: 11px; color: var(--text-very-faint); z-index: 100; line-height: 1.9;
 }
 
-/* ── SVG 부모-자식 연결선 ── */
+/* ── SVG 부모-자식 연결선 — stroke·stroke-width·stroke-dasharray는 인라인 style로 출력 ── */
 #svg-layer .parent-line {
   fill: none;
-  stroke: var(--line);
-  stroke-width: 2.5;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
-/* ── 관계선 (SVG path) ── */
+/* ── 관계선 (SVG path) — stroke·width·dasharray는 인라인 style로 출력 ── */
 #svg-layer .rel-path {
   fill: none;
-  stroke: var(--line-rel);
-  stroke-width: 2;
-  stroke-dasharray: 8 5;
   stroke-linecap: round;
   cursor: pointer;
   pointer-events: stroke;
-  transition: stroke 0.15s, stroke-width 0.15s;
+  transition: opacity 0.15s;
 }
-#svg-layer .rel-path.selected {
-  stroke: var(--accent);
-  stroke-width: 3;
-}
-#svg-layer .rel-path:hover { stroke: var(--line-rel-hover); }
-#svg-layer .rel-path.selected:hover { stroke: var(--accent); }
+#svg-layer .rel-path:hover { opacity: 0.75; }
 
 /* ── 관계선 라벨 ── */
 #svg-layer .rel-label {
