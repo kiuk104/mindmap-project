@@ -102,7 +102,7 @@ export function render() {
 
   // 관계선 클릭 핸들러
   svg.querySelectorAll('.rel-path').forEach((p) => {
-    p.addEventListener('mousedown', (e) => {
+    p.addEventListener('pointerdown', (e) => {
       e.stopPropagation();
       H.onRelationClick(p.getAttribute('data-rid'));
     });
@@ -177,7 +177,7 @@ export function render() {
     }
 
     // 이벤트
-    el.addEventListener('mousedown',   (e) => H.onNodeMouseDown(e, n.id));
+    el.addEventListener('pointerdown', (e) => H.onNodeMouseDown(e, n.id));
     el.addEventListener('dblclick',    (e) => H.onNodeDblClick(e, n.id));
     el.addEventListener('contextmenu', (e) => H.onNodeContextMenu(e, n.id));
 
@@ -192,7 +192,7 @@ export function updateLines() {
   $('svg-layer').innerHTML = buildSvgMarkup();
   // 관계선 클릭 핸들러 재등록
   $('svg-layer').querySelectorAll('.rel-path').forEach((p) => {
-    p.addEventListener('mousedown', (e) => {
+    p.addEventListener('pointerdown', (e) => {
       e.stopPropagation();
       H.onRelationClick(p.getAttribute('data-rid'));
     });

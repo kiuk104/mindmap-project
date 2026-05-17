@@ -67,6 +67,11 @@ body {
 /* ── 캔버스 ── */
 #canvas-wrap {
   position: fixed; top: 54px; left: 0; right: 0; bottom: 0; overflow: hidden;
+  touch-action: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 #canvas {
   position: absolute; width: 5000px; height: 5000px;
@@ -87,6 +92,8 @@ body {
   font-size: 13px; font-weight: 500; word-break: break-word;
   box-shadow: 0 4px 14px rgba(0,0,0,0.5);
   transition: box-shadow 0.15s, border-color 0.15s;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
 }
 .node:hover    { box-shadow: 0 6px 22px rgba(0,0,0,0.7); }
 .node.root     { font-size: 15px; font-weight: 700; min-width: 140px; border-radius: 18px; }
@@ -231,6 +238,43 @@ body.relation-drafting .node { cursor: crosshair !important; }
 @keyframes rel-pulse {
   0%, 100% { outline-color: #f85149; }
   50%      { outline-color: #ffb6b1; }
+}
+
+/* ── 텍스트 입력 영역은 텍스트 선택 허용 ── */
+.fi, .search-box input, .node-text-edit {
+  -webkit-user-select: auto;
+  user-select: auto;
+  touch-action: manipulation;
+}
+
+/* ── 모바일 반응형 ── */
+@media (max-width: 768px) {
+  #toolbar {
+    flex-wrap: wrap; height: auto; min-height: 54px;
+    padding: 6px 8px; gap: 4px;
+  }
+  .toolbar-title { font-size: 14px; }
+  .btn { padding: 7px 10px; min-height: 36px; font-size: 11px; }
+  .btn small { display: none; }
+  .sep { display: none; }
+  #canvas-wrap { top: 100px; }
+  .search-box input { width: 130px; }
+  .search-box input:focus { width: 160px; }
+  .toolbar-saved { font-size: 10px; }
+  .toolbar-hint { display: none; }
+  #help-hud { display: none; }
+  #hud { bottom: 8px; right: 8px; font-size: 11px; }
+
+  /* 우클릭 메뉴 (모바일에선 길게 누름) — 더 크게 */
+  #ctx-menu, #ctx-bg-menu {
+    min-width: 220px;
+    border-radius: 12px;
+  }
+  .ctx-item { padding: 12px 16px; font-size: 14px; }
+
+  /* 모달 입력 필드 크게 */
+  .fi { padding: 11px 12px; font-size: 14px; }
+  #modal { width: 96vw; padding: 20px; }
 }
 
 /* ── 인라인 편집 textarea ── */

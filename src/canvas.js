@@ -1,30 +1,46 @@
 /**
- * canvas.js — 캔버스 Pan(이동) / Zoom(줌) / 노드 드래그
+ * canvas.js — 캔버스 Pan/Zoom + 노드 드래그
+ *
+ * 입력 처리:
+ *   - Pointer 이벤트로 마우스·터치·펜 통합 처리 (한 손가락 = 단일 포인터)
+ *   - Touch 이벤트로 핀치 줌 (두 손가락) 별도 처리
+ *   - 휠은 데스크톱 줌 유지
+ *   - 길게 누름 (500ms) → 우클릭 메뉴 합성 이벤트
  */
 
 import { state } from './state.js';
 import { render, updateLines } from './render.js';
 import { $ } from './utils.js';
 
-// ── Pan 상태 ──
+// ── Pan/드래그 상태 ──
 let panning = false;
 let panStartX = 0;
 let panStartY = 0;
 
-// ── Zoom 상태 ──
-export const view = { px: 0, py: 0, sc: 1 };
-
-// ── 드래그 상태 ──
 let dragging = false;
 let dragId   = null;
 let dragOffX = 0;
 let dragOffY = 0;
 
-/**
- * 화면 좌표 → 캔버스 좌표 변환
- * @param {number} clientX
- * @param {number} clientY
- */
+// ── 핀치 줌 상태 ──
+let pinching      = false;
+let pinchStartDist = 0;
+let pinchStartSc   = 1;
+let pinchCenter    = { x: 0, y: 0 };
+
+// ── 길게 누름 상태 (터치만) ──
+let longPressTimer = null;
+let longPressTarget = null;
+let longPressX = 0;
+let longPressY = 0;
+let longPressFired = false;
+const LONG_PRESS_MS = 500;
+const LONG_PRESS_THRESHOLD = 10; // px
+
+// ── Zoom 상태 ──
+export const view = { px: 0, py: 0, sc: 1 };
+
+/** 화면 좌표 → 캔버스 좌표 변환 */
 export function canvasCoord(clientX, clientY) {
   const wrap = $('canvas-wrap');
   const rect = wrap.getBoundingClientRect();
@@ -43,9 +59,7 @@ export function applyTransform() {
   $('hud').textContent = Math.round(view.sc * 100) + '%';
 }
 
-/**
- * 모든 노드가 화면 중앙에 오도록 뷰 초기화
- */
+/** 모든 노드 중앙으로 뷰 초기화 */
 export function resetView() {
   const list = Object.values(state.nodes);
   if (!list.length) return;
@@ -60,7 +74,50 @@ export function resetView() {
   applyTransform();
 }
 
-// ── 노드 마우스다운 (드래그 시작 / 관계선 완성) ──
+// ── 길게 누름 헬퍼 ──
+function startLongPress(e) {
+  if (e.pointerType !== 'touch') return;
+  cancelLongPress();
+  longPressTarget = e.target;
+  longPressX = e.clientX;
+  longPressY = e.clientY;
+  longPressFired = false;
+  longPressTimer = setTimeout(() => {
+    longPressTimer = null;
+    if (pinching || !longPressTarget) return;
+
+    longPressFired = true;
+    // 진행 중인 pan/drag 취소
+    panning = false;
+    dragging = false;
+    dragId   = null;
+
+    // 합성 contextmenu 이벤트 발사
+    const ev = new MouseEvent('contextmenu', {
+      bubbles: true, cancelable: true,
+      clientX: longPressX, clientY: longPressY,
+      button: 2,
+    });
+    longPressTarget.dispatchEvent(ev);
+  }, LONG_PRESS_MS);
+}
+
+function cancelLongPress() {
+  if (longPressTimer) {
+    clearTimeout(longPressTimer);
+    longPressTimer = null;
+  }
+  longPressTarget = null;
+}
+
+function checkLongPressMove(e) {
+  if (!longPressTimer) return;
+  const dx = Math.abs(e.clientX - longPressX);
+  const dy = Math.abs(e.clientY - longPressY);
+  if (dx > LONG_PRESS_THRESHOLD || dy > LONG_PRESS_THRESHOLD) cancelLongPress();
+}
+
+// ── 노드 포인터다운 (드래그 시작 / 관계선 완성) ──
 export function onNodeMouseDown(e, nodeId) {
   if (e.button !== 0) return;
   if (
@@ -71,7 +128,10 @@ export function onNodeMouseDown(e, nodeId) {
 
   e.stopPropagation();
 
-  // 관계선 그리기 중이면 두 번째 노드를 클릭한 시점에 완성
+  // 터치에서 길게 누름 감지 시작
+  startLongPress(e);
+
+  // 관계선 그리기 중이면 두 번째 노드 클릭으로 완성
   if (state.relationDraft) {
     const fromId = state.relationDraft.fromId;
     if (fromId !== nodeId && state.nodes[fromId]) {
@@ -104,9 +164,10 @@ export function onNodeMouseDown(e, nodeId) {
 export function initCanvas() {
   const wrap = $('canvas-wrap');
 
-  // 배경 클릭 → Pan 시작 + 선택 해제 (좌클릭일 때만)
-  wrap.addEventListener('mousedown', (e) => {
+  // 배경 포인터다운 → Pan 시작 + 선택 해제
+  wrap.addEventListener('pointerdown', (e) => {
     if (e.button !== 0) return;
+    if (pinching) return;
     const t = e.target;
     if (t.id === 'canvas-wrap' || t.id === 'canvas' || t.id === 'svg-layer') {
       // 관계선 그리기 중이면 배경 클릭으로 취소
@@ -114,6 +175,10 @@ export function initCanvas() {
         state.relationDraft = null;
         document.body.classList.remove('relation-drafting');
       }
+
+      // 길게 누름 감지 시작
+      startLongPress(e);
+
       panning  = true;
       panStartX = e.clientX - view.px;
       panStartY = e.clientY - view.py;
@@ -123,8 +188,11 @@ export function initCanvas() {
     }
   });
 
-  // 마우스 이동 → Pan 또는 노드 드래그
-  document.addEventListener('mousemove', (e) => {
+  // 포인터 이동 → Pan 또는 노드 드래그
+  document.addEventListener('pointermove', (e) => {
+    if (pinching) return;
+    checkLongPressMove(e);
+
     if (panning) {
       view.px = e.clientX - panStartX;
       view.py = e.clientY - panStartY;
@@ -136,7 +204,6 @@ export function initCanvas() {
       state.nodes[dragId].x = cp.x - dragOffX;
       state.nodes[dragId].y = cp.y - dragOffY;
 
-      // 노드 div를 직접 이동 (전체 render보다 빠름)
       const el = $('nd-' + dragId);
       if (el) {
         el.style.left = state.nodes[dragId].x + 'px';
@@ -146,25 +213,77 @@ export function initCanvas() {
     }
   });
 
-  // 마우스 업 → 드래그/Pan 종료
-  document.addEventListener('mouseup', () => {
+  // 포인터 업 → 드래그/Pan 종료
+  function endPointer() {
     panning  = false;
     dragging = false;
     dragId   = null;
-  });
+    cancelLongPress();
+  }
+  document.addEventListener('pointerup',     endPointer);
+  document.addEventListener('pointercancel', endPointer);
 
-  // 스크롤 → 줌 (마우스 위치 기준)
+  // 휠 → 줌 (데스크톱)
   wrap.addEventListener('wheel', (e) => {
     e.preventDefault();
     const rect  = wrap.getBoundingClientRect();
     const mx    = e.clientX - rect.left;
     const my    = e.clientY - rect.top;
     const delta = e.deltaY > 0 ? 0.9 : 1.1;
-    const newSc = Math.max(0.15, Math.min(3, view.sc * delta));
-
-    view.px = mx - (mx - view.px) * (newSc / view.sc);
-    view.py = my - (my - view.py) * (newSc / view.sc);
-    view.sc = newSc;
-    applyTransform();
+    applyZoomAround(mx, my, view.sc * delta);
   }, { passive: false });
+
+  // ── 핀치 줌 (두 손가락 터치) ──
+  wrap.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 2) {
+      pinching = true;
+      panning  = false;
+      dragging = false;
+      dragId   = null;
+      cancelLongPress();
+
+      const t1 = e.touches[0];
+      const t2 = e.touches[1];
+      pinchStartDist = touchDist(t1, t2);
+      pinchStartSc   = view.sc;
+      pinchCenter.x  = (t1.clientX + t2.clientX) / 2;
+      pinchCenter.y  = (t1.clientY + t2.clientY) / 2;
+      e.preventDefault();
+    }
+  }, { passive: false });
+
+  wrap.addEventListener('touchmove', (e) => {
+    if (pinching && e.touches.length === 2) {
+      const t1 = e.touches[0];
+      const t2 = e.touches[1];
+      const dist = touchDist(t1, t2);
+      const factor = dist / pinchStartDist;
+      const newSc = Math.max(0.15, Math.min(3, pinchStartSc * factor));
+
+      const rect = wrap.getBoundingClientRect();
+      const mx = pinchCenter.x - rect.left;
+      const my = pinchCenter.y - rect.top;
+      applyZoomAround(mx, my, newSc);
+      e.preventDefault();
+    }
+  }, { passive: false });
+
+  wrap.addEventListener('touchend', (e) => {
+    if (e.touches.length < 2) pinching = false;
+  });
+  wrap.addEventListener('touchcancel', () => { pinching = false; });
+}
+
+function touchDist(a, b) {
+  const dx = a.clientX - b.clientX;
+  const dy = a.clientY - b.clientY;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+function applyZoomAround(mx, my, targetSc) {
+  const newSc = Math.max(0.15, Math.min(3, targetSc));
+  view.px = mx - (mx - view.px) * (newSc / view.sc);
+  view.py = my - (my - view.py) * (newSc / view.sc);
+  view.sc = newSc;
+  applyTransform();
 }
