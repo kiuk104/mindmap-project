@@ -16,6 +16,8 @@ import { $, FONT_FAMILIES, FONT_NAMES, DASH_NAMES } from './utils.js';
 import { getSettings, updateSettings, onSettingsChange } from './settings.js';
 import { enhanceDashPicker } from './dash-picker.js';
 import { ACTIONS, getBinding, isBindingCustomized, eventToBinding } from './shortcuts.js';
+import { pushHistory } from './history.js';
+import { applyStyle } from './modal.js';
 
 let _initialized = false;
 
@@ -145,6 +147,17 @@ function buildBody() {
     </section>
 
     <section class="sp-section">
+      <div class="sp-section-title">🌐 전역 적용</div>
+      <div style="font-size:11px; color:#8b949e; margin-bottom:8px; line-height:1.55;">
+        위에서 정한 기본값을 <b>현재 맵의 모든 기존 콘텐츠</b>에 일괄 적용합니다.
+        개별로 손댄 노드·관계선의 스타일도 덮어쓰니 신중히 사용하세요.
+      </div>
+      <button type="button" class="btn btn-ghost" id="stp-apply-all" style="width:100%;">
+        🌐 모든 노드·관계선에 기본값 적용
+      </button>
+    </section>
+
+    <section class="sp-section">
       <div class="sp-section-title">⌨️ 단축키</div>
       <div class="sp-mini-label">행을 클릭하고 새 키를 누르면 변경됩니다. 빈 키도 가능.</div>
       <div class="shortcuts-list">
@@ -169,6 +182,44 @@ function buildBody() {
   $('stp-shadow').addEventListener('change', (e) => {
     updateSettings({ nodeShadow: e.target.checked });
     applyNodeShadow();
+  });
+
+  // ── 🌐 전역 적용 — 설정의 기본값을 모든 기존 콘텐츠에 일괄 적용 ──
+  $('stp-apply-all').addEventListener('click', () => {
+    const s = getSettings();
+    const dr = s.defaultRelation ?? {};
+    const nodeCount = Object.keys(state.nodes).length;
+    const relCount  = (state.relations ?? []).length;
+
+    if (!confirm(
+      `${nodeCount}개 노드와 ${relCount}개 관계선의 스타일이 설정 기본값으로 덮어써집니다.\n\n` +
+      `• 현재 맵 폰트 → "${s.defaultFont}"\n` +
+      `• 모든 노드 테두리 → "${s.defaultNodeBorder}"\n` +
+      `• 모든 관계선 색·점선·두께·화살표 → 설정값\n\n` +
+      `Undo로 되돌릴 수 있습니다. 계속할까요?`
+    )) return;
+
+    pushHistory();
+
+    // 1) 현재 맵 폰트
+    if (s.defaultFont) {
+      state.style = { ...state.style, font: s.defaultFont, fontEn: null, fontKr: null };
+    }
+    // 2) 모든 노드의 borderWidth
+    if (s.defaultNodeBorder) {
+      Object.values(state.nodes).forEach((n) => { n.borderWidth = s.defaultNodeBorder; });
+    }
+    // 3) 모든 관계선의 스타일
+    (state.relations ?? []).forEach((r) => {
+      if (!r.style) r.style = {};
+      r.style.color = dr.color ?? null;
+      r.style.dash  = dr.dash  ?? 'dashed';
+      r.style.width = dr.width ?? null;
+      r.style.arrow = dr.arrow ?? 'end';
+    });
+
+    applyStyle();   // 폰트 즉시 반영
+    render();
   });
 
   // 관계선 기본값 — 각 필드 즉시 반영
