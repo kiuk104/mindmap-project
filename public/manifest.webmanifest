@@ -1,0 +1,26 @@
+{
+  "name": "🗺️ 마인드맵",
+  "short_name": "마인드맵",
+  "description": "구글 드라이브 연동 + 로컬 자동 저장을 지원하는 공동 편집 마인드맵 도구",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0d1117",
+  "theme_color": "#1f6feb",
+  "lang": "ko",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "education"]
+}
