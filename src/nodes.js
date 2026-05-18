@@ -4,9 +4,29 @@
 
 import { state } from './state.js';
 import { render } from './render.js';
-import { uid, makeNode, currentPalette, setNodeSelection, $ } from './utils.js';
+import { uid, makeNode, currentPalette, setNodeSelection, $, findUrlsInText, detectLinkType } from './utils.js';
 import { pushHistory, beginPending, commitPending, cancelPending } from './history.js';
 import { getSettings } from './settings.js';
+
+/**
+ * 노드 텍스트에서 새 URL을 추출해 n.links에 추가.
+ * 이미 같은 URL이 있으면 스킵. 추가됐으면 true 반환.
+ */
+function autoDetectLinks(node) {
+  if (!node?.text) return false;
+  if (getSettings().autoDetectLinks === false) return false;   // 기능 끔
+  const urls = findUrlsInText(node.text);
+  if (!urls.length) return false;
+  if (!node.links) node.links = [];
+  const existing = new Set(node.links.map((l) => l.url));
+  let added = false;
+  urls.forEach((url) => {
+    if (existing.has(url)) return;
+    node.links.push({ type: detectLinkType(url), url, label: '' });
+    added = true;
+  });
+  return added;
+}
 
 /**
  * 자식 노드 추가
@@ -167,6 +187,8 @@ export function startEdit(e, id) {
     if (!escaped && next !== originalText) {
       commitPending();
       node.text = next;
+      // 텍스트에 URL이 포함됐으면 자동으로 link 배지 추가
+      autoDetectLinks(node);
     } else {
       cancelPending();
     }

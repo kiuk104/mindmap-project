@@ -131,6 +131,18 @@ function buildBody() {
     </section>
 
     <section class="sp-section">
+      <div class="sp-section-title">🔗 URL 자동 인식</div>
+      <label class="sp-check" style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+        <input type="checkbox" id="stp-autolink" ${s.autoDetectLinks !== false ? 'checked' : ''} />
+        <span>노드 텍스트의 URL을 자동으로 링크 배지로</span>
+      </label>
+      <div style="font-size:11px; color:#8b949e; margin-top:6px;">
+        텍스트 편집을 마치면 본문에 포함된 https:// URL이 자동으로 감지되어
+        해당 노드의 링크 배지로 추가됩니다 (Drive·YouTube·Notion·Docs·이미지 자동 식별).
+      </div>
+    </section>
+
+    <section class="sp-section">
       <div class="sp-section-title">📎 새 관계선 기본값</div>
       <div class="settings-grid">
         <div>
@@ -207,6 +219,9 @@ function buildBody() {
   $('stp-shadow').addEventListener('change', (e) => {
     updateSettings({ nodeShadow: e.target.checked });
     applyNodeShadow();
+  });
+  $('stp-autolink')?.addEventListener('change', (e) => {
+    updateSettings({ autoDetectLinks: e.target.checked });
   });
 
   // ── 사용자 폰트 추가 ──

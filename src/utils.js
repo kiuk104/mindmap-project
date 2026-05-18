@@ -256,6 +256,16 @@ export function linkDefault(type) {
   }[type] ?? '링크';
 }
 
+/**
+ * 텍스트에서 http(s) URL들을 찾아 배열로 반환.
+ * 끝에 붙은 문장부호(. , ; : ! ? ) ] }) 는 자동으로 제거.
+ */
+const URL_RE = /\bhttps?:\/\/\S+/gi;
+export function findUrlsInText(text) {
+  if (!text) return [];
+  return [...text.matchAll(URL_RE)].map((m) => m[0].replace(/[.,;:!?)\]}>]+$/, ''));
+}
+
 /** URL 문자열에서 어떤 link type인지 자동 감지 */
 export function detectLinkType(url) {
   if (!url) return 'url';

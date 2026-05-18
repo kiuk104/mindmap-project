@@ -21,6 +21,7 @@ const DEFAULT = {
   defaultNodeBorder: 'thin',// NODE_BORDERS 키 — 새 노드의 borderWidth 기본값
   nodeShadow: true,         // 노드 박스에 드롭 섀도우 표시 여부 (CSS 변수로 전역 적용)
   showCurveHandles: true,   // 곡선 lineStyle에서 선택 노드의 부모-분기선 핸들 표시 여부
+  autoDetectLinks: true,    // 노드 텍스트에 URL이 들어가면 편집 종료 시 자동 link 배지 추가
   defaultRelation: {
     color: null,            // null = 테마 기본 색
     dash:  'dashed',        // 'solid' | 'dashed' | 'dotted'
