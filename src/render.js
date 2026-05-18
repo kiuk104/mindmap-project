@@ -6,7 +6,7 @@
  */
 
 import { state } from './state.js';
-import { $, linkIcon, linkDefault, lighten, LINE_WIDTHS, NODE_SIZES, NODE_SHAPES, NODE_BORDERS, DASH_PATTERNS, getRelationControls, computeHiddenIds, parentIdsSet } from './utils.js';
+import { $, linkIcon, linkDefault, lighten, LINE_WIDTHS, NODE_SIZES, NODE_SHAPES, NODE_BORDERS, NODE_OUTLINES, DASH_PATTERNS, getRelationControls, computeHiddenIds, parentIdsSet } from './utils.js';
 import { isAssetIcon, assetIdToUrl } from './icon-assets.js';
 
 // main.js가 주입할 핸들러 (기본값은 빈 함수)
@@ -260,6 +260,13 @@ export function render() {
     const bw = NODE_BORDERS[n.borderWidth] ?? NODE_BORDERS.thin;
     el.style.borderWidth = bw;
     if (n.borderWidth === 'none') el.style.borderColor = 'transparent';
+
+    // ── 외곽 스트로크 (box-shadow 후광 링, CSS 변수로 전달) ──
+    const ow = NODE_OUTLINES[n.outlineWidth] ?? 0;
+    if (ow > 0) {
+      el.style.setProperty('--stroke-w', ow + 'px');
+      el.style.setProperty('--stroke-c', n.outlineColor || lighten(n.color, 40));
+    }
 
     // 임베드 이미지 — 노드 가장자리까지 확장, 상단 둥근 코너에 맞춰 클립
     if (n.image?.url) {

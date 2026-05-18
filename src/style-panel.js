@@ -98,6 +98,11 @@ export function syncSelectedNodeSection() {
       $('nd-shape').value  = n.shape       ?? 'rounded';
       $('nd-border').value = n.borderWidth ?? 'thin';
 
+      // 외곽 스트로크
+      $('nd-outline').value             = n.outlineWidth ?? 'none';
+      $('nd-outline-color').value       = n.outlineColor ?? '#8b949e';
+      $('nd-outline-color').dataset.reset = n.outlineColor ? '' : '1';
+
       // 부모 연결선 스타일
       const bs = n.branchStyle ?? {};
       $('nd-branch-color').value         = bs.color ?? '#8b949e';
@@ -338,6 +343,21 @@ export function initStylePanel() {
 
   $('nd-shape') .addEventListener('change', (e) => withNodes((n) => { n.shape       = e.target.value; }));
   $('nd-border').addEventListener('change', (e) => withNodes((n) => { n.borderWidth = e.target.value; }));
+
+  // ── 외곽 스트로크 ──
+  $('nd-outline').addEventListener('change', (e) => withNodes((n) => { n.outlineWidth = e.target.value; }));
+  $('nd-outline-color').addEventListener('input', (e) => {
+    withNodes((n) => { n.outlineColor = e.target.value; }, /*hist*/ false);
+    delete e.target.dataset.reset;
+  });
+  $('nd-outline-color').addEventListener('change', (e) => {
+    pushHistory();
+    withNodes((n) => { n.outlineColor = e.target.value; }, /*hist*/ false);
+  });
+  $('nd-outline-color-reset').addEventListener('click', () => {
+    withNodes((n) => { n.outlineColor = null; });
+    $('nd-outline-color').dataset.reset = '1';
+  });
 
   // ── 부모 연결선 (branchStyle) — 색상 input은 슬라이드 도중 history 누적 방지하려고 change만 push ──
   $('nd-branch-color').addEventListener('input', (e) => {

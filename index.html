@@ -153,10 +153,27 @@
           <div class="sp-mini-label">테두리 두께</div>
           <select class="fi" id="nd-border">
             <option value="none">없음</option>
+            <option value="thin">얇게 (1px)</option>
+            <option value="normal">보통 (2px)</option>
+            <option value="thick">굵게 (4px)</option>
+            <option value="xthick">더 굵게 (6px)</option>
+            <option value="huge">아주 굵게 (10px)</option>
+          </select>
+        </div>
+
+        <div class="sp-sub">
+          <div class="sp-mini-label">외곽 스트로크 (노드 바깥 후광 링)</div>
+          <select class="fi" id="nd-outline" style="margin-bottom:6px;">
+            <option value="none">없음</option>
             <option value="thin">얇게</option>
             <option value="normal">보통</option>
             <option value="thick">굵게</option>
+            <option value="huge">아주 굵게</option>
           </select>
+          <div class="sp-row">
+            <input type="color" id="nd-outline-color" class="sp-color-input" />
+            <button class="btn btn-ghost sp-row-btn" id="nd-outline-color-reset">자동</button>
+          </div>
         </div>
 
         <div class="sp-sub">

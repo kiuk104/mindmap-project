@@ -116,7 +116,9 @@ export function makeNode(id, text, x, y, parentId, color) {
       align: 'center',  // 'left' | 'center' | 'right'
     },
     shape: 'rounded',     // 'rounded' | 'sharp' | 'pill'
-    borderWidth: 'thin',  // 'none' | 'thin' | 'normal' | 'thick'
+    borderWidth: 'thin',  // 'none' | 'thin' | 'normal' | 'thick' | 'xthick' | 'huge'
+    outlineWidth: 'none', // 'none' | 'thin' | 'normal' | 'thick' | 'huge' (box-shadow 후광 링)
+    outlineColor: null,   // null = node.color에서 자동 (밝게). hex로 지정 가능
     branchStyle: {
       color: null,        // 부모-이 노드 연결선 색 오버라이드. null = 기본/coloredBranch 따름
       width: null,        // 두께 오버라이드. null = 전역 lineWidth
@@ -224,7 +226,18 @@ export const NODE_SIZES = { small: '11px', medium: '13px', large: '17px' };
 /** 노드 모양 → border-radius */
 export const NODE_SHAPES = { rounded: '14px', sharp: '3px', pill: '50px' };
 /** 노드 테두리 두께 */
-export const NODE_BORDERS = { none: '0', thin: '1px', normal: '2px', thick: '4px' };
+export const NODE_BORDERS = {
+  none: '0', thin: '1px', normal: '2px', thick: '4px',
+  xthick: '6px', huge: '10px',
+};
+
+/**
+ * 노드 외곽 스트로크 (border 외부에 떠 있는 후광 링) — box-shadow `0 0 0 N` 패턴.
+ * border와 별개로 적용되며 콘텐츠 영역을 잠식하지 않음.
+ */
+export const NODE_OUTLINES = {
+  none: 0, thin: 3, normal: 6, thick: 10, huge: 14,
+};
 
 /**
  * 이모지 라이브러리 — Marker / Sticker / Illustration 세 탭, 카테고리별 그룹.
