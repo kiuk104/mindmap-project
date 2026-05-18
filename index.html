@@ -216,6 +216,70 @@
         <hr class="sp-divider" />
       </section>
 
+      <!-- 선택 콜아웃 스타일 -->
+      <section class="sp-section" id="sp-callout-section" hidden>
+        <div class="sp-section-title">💬 선택 콜아웃</div>
+        <div class="sp-sub">
+          <div class="sp-mini-label">내용</div>
+          <textarea class="fi" id="co-text" rows="2"
+            style="resize:vertical; min-height:50px; font-family:inherit;"></textarea>
+        </div>
+        <div class="sp-sub">
+          <div class="sp-mini-label">배경 색</div>
+          <div class="sp-row">
+            <input type="color" id="co-color" class="sp-color-input" />
+          </div>
+        </div>
+        <div class="sp-sub">
+          <div class="sp-mini-label">글자 색</div>
+          <div class="sp-row">
+            <input type="color" id="co-text-color" class="sp-color-input" />
+            <button type="button" class="btn btn-ghost sp-row-btn" id="co-text-color-reset">자동</button>
+          </div>
+        </div>
+        <button type="button" class="btn btn-ghost" id="co-delete"
+          style="margin-top:6px; color:#f85149;">🗑️ 콜아웃 삭제</button>
+        <hr class="sp-divider" />
+      </section>
+
+      <!-- 선택 존 스타일 -->
+      <section class="sp-section" id="sp-zone-section" hidden>
+        <div class="sp-section-title">📦 선택 존</div>
+        <div class="sp-sub">
+          <div class="sp-mini-label">라벨</div>
+          <input type="text" class="fi" id="zone-label" />
+        </div>
+        <div class="sp-sub">
+          <div class="sp-mini-label">배경 색</div>
+          <div class="sp-row">
+            <input type="color" id="zone-color" class="sp-color-input" />
+          </div>
+          <div class="sp-row" style="margin-top:6px;">
+            <input type="range" id="zone-opacity" min="0" max="100" step="5"
+              value="10" style="flex:1; padding:0;" />
+            <span id="zone-opacity-val" style="min-width:42px; font-size:11px; text-align:right; color:var(--text-dim);">10%</span>
+          </div>
+        </div>
+        <div class="sp-sub">
+          <div class="sp-mini-label">테두리</div>
+          <div class="sp-row" style="margin-bottom:6px;">
+            <input type="color" id="zone-border-color" class="sp-color-input" />
+            <button type="button" class="btn btn-ghost sp-row-btn" id="zone-border-color-reset">자동</button>
+          </div>
+          <select class="fi" id="zone-border-dash" style="margin-bottom:6px;"></select>
+          <select class="fi" id="zone-border-width">
+            <option value="1">1 (가늘게)</option>
+            <option value="1.5" selected>1.5 (기본)</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="5">5 (굵게)</option>
+          </select>
+        </div>
+        <button type="button" class="btn btn-ghost" id="zone-delete"
+          style="margin-top:6px; color:#f85149;">🗑️ 존 삭제</button>
+        <hr class="sp-divider" />
+      </section>
+
       <!-- 선택 관계선 스타일 -->
       <section class="sp-section" id="sp-relation-section" hidden>
         <div class="sp-section-title">📎 선택 관계선 스타일</div>

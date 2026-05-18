@@ -29,12 +29,43 @@ export function createZoneFromSelection() {
     id: newId(),
     nodeIds: [...ids],
     label: '존 ' + (state.zones.length + 1),
-    color: 'rgba(31, 111, 235, 0.10)',   // 부드러운 블루
+    color:       '#1f6feb',   // hex (배경 채움 기본 색)
+    opacity:     0.10,        // 0..1
+    borderColor: null,        // null이면 자동(선택 시 accent, 아니면 흐릿한 흰색)
+    borderWidth: 1.5,         // px
+    borderDash:  'dashed',    // DASH_PATTERNS 키
   };
   state.zones.push(zone);
   state.selectedZoneId = zone.id;
   render();
   return zone.id;
+}
+
+/** hex(#RRGGBB) + alpha(0..1)를 rgba 문자열로 */
+export function hexToRgba(hex, alpha) {
+  if (!hex) return 'rgba(31,111,235,0.10)';
+  if (hex.startsWith('rgba')) return hex;   // 이미 rgba면 그대로
+  const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex);
+  if (!m) return hex;
+  const [r, g, b] = [m[1], m[2], m[3]].map((v) => parseInt(v, 16));
+  return `rgba(${r}, ${g}, ${b}, ${alpha ?? 0.10})`;
+}
+
+/** 옛 rgba(...) 형식의 zone.color → {color: '#hex', opacity}로 정규화 */
+export function migrateZone(z) {
+  if (!z) return z;
+  // 새 포맷: color가 hex
+  if (z.color && !z.color.startsWith('rgba') && z.opacity !== undefined) return z;
+  // 옛 포맷: color가 rgba(r,g,b,a)
+  const m = z.color && /rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*([\d.]+)\s*\)/i.exec(z.color);
+  if (m) {
+    const hex = '#' + [m[1], m[2], m[3]]
+      .map((v) => Number(v).toString(16).padStart(2, '0'))
+      .join('');
+    return { ...z, color: hex, opacity: Number(m[4]) };
+  }
+  // fallback
+  return { ...z, color: z.color || '#1f6feb', opacity: z.opacity ?? 0.10 };
 }
 
 /** 존 삭제 */

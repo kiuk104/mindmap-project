@@ -11,6 +11,7 @@ import { render } from './render.js';
 import { resetView } from './canvas.js';
 import { resetHistory } from './history.js';
 import { toastSuccess, toastError } from './toast.js';
+import { migrateZone } from './zones.js';
 
 const STORAGE_KEY    = 'mindmap.v3';
 const LAST_SAVE_KEY  = 'mindmap.lastSave';
@@ -68,7 +69,7 @@ export function loadFromString(jsonStr) {
     state.nodes              = data.nodes;
     state.relations          = Array.isArray(data.relations) ? data.relations : [];
     state.callouts           = Array.isArray(data.callouts)  ? data.callouts  : [];
-    state.zones              = Array.isArray(data.zones)     ? data.zones     : [];
+    state.zones              = Array.isArray(data.zones)     ? data.zones.map(migrateZone)     : [];
     state.selectedId          = null;
     state.selectedIds         = [];
     state.selectedRelationId  = null;
@@ -132,7 +133,7 @@ export function restoreLocal() {
     state.nodes              = data.nodes;
     state.relations          = Array.isArray(data.relations) ? data.relations : [];
     state.callouts           = Array.isArray(data.callouts)  ? data.callouts  : [];
-    state.zones              = Array.isArray(data.zones)     ? data.zones     : [];
+    state.zones              = Array.isArray(data.zones)     ? data.zones.map(migrateZone)     : [];
     state.selectedId          = null;
     state.selectedIds         = [];
     state.selectedRelationId  = null;

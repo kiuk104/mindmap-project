@@ -93,6 +93,17 @@ function buildBody() {
     </section>
 
     <section class="sp-section">
+      <div class="sp-section-title">✨ 노드 드롭 섀도우</div>
+      <label class="sp-check" style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+        <input type="checkbox" id="stp-shadow" ${s.nodeShadow !== false ? 'checked' : ''} />
+        <span>노드에 그림자 표시</span>
+      </label>
+      <div style="font-size:11px; color:#8b949e; margin-top:6px;">
+        모든 노드에 즉시 적용됩니다. 끄면 미니멀한 플랫 룩.
+      </div>
+    </section>
+
+    <section class="sp-section">
       <div class="sp-section-title">📎 새 관계선 기본값</div>
       <div class="settings-grid">
         <div>
@@ -155,6 +166,10 @@ function buildBody() {
 
   $('stp-font').addEventListener('change', (e) => updateSettings({ defaultFont: e.target.value }));
   $('stp-border').addEventListener('change', (e) => updateSettings({ defaultNodeBorder: e.target.value }));
+  $('stp-shadow').addEventListener('change', (e) => {
+    updateSettings({ nodeShadow: e.target.checked });
+    applyNodeShadow();
+  });
 
   // 관계선 기본값 — 각 필드 즉시 반영
   $('stp-rel-color').addEventListener('change', (e) => {
@@ -293,6 +308,12 @@ function findConflict(binding, exceptActionId) {
   return null;
 }
 
+/** 노드 드롭 섀도우 on/off를 body 클래스로 토글 */
+export function applyNodeShadow() {
+  const on = getSettings().nodeShadow !== false;
+  document.body.classList.toggle('no-node-shadow', !on);
+}
+
 // ── 초기화 ──────────────────────────────────────────────
 export function initSettingsPanel() {
   if (_initialized) return;
@@ -300,8 +321,12 @@ export function initSettingsPanel() {
 
   $('stp-close')?.addEventListener('click', closeSettingsPanel);
 
+  // 초기 시각 상태 — 저장된 설정에서 섀도우 토글 적용
+  applyNodeShadow();
+
   // 설정 외부 변경(예: 🌓 토글 버튼)이 있어도 패널이 열려 있으면 동기화
   onSettingsChange(() => {
     if (isSettingsPanelOpen()) buildBody();
+    applyNodeShadow();
   });
 }

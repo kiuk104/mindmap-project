@@ -19,6 +19,8 @@ import { pushHistory, beginPending, commitPending, cancelPending } from './histo
 import { getSettings, onSettingsChange } from './settings.js';
 import { openCustomThemeModal } from './modal.js';
 import { enhanceDashPicker } from './dash-picker.js';
+import { deleteCallout } from './callouts.js';
+import { deleteZone } from './zones.js';
 
 const STORAGE_KEY    = 'mindmap.style';
 const LINESTYLE_KEY  = 'mindmap.lineStyle';
@@ -143,8 +145,44 @@ export function syncSelectedNodeSection() {
     }
   }
 
+  // ── 선택 콜아웃 / 존 섹션 ──
+  syncSelectedCalloutSection();
+  syncSelectedZoneSection();
   // ── 선택 관계선 섹션 ──
   syncSelectedRelationSection();
+}
+
+function syncSelectedCalloutSection() {
+  const sec = $('sp-callout-section');
+  if (!sec) return;
+  const co = state.selectedCalloutId
+    ? state.callouts?.find((c) => c.id === state.selectedCalloutId)
+    : null;
+  if (!co) { sec.hidden = true; return; }
+  sec.hidden = false;
+  $('co-text').value             = co.text ?? '';
+  $('co-color').value             = co.color ?? '#fde68a';
+  $('co-text-color').value        = co.textColor ?? '#1f2937';
+  $('co-text-color').dataset.reset = co.textColor ? '' : '1';
+}
+
+function syncSelectedZoneSection() {
+  const sec = $('sp-zone-section');
+  if (!sec) return;
+  const z = state.selectedZoneId
+    ? state.zones?.find((zz) => zz.id === state.selectedZoneId)
+    : null;
+  if (!z) { sec.hidden = true; return; }
+  sec.hidden = false;
+  $('zone-label').value         = z.label ?? '';
+  $('zone-color').value         = (z.color && !z.color.startsWith('rgba')) ? z.color : '#1f6feb';
+  const opacityVal = Math.round((z.opacity ?? 0.10) * 100);
+  $('zone-opacity').value       = String(opacityVal);
+  $('zone-opacity-val').textContent = opacityVal + '%';
+  $('zone-border-color').value  = z.borderColor ?? '#8b949e';
+  $('zone-border-color').dataset.reset = z.borderColor ? '' : '1';
+  $('zone-border-dash').value   = z.borderDash ?? 'dashed';
+  $('zone-border-width').value  = String(z.borderWidth ?? 1.5);
 }
 
 /** 패널이 다룰 노드 ID 목록 (다중 우선) */
@@ -339,6 +377,125 @@ export function initStylePanel() {
   // 두 select를 SVG 미리보기 dropdown으로 강화
   enhanceDashPicker($('nd-branch-dash'));
   enhanceDashPicker($('rel-dash'));
+
+  // 존 dash select 빌드 + 강화
+  if ($('zone-border-dash')) {
+    $('zone-border-dash').innerHTML = Object.entries(DASH_NAMES).map(([k, name]) =>
+      `<option value="${k}">${name}${k === 'dashed' ? ' (기본)' : ''}</option>`).join('');
+    enhanceDashPicker($('zone-border-dash'));
+  }
+
+  // ── 콜아웃 편집 ──
+  function withCallout(fn, hist = true) {
+    const co = state.callouts?.find((c) => c.id === state.selectedCalloutId);
+    if (!co) return;
+    if (hist) pushHistory();
+    fn(co);
+    render();
+  }
+  $('co-text')?.addEventListener('input', (e) => {
+    // 텍스트 입력은 라이브 미리보기 (history는 별도 — blur에서 처리)
+    const co = state.callouts?.find((c) => c.id === state.selectedCalloutId);
+    if (!co) return;
+    co.text = e.target.value;
+    render();
+  });
+  let coTextDraft = null;
+  $('co-text')?.addEventListener('focus', () => {
+    const co = state.callouts?.find((c) => c.id === state.selectedCalloutId);
+    coTextDraft = co?.text ?? '';
+    beginPending();
+  });
+  $('co-text')?.addEventListener('blur', () => {
+    const co = state.callouts?.find((c) => c.id === state.selectedCalloutId);
+    if (co && (co.text ?? '') !== coTextDraft) commitPending();
+    else cancelPending();
+  });
+
+  $('co-color')?.addEventListener('input', (e) => {
+    withCallout((c) => { c.color = e.target.value; }, /*hist*/ false);
+  });
+  $('co-color')?.addEventListener('change', (e) => {
+    pushHistory();
+    withCallout((c) => { c.color = e.target.value; }, /*hist*/ false);
+  });
+
+  $('co-text-color')?.addEventListener('input', (e) => {
+    withCallout((c) => { c.textColor = e.target.value; }, /*hist*/ false);
+    delete e.target.dataset.reset;
+  });
+  $('co-text-color')?.addEventListener('change', (e) => {
+    pushHistory();
+    withCallout((c) => { c.textColor = e.target.value; }, /*hist*/ false);
+  });
+  $('co-text-color-reset')?.addEventListener('click', () => {
+    withCallout((c) => { c.textColor = null; });
+    $('co-text-color').dataset.reset = '1';
+  });
+
+  $('co-delete')?.addEventListener('click', () => {
+    if (state.selectedCalloutId) deleteCallout(state.selectedCalloutId);
+  });
+
+  // ── 존 편집 ──
+  function withZone(fn, hist = true) {
+    const z = state.zones?.find((zz) => zz.id === state.selectedZoneId);
+    if (!z) return;
+    if (hist) pushHistory();
+    fn(z);
+    render();
+  }
+  let zoneLabelDraft = null;
+  $('zone-label')?.addEventListener('focus', () => {
+    const z = state.zones?.find((zz) => zz.id === state.selectedZoneId);
+    zoneLabelDraft = z?.label ?? '';
+    beginPending();
+  });
+  $('zone-label')?.addEventListener('input', (e) => {
+    withZone((z) => { z.label = e.target.value; }, /*hist*/ false);
+  });
+  $('zone-label')?.addEventListener('blur', () => {
+    const z = state.zones?.find((zz) => zz.id === state.selectedZoneId);
+    if (z && (z.label ?? '') !== zoneLabelDraft) commitPending();
+    else cancelPending();
+  });
+
+  $('zone-color')?.addEventListener('input', (e) => {
+    withZone((z) => { z.color = e.target.value; }, /*hist*/ false);
+  });
+  $('zone-color')?.addEventListener('change', (e) => {
+    pushHistory();
+    withZone((z) => { z.color = e.target.value; }, /*hist*/ false);
+  });
+  $('zone-opacity')?.addEventListener('input', (e) => {
+    const pct = Number(e.target.value);
+    $('zone-opacity-val').textContent = pct + '%';
+    withZone((z) => { z.opacity = pct / 100; }, /*hist*/ false);
+  });
+  $('zone-opacity')?.addEventListener('change', () => { pushHistory(); });
+
+  $('zone-border-color')?.addEventListener('input', (e) => {
+    withZone((z) => { z.borderColor = e.target.value; }, /*hist*/ false);
+    delete e.target.dataset.reset;
+  });
+  $('zone-border-color')?.addEventListener('change', (e) => {
+    pushHistory();
+    withZone((z) => { z.borderColor = e.target.value; }, /*hist*/ false);
+  });
+  $('zone-border-color-reset')?.addEventListener('click', () => {
+    withZone((z) => { z.borderColor = null; });
+    $('zone-border-color').dataset.reset = '1';
+  });
+  $('zone-border-dash')?.addEventListener('change', (e) => {
+    withZone((z) => { z.borderDash = e.target.value; });
+  });
+  $('zone-border-width')?.addEventListener('change', (e) => {
+    withZone((z) => { z.borderWidth = Number(e.target.value); });
+  });
+
+  $('zone-delete')?.addEventListener('click', () => {
+    if (state.selectedZoneId) deleteZone(state.selectedZoneId);
+  });
 
   // 초기 상태 동기화
   syncControlsFromState();

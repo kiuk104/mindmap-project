@@ -196,6 +196,12 @@ body.style-panel-open #canvas-wrap { right: 320px; }
     0 0 0 var(--stroke-w) var(--stroke-c),
     var(--shadow-node-hover);
 }
+
+/* 설정의 "노드 드롭 섀도우" 끔 — 모든 노드의 그림자 제거 (사용자 외곽 스트로크는 유지) */
+body.no-node-shadow .node,
+body.no-node-shadow .node:hover {
+  box-shadow: 0 0 0 var(--stroke-w) var(--stroke-c) !important;
+}
 .node.root     { font-size: 15px; font-weight: 700; min-width: 140px; border-radius: 18px; }
 .node.selected {
   border-color: var(--accent) !important;

@@ -7,7 +7,7 @@
 
 import { state } from './state.js';
 import { $, linkIcon, linkDefault, lighten, LINE_WIDTHS, NODE_SIZES, NODE_SHAPES, NODE_BORDERS, NODE_OUTLINES, DASH_PATTERNS, getRelationControls, getBranchControls, computeHiddenIds, parentIdsSet } from './utils.js';
-import { getZoneBox } from './zones.js';
+import { getZoneBox, hexToRgba } from './zones.js';
 import { isAssetIcon, assetIdToUrl } from './icon-assets.js';
 
 // main.js가 주입할 핸들러 (기본값은 빈 함수)
@@ -140,14 +140,23 @@ function buildSvgMarkup(hiddenIds) {
       });
       if (!box) return;
       const sel = state.selectedZoneId === z.id;
-      const stroke = sel ? 'var(--accent)' : 'rgba(255,255,255,0.18)';
-      const strokeWidth = sel ? 2 : 1.5;
+      // 배경 채움 — hex+opacity 우선, 없으면 옛 rgba 그대로
+      const fill = (z.color && !z.color.startsWith('rgba'))
+        ? hexToRgba(z.color, z.opacity ?? 0.10)
+        : (z.color || 'rgba(31,111,235,0.10)');
+      // 보더 — 사용자 지정값 우선, 없으면 자동(선택 시 accent, 비선택 시 흐릿)
+      const stroke = z.borderColor
+        ? z.borderColor
+        : (sel ? 'var(--accent)' : 'rgba(255,255,255,0.18)');
+      const strokeWidth = z.borderWidth ?? (sel ? 2 : 1.5);
+      const dashKey = z.borderDash ?? 'dashed';
+      const dashAttr = sel ? 'none' : (DASH_PATTERNS[dashKey] || '6 4');
       h += `<rect class="zone-box" data-zone="${z.id}"
         x="${box.x}" y="${box.y}" width="${box.w}" height="${box.h}"
         rx="14" ry="14"
-        fill="${z.color || 'rgba(31,111,235,0.10)'}"
+        fill="${fill}"
         stroke="${stroke}" stroke-width="${strokeWidth}"
-        stroke-dasharray="${sel ? 'none' : '6 4'}"/>`;
+        stroke-dasharray="${dashAttr}"/>`;
       if (z.label) {
         h += `<text class="zone-label" data-zone="${z.id}"
           x="${box.x + 14}" y="${box.y + 16}"
@@ -532,6 +541,7 @@ export function render() {
       box.style.top  = (p.y + co.dy) + 'px';
       const bgColor = co.color || '#fde68a';
       box.style.background = bgColor;
+      if (co.textColor) box.style.color = co.textColor;
       box.textContent = co.text || '';
 
       // 이벤트 — 드래그/선택/편집은 H 핸들러로
