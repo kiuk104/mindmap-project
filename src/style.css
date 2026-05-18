@@ -330,17 +330,18 @@ select.fi   { cursor: pointer; }
   font-size: 11px; color: var(--text-very-faint); z-index: 100; line-height: 1.9;
 }
 
-/* ── SVG 부모-자식 연결선 — stroke·stroke-width·stroke-dasharray는 인라인 style로 출력 ── */
+/* ── SVG 부모-자식 연결선 — stroke·stroke-width·stroke-dasharray는 인라인 style로 출력 ──
+   stroke-linecap은 butt(직각)로 두어 점선 dash가 깔끔하게 끊어지게 한다. */
 #svg-layer .parent-line {
   fill: none;
-  stroke-linecap: round;
+  stroke-linecap: butt;
   stroke-linejoin: round;
 }
 
 /* ── 관계선 (SVG path) — stroke·width·dasharray는 인라인 style로 출력 ── */
 #svg-layer .rel-path {
   fill: none;
-  stroke-linecap: round;
+  stroke-linecap: butt;
   cursor: pointer;
   pointer-events: stroke;
   transition: opacity 0.15s;

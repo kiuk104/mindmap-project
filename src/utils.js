@@ -345,11 +345,13 @@ export function parentIdsSet(nodes) {
   return s;
 }
 
-/** 점선 패턴 (stroke-dasharray) */
+/** 점선 패턴 (stroke-dasharray) — dash gap 형식.
+ *  stroke-linecap이 butt(직각)이라 dash가 정확히 표기된 길이만큼 보임.
+ */
 export const DASH_PATTERNS = {
   solid:  '',
-  dashed: '6 4',
-  dotted: '1.5 4',
+  dashed: '12 8',     // 12px 직각 dash + 8px 간격 — 시원한 점선
+  dotted: '2 6',      // 작은 점 + 넓은 간격
 };
 
 /**
