@@ -6,6 +6,7 @@ import { state } from './state.js';
 import { render } from './render.js';
 import { view, applyTransform } from './canvas.js';
 import { $ } from './utils.js';
+import { expandAncestors } from './nodes.js';
 
 /** 검색어로 매칭되는 노드 ID 목록을 갱신하고 화면에 반영 */
 export function runSearch(query) {
@@ -69,10 +70,14 @@ function updateHitCount() {
   }
 }
 
-/** 노드를 화면 중앙으로 이동 + 선택 */
+/** 노드를 화면 중앙으로 이동 + 선택 + 조상 접힘 자동 해제 */
 function centerOnNode(nodeId) {
   const node = state.nodes[nodeId];
   if (!node) return;
+
+  // 매치 노드가 접힌 조상 아래라면 자동으로 펴서 노출
+  expandAncestors(nodeId);
+
   const wrap = $('canvas-wrap');
   view.px = wrap.clientWidth  / 2 - node.x * view.sc;
   view.py = wrap.clientHeight / 2 - node.y * view.sc;

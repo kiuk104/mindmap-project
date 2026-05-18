@@ -9,6 +9,7 @@ import { render } from './render.js';
 import { $, FONT_FAMILIES, FONT_NAMES, currentPalette, linkIcon, linkDefault, ICON_GROUPS, ICON_TAB_NAMES } from './utils.js';
 import { removeLink } from './nodes.js';
 import { doDownload, copyJsonToClipboard, defaultFilename, serialize, loadFromString } from './io.js';
+import { exportSvgFile, exportPngFile } from './export.js';
 import * as drive from './drive.js';
 import { pushHistory } from './history.js';
 import { getSettings, updateSettings } from './settings.js';
@@ -128,15 +129,18 @@ export function openSaveModal() {
       <input class="fi" id="sv-name" type="text" value="${defaultFilename()}" />
     </div>
     <div class="fg">
-      <label class="fl">위치</label>
+      <label class="fl">위치 / 형식</label>
       <select class="fi" id="sv-format">
         <option value="download">📥 내 컴퓨터로 다운로드 (.json)</option>
-        <option value="clipboard">📋 클립보드에 복사</option>
+        <option value="clipboard">📋 클립보드에 JSON 복사</option>
         <option value="drive" ${driveOptionEnabled ? '' : 'disabled'}>${driveLabel}</option>
+        <option value="png">🖼️ PNG 이미지로 내보내기 (.png · 2x)</option>
+        <option value="svg">📐 SVG 이미지로 내보내기 (.svg)</option>
       </select>
     </div>
     <div class="fg" style="font-size:11px; color:#6e7681; line-height:1.6;">
       💡 로컬스토리지에 자동 저장됩니다. 팀 공유는 드라이브 또는 JSON 파일을 사용하세요.
+      PNG/SVG는 발표·문서용 이미지 출력입니다.
     </div>
   `;
 
@@ -498,6 +502,17 @@ export function handleModalOK() {
       copyJsonToClipboard().then((ok) => {
         alert(ok ? 'JSON이 클립보드에 복사되었습니다.' : '클립보드 복사에 실패했습니다.');
       });
+      closeModal();
+    } else if (format === 'png') {
+      const okBtn = $('modal-ok');
+      okBtn.disabled = true;
+      okBtn.textContent = '변환 중…';
+      exportPngFile(name)
+        .then(() => closeModal())
+        .catch((e) => alert('PNG 내보내기 실패: ' + e.message))
+        .finally(() => { okBtn.disabled = false; okBtn.textContent = '확인'; });
+    } else if (format === 'svg') {
+      exportSvgFile(name);
       closeModal();
     } else if (format === 'drive') {
       // 드라이브 업로드

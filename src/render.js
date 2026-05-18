@@ -6,7 +6,7 @@
  */
 
 import { state } from './state.js';
-import { $, linkIcon, linkDefault, lighten, LINE_WIDTHS, NODE_SIZES, NODE_SHAPES, NODE_BORDERS, DASH_PATTERNS, getRelationControls } from './utils.js';
+import { $, linkIcon, linkDefault, lighten, LINE_WIDTHS, NODE_SIZES, NODE_SHAPES, NODE_BORDERS, DASH_PATTERNS, getRelationControls, computeHiddenIds, parentIdsSet } from './utils.js';
 
 // main.js가 주입할 핸들러 (기본값은 빈 함수)
 const H = {
@@ -19,6 +19,7 @@ const H = {
   onRelationClick:      () => {},
   onRelationDblClick:   () => {},
   onRelationHandleDown: () => {},
+  onToggleCollapse:     () => {},
 };
 
 // 렌더 후에 호출되는 훅 (예: 자동 저장)
@@ -35,6 +36,19 @@ export function registerHandlers(handlers) {
 /** 매 render() 끝에 호출될 함수 등록 */
 export function setPostRender(fn) {
   postRenderHook = fn ?? (() => {});
+}
+
+/** 한 노드의 후손 수 (자기 자신 제외) — 접힌 노드의 카운트 뱃지에 사용 */
+function countDescendants(nodeId) {
+  let n = 0;
+  const stack = [nodeId];
+  while (stack.length) {
+    const id = stack.pop();
+    Object.values(state.nodes).forEach((c) => {
+      if (c.parentId === id) { n++; stack.push(c.id); }
+    });
+  }
+  return n;
 }
 
 /** SVG text 내부에 안전하게 들어가도록 XML 특수문자 이스케이프 */
@@ -78,7 +92,7 @@ function renderParentLine(p, n, style) {
 
 // ── SVG 화살표 마커 + 부모-자식 선 + 관계선 path 빌드 ──
 // 색상은 모두 CSS 변수로 처리 — 테마 전환 시 자동 반영됨
-function buildSvgMarkup() {
+function buildSvgMarkup(hiddenIds) {
   // 화살표 marker — fill="context-stroke"로 path의 stroke 색을 자동 추종
   let h = `<defs>
     <marker id="rel-arrow" viewBox="0 0 10 10" refX="9" refY="5"
@@ -87,9 +101,10 @@ function buildSvgMarkup() {
     </marker>
   </defs>`;
 
-  // 부모-자식 연결선 (스타일에 따라 분기)
+  // 부모-자식 연결선 (스타일에 따라 분기) — 숨겨진 노드 연결선은 스킵
   const style = state.lineStyle ?? 'straight';
   Object.values(state.nodes).forEach((n) => {
+    if (hiddenIds.has(n.id)) return;
     if (n.parentId && state.nodes[n.parentId]) {
       const p = state.nodes[n.parentId];
       h += renderParentLine(p, n, style);
@@ -107,6 +122,7 @@ function buildSvgMarkup() {
     const a = state.nodes[r.fromId];
     const b = state.nodes[r.toId];
     if (!a || !b) return;
+    if (hiddenIds.has(r.fromId) || hiddenIds.has(r.toId)) return;
 
     const { c1, c2 } = getRelationControls(r, a, b);
     const pathD = `M ${a.x} ${a.y} C ${c1.x} ${c1.y} ${c2.x} ${c2.y} ${b.x} ${b.y}`;
@@ -186,8 +202,12 @@ export function render() {
     if (c.id !== 'svg-layer') c.remove();
   });
 
+  // 접힘 노드의 후손 ID 집합 + 자식을 가진 부모 ID 집합 (한 번 계산해 SVG·노드 양쪽에 사용)
+  const hiddenIds = computeHiddenIds(state.nodes);
+  const parentIds = parentIdsSet(state.nodes);
+
   // ── SVG (부모-자식 선 + 관계선 + 화살표 marker) ──
-  svg.innerHTML = buildSvgMarkup();
+  svg.innerHTML = buildSvgMarkup(hiddenIds);
 
   bindRelationHandlers(svg);
 
@@ -201,6 +221,7 @@ export function render() {
 
   // ── 노드 div ──
   Object.values(state.nodes).forEach((n) => {
+    if (hiddenIds.has(n.id)) return;
     const isRoot = !n.parentId;
     const isSel  = selSet.has(n.id);
     const isRelSource = state.relationDraft && state.relationDraft.fromId === n.id;
@@ -282,6 +303,28 @@ export function render() {
       el.appendChild(linksDiv);
     }
 
+    // 자식이 있으면 접기/펴기 토글 (루트도 가능 — 큰 트리에서 유용)
+    if (parentIds.has(n.id)) {
+      const toggle = document.createElement('span');
+      toggle.className = 'node-collapse' + (n.collapsed ? ' collapsed' : '');
+      toggle.textContent = n.collapsed ? '▸' : '▾';
+      toggle.title = n.collapsed ? '하위 트리 펴기' : '하위 트리 접기';
+      // 접혀 있을 때 숨긴 후손 수를 표시
+      if (n.collapsed) {
+        const hiddenCount = countDescendants(n.id);
+        if (hiddenCount > 0) toggle.dataset.count = String(hiddenCount);
+      }
+      toggle.addEventListener('pointerdown', (e) => {
+        // 노드 드래그 시작 차단
+        e.stopPropagation();
+      });
+      toggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        H.onToggleCollapse(n.id);
+      });
+      el.appendChild(toggle);
+    }
+
     // 이벤트
     el.addEventListener('pointerdown', (e) => H.onNodeMouseDown(e, n.id));
     el.addEventListener('dblclick',    (e) => H.onNodeDblClick(e, n.id));
@@ -326,6 +369,6 @@ function bindRelationHandlers(svg) {
 /** 드래그 중 SVG 선만 빠르게 업데이트 (성능 최적화) */
 export function updateLines() {
   const svg = $('svg-layer');
-  svg.innerHTML = buildSvgMarkup();
+  svg.innerHTML = buildSvgMarkup(computeHiddenIds(state.nodes));
   bindRelationHandlers(svg);
 }

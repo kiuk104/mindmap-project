@@ -91,6 +91,35 @@ export function removeLink(nodeId, linkIndex) {
   render();
 }
 
+/** 접기/펴기 토글 — 자식 노드가 있을 때만 의미 있음. history 1엔트리. */
+export function toggleCollapse(nodeId) {
+  const n = state.nodes[nodeId];
+  if (!n) return;
+  pushHistory();
+  n.collapsed = !n.collapsed;
+  render();
+}
+
+/**
+ * 어떤 노드의 모든 조상의 collapsed 상태를 false로 만들어 노출 보장.
+ * 검색 매치 이동·키보드 네비게이션에서 호출. history는 push하지 않음 (네비게이션 부수효과).
+ * @returns {boolean} 실제로 펴진 노드가 있었으면 true
+ */
+export function expandAncestors(nodeId) {
+  let changed = false;
+  let cur = state.nodes[nodeId];
+  while (cur && cur.parentId) {
+    const p = state.nodes[cur.parentId];
+    if (!p) break;
+    if (p.collapsed) {
+      p.collapsed = false;
+      changed = true;
+    }
+    cur = p;
+  }
+  return changed;
+}
+
 /**
  * 노드 텍스트 인라인 편집
  * textarea를 DOM에 직접 삽입하는 방식

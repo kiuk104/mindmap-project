@@ -668,6 +668,50 @@ body.style-panel-open #style-panel { transform: translateX(0); }
   .icon-cats { max-height: 60vh; }
 }
 
+/* ── 접기/펴기 토글 ── */
+.node-collapse {
+  position: absolute;
+  right: -10px;
+  bottom: -10px;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg, #161b22);
+  color: var(--text, #e6edf3);
+  border: 1px solid var(--border, #30363d);
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+  z-index: 2;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+  transition: transform 0.12s, background 0.12s, color 0.12s;
+}
+.node-collapse:hover {
+  background: var(--accent, #1f6feb);
+  color: #fff;
+  transform: scale(1.1);
+}
+.node-collapse.collapsed {
+  background: var(--accent, #1f6feb);
+  color: #fff;
+}
+/* 접힘 상태에서 자식 카운트 뱃지 */
+.node-collapse.collapsed[data-count]::after {
+  content: attr(data-count);
+  margin-left: 3px;
+  font-size: 10px;
+  font-weight: 600;
+}
+.node-collapse.collapsed[data-count] {
+  width: auto;
+  padding: 0 7px;
+  min-width: 22px;
+}
+
 /* ── 설정 모달 ── */
 .settings-radio-row {
   display: flex;

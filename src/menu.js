@@ -4,7 +4,7 @@
 
 import { state } from './state.js';
 import { render } from './render.js';
-import { addChild, deleteNode, startEdit } from './nodes.js';
+import { addChild, deleteNode, startEdit, toggleCollapse } from './nodes.js';
 import { openLinkModal, openColorModal, openIconModal, openSaveModal } from './modal.js';
 import { resetView } from './canvas.js';
 import { clearLocal } from './io.js';
@@ -124,6 +124,11 @@ export function initContextMenu() {
     state.relationDraft = { fromId: state.ctxTargetId };
     document.body.classList.add('relation-drafting');
     render();
+  });
+
+  $('ctx-collapse').addEventListener('click', () => {
+    hideContextMenu();
+    toggleCollapse(state.ctxTargetId);
   });
 
   // 다중 선택 시 "선택 노드 모두 삭제" — deleteNode가 자체적으로 pushHistory

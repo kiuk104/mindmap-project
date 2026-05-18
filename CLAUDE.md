@@ -46,6 +46,8 @@ mindmap-project/
     ├── search.js       # 노드 텍스트 검색 (Ctrl+F)
     ├── history.js      # Undo/Redo (스냅샷 + pending 패턴)
     ├── settings.js     # 전역 사용자 설정 (앱 테마·기본 폰트·관계선 기본값)
+    ├── clipboard.js    # 내부 클립보드 (Ctrl+C/X/V — 노드 서브트리 복제)
+    ├── export.js       # PNG/SVG 이미지 내보내기 (의존성 0)
     ├── drive.js        # 구글 드라이브 OAuth + 파일 API
     ├── config.js       # GOOGLE_CLIENT_ID 설정
     ├── preview.js      # 유튜브/이미지 호버 미리보기
@@ -110,6 +112,8 @@ main.js
 | `search.js`  | 노드 텍스트 검색 + 다음/이전 매치 이동 |
 | `history.js` | Undo/Redo 스택 — `pushHistory()` 즉시 푸시, `beginPending/commitPending/cancelPending`으로 드래그·인라인 편집을 한 엔트리로 묶음 |
 | `settings.js`| 전역 사용자 설정 (`localStorage.mindmap.settings`) — `loadSettings/getSettings/updateSettings/onSettingsChange`, `newRelationStyle()` |
+| `clipboard.js`| 내부 클립보드 — 선택 노드 + 후손 서브트리를 deep clone, 새 ID로 재발급해 붙여넣기. 잘라내기는 루트 보호 |
+| `export.js`  | SVG 직렬화 → 파일 다운로드, PNG는 SVG → Image → Canvas → blob → 다운로드 (2x scale) |
 | `drive.js`   | Google Identity Services + Drive API (scope: `drive.file`) |
 | `preview.js` | 유튜브 썸네일·이미지 호버 팝업 |
 | `main.js`    | 진입점 — 초기화 + 모든 연결 |
@@ -126,6 +130,11 @@ main.js
 | **Ctrl+F / Cmd+F** | 검색창 포커스 |
 | **Ctrl+Z / Cmd+Z** | 실행 취소 (Undo) |
 | **Ctrl+Y / Cmd+Y** 또는 **Ctrl+Shift+Z** | 다시 실행 (Redo) |
+| **Ctrl+C / Ctrl+X / Ctrl+V** | 선택 노드 서브트리 복사 / 잘라내기 / 붙여넣기 |
+| **Space** | 선택 노드 접기/펴기 |
+| **↑ ↓** | 같은 부모 안에서 형제 노드 이동 |
+| **←** | 부모 노드로 이동 |
+| **→** | 첫 번째 자식으로 이동 (접혀있으면 자동 펴기) |
 | **Enter** (검색창) | 다음 매치 |
 | **Shift+Enter** (검색창) | 이전 매치 |
 
@@ -183,6 +192,10 @@ main.js
 - [x] GitHub Pages 자동 배포
 - [x] 다중 노드 선택 + 일괄 작업 (셀렉트박스 + 스타일 패널/색상/아이콘 일괄 적용)
 - [x] 실행 취소 (Undo/Redo) — Ctrl+Z/Y, 툴바 ↶/↷
+- [x] 노드 접기/펴기 (자식 있는 노드 우하단 ▾/▸ 버튼, Space, 자식 카운트 뱃지)
+- [x] 노드 클립보드 (Ctrl+C/X/V — 서브트리 단위, 새 ID로 재발급)
+- [x] 키보드 트리 네비게이션 (↑↓ 형제, ← 부모, → 첫 자식)
+- [x] PNG/SVG 이미지 내보내기 (저장 모달 → 형식 선택)
 
 ## 다중 노드 일괄 작업
 - 셀렉트박스(좌클릭 드래그) 또는 Shift+클릭으로 다중 선택
@@ -214,6 +227,7 @@ main.js
 
 ## 향후 아이디어
 - [ ] 노드 그룹화 / 색상으로 분류
-- [ ] 실시간 협업 (WebSocket / Firebase)
+- [ ] 실시간 협업 (WebSocket / Firebase / CRDT)
 - [ ] PWA (오프라인 / 홈 화면 설치)
-- [ ] 노드 접기/펴기 (하위 트리 토글)
+- [ ] 외부 폰트 (Google Fonts)
+- [ ] 노드 본문 이미지 임베드

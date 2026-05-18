@@ -108,6 +108,7 @@ export function makeNode(id, text, x, y, parentId, color) {
     color: color ?? '#1f6feb',
     links: [],
     icon: '',
+    collapsed: false,    // true면 하위 트리 숨김
     textStyle: {
       bold: false, italic: false, underline: false, strikethrough: false,
       size: 'medium',   // 'small' | 'medium' | 'large'
@@ -121,6 +122,50 @@ export function makeNode(id, text, x, y, parentId, color) {
       dash:  null,        // 'solid' | 'dashed' | 'dotted'. null = 실선
     },
   };
+}
+
+/**
+ * collapsed 노드의 후손 ID Set을 계산.
+ * 어떤 노드의 조상 중 하나라도 collapsed면 그 노드는 hidden.
+ * 외부 사용처: render(접힌 노드 후손 스킵), search(검색 매치 이동 시 조상 펴기).
+ *
+ * @param {Object.<string,Node>} nodes
+ * @returns {Set<string>} 숨겨진 노드 ID 집합 (접힌 부모 자신은 포함되지 않음)
+ */
+export function computeHiddenIds(nodes) {
+  // 부모ID → 자식 ID 배열 캐시 (한 번만 순회)
+  const childrenOf = {};
+  Object.values(nodes).forEach((n) => {
+    if (n.parentId) {
+      (childrenOf[n.parentId] ||= []).push(n.id);
+    }
+  });
+
+  const hidden = new Set();
+  const stack = [];
+  Object.values(nodes).forEach((n) => {
+    if (n.collapsed) (childrenOf[n.id] ?? []).forEach((cid) => stack.push(cid));
+  });
+  while (stack.length) {
+    const id = stack.pop();
+    if (hidden.has(id)) continue;
+    hidden.add(id);
+    (childrenOf[id] ?? []).forEach((cid) => stack.push(cid));
+  }
+  return hidden;
+}
+
+/**
+ * 어떤 노드가 자식을 가지는지 빠르게 알기 위한 Set 생성.
+ * @param {Object.<string,Node>} nodes
+ * @returns {Set<string>} 자식을 가진 부모 노드 ID 집합
+ */
+export function parentIdsSet(nodes) {
+  const s = new Set();
+  Object.values(nodes).forEach((n) => {
+    if (n.parentId) s.add(n.parentId);
+  });
+  return s;
 }
 
 /** 점선 패턴 (stroke-dasharray) */

@@ -12,7 +12,7 @@ import { state }                           from './state.js';
 import { render, registerHandlers, setPostRender } from './render.js';
 import { $, uid, makeNode, COLORS, setNodeSelection, clearNodeSelection, setRelationSelection, clearRelationSelection } from './utils.js';
 import { showPreview, hidePreview }        from './preview.js';
-import { addChild, deleteNode, startEdit, removeLink } from './nodes.js';
+import { addChild, deleteNode, startEdit, removeLink, toggleCollapse, expandAncestors } from './nodes.js';
 import { initCanvas, view, applyTransform, resetView } from './canvas.js';
 import { onNodeMouseDown, onRelationHandleDown, consumePanDragFlag } from './canvas.js';
 import { openLinkModal, openColorModal, openSaveModal, openDriveLoadModal, openSettingsModal, closeModal, handleModalOK, applyStyle } from './modal.js';
@@ -23,6 +23,7 @@ import { runSearch, gotoHit, clearSearch }    from './search.js';
 import { initStylePanel, togglePanel, closePanel, isPanelOpen, setOnStyleApplied, syncSelectedNodeSection } from './style-panel.js';
 import { undo, redo, pushHistory, beginPending, commitPending, cancelPending, onHistoryChange, setApplyHook, resetHistory } from './history.js';
 import { loadSettings, getSettings, updateSettings, onSettingsChange } from './settings.js';
+import { copyClipboard, cutClipboard, pasteClipboard, hasClipboard } from './clipboard.js';
 
 // ── render.js에 핸들러 주입 ──
 // render.js는 다른 모듈을 직접 import하지 않고
@@ -51,6 +52,7 @@ registerHandlers({
     render();
   },
   onRelationHandleDown,
+  onToggleCollapse: toggleCollapse,
 });
 
 // ── 매 render() 끝에: 자동 저장 + 패널 동기화 ──
@@ -70,6 +72,78 @@ onSaveStateChange((ts) => {
   const ss = String(t.getSeconds()).padStart(2, '0');
   el.textContent = `💾 자동저장 ${hh}:${mm}:${ss}`;
 });
+
+// ── 키보드 트리 네비게이션 ──
+function selectAndCenter(id) {
+  setNodeSelection(state, [id]);
+  expandAncestors(id);
+  render();
+  // 선택 노드가 뷰포트 밖이면 가까이 끌어옴 (절대 좌표가 화면에 들어오도록)
+  const node = state.nodes[id];
+  if (!node) return;
+  const wrap = $('canvas-wrap');
+  const rect = wrap.getBoundingClientRect();
+  // 캔버스 transform: x_screen = node.x * sc + px (+ rect.left)
+  const sx = node.x * view.sc + view.px;
+  const sy = node.y * view.sc + view.py;
+  const margin = 80;
+  if (sx < margin)  view.px += margin - sx;
+  if (sx > rect.width  - margin) view.px -= (sx - (rect.width  - margin));
+  if (sy < margin)  view.py += margin - sy;
+  if (sy > rect.height - margin) view.py -= (sy - (rect.height - margin));
+  applyTransform();
+}
+
+/** 같은 부모의 형제로 이동 (y좌표 순) */
+function navigateSibling(dir) {
+  // 선택 없으면 루트 선택
+  if (!state.selectedId) {
+    const rootId = Object.keys(state.nodes).find((k) => !state.nodes[k].parentId);
+    if (rootId) selectAndCenter(rootId);
+    return;
+  }
+  const cur = state.nodes[state.selectedId];
+  if (!cur) return;
+  // 루트 노드면 형제가 없음 — 자식으로 이동
+  if (!cur.parentId) {
+    navigateToChild();
+    return;
+  }
+  const siblings = Object.values(state.nodes)
+    .filter((n) => n.parentId === cur.parentId)
+    .sort((a, b) => a.y - b.y);
+  const idx  = siblings.findIndex((n) => n.id === cur.id);
+  const next = siblings[Math.max(0, Math.min(siblings.length - 1, idx + dir))];
+  if (next && next.id !== cur.id) selectAndCenter(next.id);
+}
+
+/** 부모로 이동 */
+function navigateToParent() {
+  if (!state.selectedId) {
+    const rootId = Object.keys(state.nodes).find((k) => !state.nodes[k].parentId);
+    if (rootId) selectAndCenter(rootId);
+    return;
+  }
+  const cur = state.nodes[state.selectedId];
+  if (!cur || !cur.parentId) return;
+  selectAndCenter(cur.parentId);
+}
+
+/** 첫 번째 자식으로 이동 — 접혀있으면 자동으로 펴줌 */
+function navigateToChild() {
+  if (!state.selectedId) {
+    const rootId = Object.keys(state.nodes).find((k) => !state.nodes[k].parentId);
+    if (rootId) selectAndCenter(rootId);
+    return;
+  }
+  const cur = state.nodes[state.selectedId];
+  if (!cur) return;
+  if (cur.collapsed) toggleCollapse(cur.id);
+  const firstChild = Object.values(state.nodes)
+    .filter((n) => n.parentId === cur.id)
+    .sort((a, b) => a.y - b.y)[0];
+  if (firstChild) selectAndCenter(firstChild.id);
+}
 
 // ── 초기 노드 생성 ──
 function createSamples() {
@@ -349,6 +423,34 @@ document.addEventListener('keydown', (e) => {
     return;
   }
 
+  // Ctrl+C / Cmd+C → 선택 노드 복사 (선택 없으면 브라우저 기본)
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'C')) {
+    const tag = document.activeElement.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+    if (!state.selectedIds.length) return;
+    e.preventDefault();
+    copyClipboard();
+    return;
+  }
+  // Ctrl+X / Cmd+X → 잘라내기
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'x' || e.key === 'X')) {
+    const tag = document.activeElement.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+    if (!state.selectedIds.length) return;
+    e.preventDefault();
+    cutClipboard();
+    return;
+  }
+  // Ctrl+V / Cmd+V → 붙여넣기 (클립보드에 내용 있을 때만)
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'v' || e.key === 'V')) {
+    const tag = document.activeElement.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+    if (!hasClipboard()) return;
+    e.preventDefault();
+    pasteClipboard();
+    return;
+  }
+
   // 입력 필드에서는 단축키 무시
   const tag = document.activeElement.tagName;
   if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
@@ -358,6 +460,31 @@ document.addEventListener('keydown', (e) => {
       e.preventDefault();
       addChild();
       break;
+    case ' ':
+    case 'Spacebar': {
+      // 단일 선택 노드 접기/펴기 (자식 있을 때만 의미)
+      if (state.selectedId) {
+        e.preventDefault();
+        toggleCollapse(state.selectedId);
+      }
+      break;
+    }
+    case 'ArrowUp':
+    case 'ArrowDown': {
+      e.preventDefault();
+      navigateSibling(e.key === 'ArrowDown' ? 1 : -1);
+      break;
+    }
+    case 'ArrowLeft': {
+      e.preventDefault();
+      navigateToParent();
+      break;
+    }
+    case 'ArrowRight': {
+      e.preventDefault();
+      navigateToChild();
+      break;
+    }
     case 'Delete':
     case 'Backspace': {
       const selRels  = [...(state.selectedRelationIds ?? [])];
