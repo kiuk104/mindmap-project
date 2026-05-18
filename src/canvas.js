@@ -10,7 +10,7 @@
 
 import { state } from './state.js';
 import { render, updateLines } from './render.js';
-import { $, setNodeSelection, clearNodeSelection, setRelationSelection, clearRelationSelection, getRelationControls } from './utils.js';
+import { $, setNodeSelection, clearNodeSelection, setRelationSelection, clearRelationSelection, getRelationControls, getBranchControls } from './utils.js';
 import { pushHistory, beginPending, commitPending, cancelPending } from './history.js';
 import { newRelationStyle } from './settings.js';
 
@@ -37,6 +37,12 @@ let selBoxClientStart = { x: 0, y: 0 };  // 화면 좌표
 let relHandleDragging = false;
 let relHandleId       = null;
 let relHandleKey      = null;  // 'c1' | 'c2'
+
+// ── 부모-자식 분기선 곡률 핸들 드래그 상태 ──
+let branchHandleDragging = false;
+let branchHandleNodeId   = null;   // 자식 노드 ID (이 노드와 그 부모를 잇는 선)
+let branchHandleKey      = null;   // 'c1'(부모쪽) | 'c2'(자식쪽)
+let branchHandleMoved    = false;
 
 // ── 핀치 줌 상태 ──
 let pinching      = false;
@@ -173,6 +179,41 @@ export function onRelationHandleDown(e, rid, handle) {
   relHandleMoved = false;
   beginPending();
   setRelationSelection(state, [rid]);
+  render();
+}
+
+/**
+ * 부모-자식 분기선 핸들 마우스다운 — 드래그 시작.
+ * 첫 드래그면 현재 default control point 위치를 handles로 materialize.
+ */
+export function onBranchHandleDown(e, nodeId, handle) {
+  if (e.button !== 0) return;
+  panning = false;
+  dragging = false;
+  dragId = null;
+  cancelLongPress();
+
+  const n = state.nodes[nodeId];
+  const p = n && n.parentId ? state.nodes[n.parentId] : null;
+  if (!n || !p) return;
+
+  if (!n.branchStyle) {
+    n.branchStyle = { color: null, width: null, dash: null };
+  }
+  if (!n.branchStyle.handles) {
+    const strength = state.style?.curveStrength ?? 0.5;
+    const { c1, c2 } = getBranchControls(p, n, strength);
+    n.branchStyle.handles = {
+      c1: { dx: c1.x - p.x, dy: c1.y - p.y },
+      c2: { dx: c2.x - n.x, dy: c2.y - n.y },
+    };
+  }
+
+  branchHandleDragging = true;
+  branchHandleNodeId   = nodeId;
+  branchHandleKey      = handle || 'c1';
+  branchHandleMoved    = false;
+  beginPending();
   render();
 }
 
@@ -416,6 +457,21 @@ export function initCanvas() {
         }
       }
     }
+
+    if (branchHandleDragging && branchHandleNodeId) {
+      const n = state.nodes[branchHandleNodeId];
+      const p = n && n.parentId ? state.nodes[n.parentId] : null;
+      if (n && p && n.branchStyle?.handles) {
+        const cp = canvasCoord(e.clientX, e.clientY);
+        if (branchHandleKey === 'c2') {
+          n.branchStyle.handles.c2 = { dx: cp.x - n.x, dy: cp.y - n.y };
+        } else {
+          n.branchStyle.handles.c1 = { dx: cp.x - p.x, dy: cp.y - p.y };
+        }
+        branchHandleMoved = true;
+        updateLines();
+      }
+    }
   });
 
   // 포인터 업 → 드래그/Pan/셀렉트박스 종료
@@ -427,6 +483,15 @@ export function initCanvas() {
       relHandleId = null;
       relHandleKey = null;
       relHandleMoved = false;
+      render();
+    }
+    if (branchHandleDragging) {
+      if (branchHandleMoved) commitPending();
+      else cancelPending();
+      branchHandleDragging = false;
+      branchHandleNodeId = null;
+      branchHandleKey = null;
+      branchHandleMoved = false;
       render();
     }
     if (dragging) {

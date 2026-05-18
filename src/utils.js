@@ -353,6 +353,35 @@ export const DASH_PATTERNS = {
 };
 
 /**
+ * 부모-자식 연결선의 cubic Bezier 제어점 두 개 계산 (curved 스타일 전용).
+ *
+ *   - n.branchStyle.handles.c1, c2 가 있으면 그 값을 사용 (사용자 수동 조정)
+ *   - 없으면 strength 기반 기본 제어점 (c1=(p.x+dx*strength, p.y), c2=(n.x-dx*strength, n.y))
+ *
+ * 핸들 dx/dy는 endpoint(c1=parent, c2=child) 기준 상대 오프셋.
+ *
+ * @param {{x,y}} p 부모 노드 좌표
+ * @param {{x,y, branchStyle?}} n 자식 노드 (branchStyle.handles 검사)
+ * @param {number} strength 0..1
+ * @returns {{c1:{x,y}, c2:{x,y}}}
+ */
+export function getBranchControls(p, n, strength) {
+  const h = n?.branchStyle?.handles;
+  if (h?.c1 && h?.c2) {
+    return {
+      c1: { x: p.x + h.c1.dx, y: p.y + h.c1.dy },
+      c2: { x: n.x + h.c2.dx, y: n.y + h.c2.dy },
+    };
+  }
+  const s  = Math.max(0, Math.min(1, strength ?? 0.5));
+  const dx = n.x - p.x;
+  return {
+    c1: { x: p.x + dx * s, y: p.y },
+    c2: { x: n.x - dx * s, y: n.y },
+  };
+}
+
+/**
  * 관계선의 cubic Bezier 제어점 두 개 계산.
  *
  *   - r.handles.c1, c2 가 있으면 그 값을 사용 (사용자 조정 결과)

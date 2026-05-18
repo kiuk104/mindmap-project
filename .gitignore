@@ -19,3 +19,7 @@ Desktop.ini
 # 노드 (나중에 빌드 도구 추가할 경우)
 node_modules/
 dist/
+
+# Adobe Illustrator 작업 로그 (favicon.svg 편집 시 생성됨)
+*.log
+public/*.log

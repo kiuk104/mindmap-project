@@ -14,7 +14,7 @@ import { $, uid, makeNode, COLORS, setNodeSelection, clearNodeSelection, setRela
 import { showPreview, hidePreview }        from './preview.js';
 import { addChild, deleteNode, startEdit, removeLink, toggleCollapse, expandAncestors } from './nodes.js';
 import { initCanvas, view, applyTransform, resetView } from './canvas.js';
-import { onNodeMouseDown, onRelationHandleDown, consumePanDragFlag } from './canvas.js';
+import { onNodeMouseDown, onRelationHandleDown, onBranchHandleDown, consumePanDragFlag } from './canvas.js';
 import { openLinkModal, openColorModal, openSaveModal, openDriveLoadModal, openSettingsModal, closeModal, handleModalOK, applyStyle } from './modal.js';
 import * as drive                            from './drive.js';
 import { showContextMenu, hideContextMenu, hideAllMenus, showBgMenu, initContextMenu } from './menu.js';
@@ -53,6 +53,7 @@ registerHandlers({
     render();
   },
   onRelationHandleDown,
+  onBranchHandleDown,
   onToggleCollapse: toggleCollapse,
 });
 

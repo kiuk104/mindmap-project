@@ -388,6 +388,24 @@ select.fi   { cursor: pointer; }
 }
 #svg-layer .rel-handle:hover { r: 8; }
 
+/* 부모-자식 분기선 곡률 핸들 — 빨강 계열로 관계선(파랑)과 구별 */
+#svg-layer .branch-guide {
+  stroke: var(--accent, #f85149);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  opacity: 0.55;
+  pointer-events: none;
+}
+#svg-layer .branch-handle {
+  fill: var(--accent, #f85149);
+  stroke: #fff;
+  stroke-width: 2;
+  cursor: move;
+  pointer-events: all;
+  transition: r 0.12s;
+}
+#svg-layer .branch-handle:hover { r: 8; }
+
 /* 관계선 그리기 중 */
 body.relation-drafting #canvas-wrap,
 body.relation-drafting .node { cursor: crosshair !important; }

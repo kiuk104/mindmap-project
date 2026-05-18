@@ -135,6 +135,9 @@ export function syncSelectedNodeSection() {
       $('nd-branch-color').dataset.reset = bs.color ? '' : '1';
       $('nd-branch-dash').value          = bs.dash  ?? '';
       $('nd-branch-width').value         = bs.width ? String(bs.width) : '';
+      // 곡률 초기화 버튼 — 핸들이 수동 조정된 상태에서만 노출
+      const resetBtn = $('nd-branch-curve-reset');
+      if (resetBtn) resetBtn.style.display = bs.handles ? '' : 'none';
     }
   }
 
@@ -555,6 +558,10 @@ export function initStylePanel() {
   });
   $('nd-branch-width').addEventListener('change', (e) => {
     withNodes((n) => { n.branchStyle.width = e.target.value ? Number(e.target.value) : null; });
+  });
+  // 곡률 초기화 — 수동 조정한 핸들 제거, 전역 curveStrength 기반 기본값으로 복귀
+  $('nd-branch-curve-reset')?.addEventListener('click', () => {
+    withNodes((n) => { if (n.branchStyle?.handles) delete n.branchStyle.handles; });
   });
 
   // ── 관계선 스타일 — 다중 선택 시 전체에 일괄 적용 ──

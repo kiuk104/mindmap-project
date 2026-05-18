@@ -6,7 +6,7 @@
  */
 
 import { state } from './state.js';
-import { $, linkIcon, linkDefault, lighten, LINE_WIDTHS, NODE_SIZES, NODE_SHAPES, NODE_BORDERS, NODE_OUTLINES, DASH_PATTERNS, getRelationControls, computeHiddenIds, parentIdsSet } from './utils.js';
+import { $, linkIcon, linkDefault, lighten, LINE_WIDTHS, NODE_SIZES, NODE_SHAPES, NODE_BORDERS, NODE_OUTLINES, DASH_PATTERNS, getRelationControls, getBranchControls, computeHiddenIds, parentIdsSet } from './utils.js';
 import { isAssetIcon, assetIdToUrl } from './icon-assets.js';
 
 // main.js가 주입할 핸들러 (기본값은 빈 함수)
@@ -20,6 +20,7 @@ const H = {
   onRelationClick:      () => {},
   onRelationDblClick:   () => {},
   onRelationHandleDown: () => {},
+  onBranchHandleDown:   () => {},
   onToggleCollapse:     () => {},
 };
 
@@ -81,13 +82,10 @@ function renderParentLine(p, n, style) {
   const styleAttr = `style="${css}"`;
 
   if (style === 'curved') {
-    // 곡률 strength: 0=직선에 가까움, 0.5=기본 S-curve, 1=강한 S
-    // 두 control point의 X 위치를 endpoint→반대편 방향으로 strength만큼 이동
-    const strength = Math.max(0, Math.min(1, state.style?.curveStrength ?? 0.5));
-    const dx  = n.x - p.x;
-    const c1x = p.x + dx * strength;
-    const c2x = n.x - dx * strength;
-    return `<path class="parent-line" ${styleAttr} d="M ${p.x} ${p.y} C ${c1x} ${p.y} ${c2x} ${n.y} ${n.x} ${n.y}"/>`;
+    // 노드별 수동 핸들이 있으면 그 값을, 아니면 전역 curveStrength 기반 기본값 사용
+    const strength = state.style?.curveStrength ?? 0.5;
+    const { c1, c2 } = getBranchControls(p, n, strength);
+    return `<path class="parent-line" data-branch="${n.id}" ${styleAttr} d="M ${p.x} ${p.y} C ${c1.x} ${c1.y} ${c2.x} ${c2.y} ${n.x} ${n.y}"/>`;
   }
   if (style === 'stepped') {
     const midX = (p.x + n.x) / 2;
@@ -194,6 +192,20 @@ function buildSvgMarkup(hiddenIds) {
         cx="${c2.x}" cy="${c2.y}" r="6"/>`;
     }
   });
+
+  // ── 단일 선택 노드의 부모-자식 곡선 핸들 (curved 스타일 + 부모 있음) ──
+  if (state.lineStyle === 'curved' && state.selectedId) {
+    const n = state.nodes[state.selectedId];
+    if (n && n.parentId && state.nodes[n.parentId] && !hiddenIds.has(n.id)) {
+      const p = state.nodes[n.parentId];
+      const strength = state.style?.curveStrength ?? 0.5;
+      const { c1, c2 } = getBranchControls(p, n, strength);
+      h += `<line class="branch-guide" x1="${p.x}" y1="${p.y}" x2="${c1.x}" y2="${c1.y}" pointer-events="none"/>`;
+      h += `<line class="branch-guide" x1="${n.x}" y1="${n.y}" x2="${c2.x}" y2="${c2.y}" pointer-events="none"/>`;
+      h += `<circle class="branch-handle" data-node="${n.id}" data-handle="c1" cx="${c1.x}" cy="${c1.y}" r="6"/>`;
+      h += `<circle class="branch-handle" data-node="${n.id}" data-handle="c2" cx="${c2.x}" cy="${c2.y}" r="6"/>`;
+    }
+  }
 
   return h;
 }
@@ -419,6 +431,12 @@ function bindRelationHandlers(svg) {
     c.addEventListener('pointerdown', (e) => {
       e.stopPropagation();
       H.onRelationHandleDown(e, c.getAttribute('data-rid'), c.getAttribute('data-handle'));
+    });
+  });
+  svg.querySelectorAll('.branch-handle').forEach((c) => {
+    c.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      H.onBranchHandleDown(e, c.getAttribute('data-node'), c.getAttribute('data-handle'));
     });
   });
 }
