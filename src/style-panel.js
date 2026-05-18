@@ -12,6 +12,7 @@ import { state } from './state.js';
 import { render } from './render.js';
 import {
   $, COLOR_THEMES, THEME_NAMES, THEME_CATEGORIES, FONT_FAMILIES, FONT_NAMES, resolvePalette,
+  ENGLISH_FONTS, ENGLISH_FONT_NAMES, KOREAN_FONTS, KOREAN_FONT_NAMES, composeFontFamily,
 } from './utils.js';
 import { pushHistory, beginPending, commitPending, cancelPending } from './history.js';
 import { getSettings, onSettingsChange } from './settings.js';
@@ -69,6 +70,13 @@ function syncControlsFromState() {
   $('sp-bgcolor').dataset.reset = s.bgColor ? '' : '1';
 
   $('sp-font').value        = s.font;
+  // 언어별 폰트 — 둘 중 하나라도 설정돼 있으면 활성
+  const byLang = !!(s.fontEn || s.fontKr);
+  $('sp-font-bylang').checked = byLang;
+  $('sp-font-lang').hidden    = !byLang;
+  if ($('sp-font-en')) $('sp-font-en').value = s.fontEn ?? Object.keys(ENGLISH_FONTS)[0];
+  if ($('sp-font-kr')) $('sp-font-kr').value = s.fontKr ?? Object.keys(KOREAN_FONTS)[0];
+
   $('sp-linestyle').value   = state.lineStyle ?? 'straight';
   $('sp-linewidth').value   = s.lineWidth;
   $('sp-colored').checked   = !!s.coloredBranch;
@@ -187,8 +195,7 @@ function persist() {
 function applyVisuals() {
   if (state.style?.bgColor) document.body.style.background = state.style.bgColor;
   else                       document.body.style.background = '';
-  const font = FONT_FAMILIES[state.style?.font] ?? FONT_FAMILIES.default;
-  document.documentElement.style.setProperty('--node-font', font);
+  document.documentElement.style.setProperty('--node-font', composeFontFamily(state.style));
 }
 
 /** 모든 노드를 현재 테마 팔레트로 다시 칠하기 (즉시 적용용 — 확인 없음) */
@@ -288,10 +295,20 @@ export function initStylePanel() {
     if ($('sp-themes')) $('sp-themes').innerHTML = buildThemeGrid();
   });
 
-  // 폰트 셀렉트 빌드
+  // 폰트 셀렉트 빌드 — 단일 / 영문 / 한글
   $('sp-font').innerHTML = Object.entries(FONT_NAMES).map(([key, name]) => `
     <option value="${key}" style="font-family: ${FONT_FAMILIES[key]}">${name} — 가나다 ABC</option>
   `).join('');
+  if ($('sp-font-en')) {
+    $('sp-font-en').innerHTML = Object.entries(ENGLISH_FONT_NAMES).map(([key, name]) => `
+      <option value="${key}" style="font-family: ${ENGLISH_FONTS[key]}, sans-serif">${name} — ABC abc 123</option>
+    `).join('');
+  }
+  if ($('sp-font-kr')) {
+    $('sp-font-kr').innerHTML = Object.entries(KOREAN_FONT_NAMES).map(([key, name]) => `
+      <option value="${key}" style="font-family: ${KOREAN_FONTS[key]}, sans-serif">${name} — 가나다 한글</option>
+    `).join('');
+  }
 
   // 초기 상태 동기화
   syncControlsFromState();
@@ -350,10 +367,48 @@ export function initStylePanel() {
     persist();
   });
 
-  // ── 폰트 ──
+  // ── 폰트 (단일 프리셋) ──
   $('sp-font').addEventListener('change', (e) => {
     pushHistory();
     state.style.font = e.target.value;
+    // 단일 프리셋을 고르면 언어별 분리는 무효화 — 우선순위 명확화
+    state.style.fontEn = null;
+    state.style.fontKr = null;
+    $('sp-font-bylang').checked = false;
+    $('sp-font-lang').hidden = true;
+    applyVisuals();
+    persist();
+  });
+
+  // ── 언어별 분리 폰트 ──
+  $('sp-font-bylang')?.addEventListener('change', (e) => {
+    const on = e.target.checked;
+    $('sp-font-lang').hidden = !on;
+    if (on) {
+      // 켤 때 기본값 세팅
+      pushHistory();
+      state.style.fontEn = state.style.fontEn ?? Object.keys(ENGLISH_FONTS)[0];
+      state.style.fontKr = state.style.fontKr ?? Object.keys(KOREAN_FONTS)[0];
+      if ($('sp-font-en')) $('sp-font-en').value = state.style.fontEn;
+      if ($('sp-font-kr')) $('sp-font-kr').value = state.style.fontKr;
+    } else {
+      // 끄면 단일 프리셋(font)로 폴백
+      pushHistory();
+      state.style.fontEn = null;
+      state.style.fontKr = null;
+    }
+    applyVisuals();
+    persist();
+  });
+  $('sp-font-en')?.addEventListener('change', (e) => {
+    pushHistory();
+    state.style.fontEn = e.target.value;
+    applyVisuals();
+    persist();
+  });
+  $('sp-font-kr')?.addEventListener('change', (e) => {
+    pushHistory();
+    state.style.fontKr = e.target.value;
     applyVisuals();
     persist();
   });

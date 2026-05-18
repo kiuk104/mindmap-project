@@ -55,6 +55,8 @@ export const state = {
     lineWidth: 'normal',
     coloredBranch: false,
     font: 'default',
+    fontEn: null,         // null = font 프리셋 사용, 값이 있으면 영문 전용 글리프 폰트
+    fontKr: null,         // null = font 프리셋 사용, 값이 있으면 한글 전용 글리프 폰트
   },
 };
 

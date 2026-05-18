@@ -6,7 +6,7 @@
 
 import { state } from './state.js';
 import { render } from './render.js';
-import { $, FONT_FAMILIES, FONT_NAMES, currentPalette, linkIcon, linkDefault, resolvePalette, COLOR_THEMES } from './utils.js';
+import { $, FONT_FAMILIES, FONT_NAMES, currentPalette, linkIcon, linkDefault, resolvePalette, COLOR_THEMES, composeFontFamily, ENGLISH_FONTS, ENGLISH_FONT_NAMES, KOREAN_FONTS, KOREAN_FONT_NAMES } from './utils.js';
 import { removeLink } from './nodes.js';
 import { doDownload, copyJsonToClipboard, defaultFilename, serialize, loadFromString } from './io.js';
 import { exportSvgFile, exportPngFile } from './export.js';
@@ -223,8 +223,8 @@ export function applyStyle() {
   } else {
     document.body.style.background = '';
   }
-  // 폰트
-  const font = FONT_FAMILIES[state.style?.font] ?? FONT_FAMILIES.default;
+  // 폰트 — fontEn/fontKr이 지정되면 합성, 아니면 단일 프리셋
+  const font = composeFontFamily(state.style);
   document.documentElement.style.setProperty('--node-font', font);
 }
 

@@ -105,20 +105,128 @@ export function currentPalette(state, customThemes) {
 /** 연결선 두께 매핑 */
 export const LINE_WIDTHS = { thin: 1.5, normal: 2.5, thick: 4 };
 
-/** 노드용 폰트 패밀리 (외부 의존 없음, 시스템 폰트만) */
+/**
+ * 노드용 폰트 패밀리 — 시스템 폰트 위주(외부 다운로드 없음).
+ * 각 항목은 한글+영문 글리프를 모두 커버하도록 적절히 fallback 체인 구성.
+ */
 export const FONT_FAMILIES = {
-  default: `-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`,
-  gothic:  `'Malgun Gothic', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif`,
-  serif:   `'AppleMyungjo', 'Batang', '바탕', Georgia, 'Times New Roman', serif`,
-  mono:    `Consolas, Menlo, 'Courier New', monospace`,
+  // 시스템 기본
+  default:    `-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Malgun Gothic', sans-serif`,
+  // 한글 고딕 계열
+  gothic:     `'Malgun Gothic', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif`,
+  notoSans:   `'Noto Sans KR', 'Pretendard', 'Malgun Gothic', sans-serif`,
+  pretendard: `'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif`,
+  spoqa:      `'Spoqa Han Sans Neo', 'Spoqa Han Sans', 'Malgun Gothic', sans-serif`,
+  nanumGothic:`'Nanum Gothic', 'Malgun Gothic', sans-serif`,
+  // 한글 명조 계열
+  serif:      `'AppleMyungjo', 'Batang', '바탕', Georgia, 'Times New Roman', serif`,
+  nanumMyeong:`'Nanum Myeongjo', 'Batang', '바탕', Georgia, serif`,
+  // 영문 위주
+  helvetica:  `'Helvetica Neue', 'Helvetica', Arial, 'Malgun Gothic', sans-serif`,
+  georgia:    `Georgia, 'Times New Roman', 'AppleMyungjo', 'Batang', serif`,
+  garamond:   `Garamond, 'EB Garamond', Georgia, 'Batang', serif`,
+  verdana:    `Verdana, Geneva, '맑은 고딕', sans-serif`,
+  inter:      `'Inter', system-ui, '맑은 고딕', sans-serif`,
+  // 둥근 / 디스플레이 / 손글씨
+  rounded:    `'Nunito', 'Pretendard', system-ui, '맑은 고딕', sans-serif`,
+  display:    `Impact, 'Arial Black', 'Malgun Gothic', sans-serif`,
+  handwriting:`'Comic Sans MS', 'Brush Script MT', cursive`,
+  // 고정폭
+  mono:       `Consolas, Menlo, 'Courier New', monospace`,
+  courier:    `'Courier New', Courier, monospace`,
 };
 
 export const FONT_NAMES = {
-  default: '기본',
-  gothic:  '고딕',
-  serif:   '명조',
-  mono:    '고정폭',
+  default:    '기본 (시스템)',
+  gothic:     '맑은 고딕',
+  notoSans:   'Noto Sans',
+  pretendard: 'Pretendard',
+  spoqa:      'Spoqa Han Sans',
+  nanumGothic:'나눔 고딕',
+  serif:      '명조 (Batang)',
+  nanumMyeong:'나눔 명조',
+  helvetica:  'Helvetica',
+  georgia:    'Georgia',
+  garamond:   'Garamond',
+  verdana:    'Verdana',
+  inter:      'Inter',
+  rounded:    '둥근 (Rounded)',
+  display:    '디스플레이 (Impact)',
+  handwriting:'손글씨 (Comic Sans)',
+  mono:       'Consolas',
+  courier:    'Courier New',
 };
+
+/**
+ * 영문 전용 글리프 폰트 (한글은 다음 fallback이 처리).
+ * 사용자가 fontEn / fontKr을 분리 지정하면 두 체인을 합성해 font-family로 사용.
+ */
+export const ENGLISH_FONTS = {
+  system:      `system-ui, -apple-system, 'Segoe UI'`,
+  helvetica:   `'Helvetica Neue', Helvetica, Arial`,
+  georgia:     `Georgia, 'Times New Roman'`,
+  garamond:    `Garamond, 'EB Garamond'`,
+  verdana:     `Verdana, Geneva`,
+  inter:       `'Inter'`,
+  rounded:     `'Nunito'`,
+  impact:      `Impact, 'Arial Black'`,
+  courier:     `'Courier New', Courier`,
+  consolas:    `Consolas, Menlo`,
+  handwriting: `'Comic Sans MS', 'Brush Script MT'`,
+};
+export const ENGLISH_FONT_NAMES = {
+  system:      'System',
+  helvetica:   'Helvetica',
+  georgia:     'Georgia',
+  garamond:    'Garamond',
+  verdana:     'Verdana',
+  inter:       'Inter',
+  rounded:     'Nunito (둥근)',
+  impact:      'Impact',
+  courier:     'Courier',
+  consolas:    'Consolas',
+  handwriting: 'Comic Sans',
+};
+
+/** 한글 전용 글리프 폰트 */
+export const KOREAN_FONTS = {
+  malgun:      `'Malgun Gothic', 'Apple SD Gothic Neo'`,
+  notoSans:    `'Noto Sans KR'`,
+  pretendard:  `'Pretendard'`,
+  spoqa:       `'Spoqa Han Sans Neo', 'Spoqa Han Sans'`,
+  nanumGothic: `'Nanum Gothic'`,
+  batang:      `'Batang', '바탕', 'AppleMyungjo'`,
+  nanumMyeong: `'Nanum Myeongjo'`,
+};
+export const KOREAN_FONT_NAMES = {
+  malgun:      '맑은 고딕',
+  notoSans:    'Noto Sans KR',
+  pretendard:  'Pretendard',
+  spoqa:       'Spoqa Han Sans',
+  nanumGothic: '나눔 고딕',
+  batang:      '바탕 (명조)',
+  nanumMyeong: '나눔 명조',
+};
+
+/**
+ * state.style의 폰트 설정을 CSS font-family 문자열로 합성.
+ * 우선순위:
+ *   1) fontEn / fontKr이 하나라도 있으면 영문→한글→fallback 체인으로 조합
+ *   2) 아니면 단일 프리셋 FONT_FAMILIES[font] 사용
+ *   3) 둘 다 없으면 default
+ */
+export function composeFontFamily(style) {
+  const fEn = style?.fontEn;
+  const fKr = style?.fontKr;
+  if (fEn || fKr) {
+    const parts = [];
+    if (fEn && ENGLISH_FONTS[fEn]) parts.push(ENGLISH_FONTS[fEn]);
+    if (fKr && KOREAN_FONTS[fKr])  parts.push(KOREAN_FONTS[fKr]);
+    parts.push('sans-serif');
+    return parts.join(', ');
+  }
+  return FONT_FAMILIES[style?.font] ?? FONT_FAMILIES.default;
+}
 
 /** 기본 스타일 객체 */
 export function defaultStyle() {

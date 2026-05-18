@@ -265,8 +265,25 @@
       </section>
 
       <section class="sp-section">
-        <div class="sp-label">노드 폰트</div>
-        <select class="fi" id="sp-font"></select>
+        <div class="sp-label">노드 폰트 (단일 프리셋)</div>
+        <select class="fi" id="sp-font" style="margin-bottom:10px;"></select>
+
+        <div class="sp-mini-label" style="display:flex; align-items:center; justify-content:space-between;">
+          <span>또는 언어별 분리 지정</span>
+          <label style="font-weight:400; font-size:11px;">
+            <input type="checkbox" id="sp-font-bylang" style="vertical-align:-1px; margin-right:3px;" />
+            사용
+          </label>
+        </div>
+        <div id="sp-font-lang" hidden style="margin-top:6px;">
+          <div class="sp-mini-label">영문</div>
+          <select class="fi" id="sp-font-en" style="margin-bottom:6px;"></select>
+          <div class="sp-mini-label">한글</div>
+          <select class="fi" id="sp-font-kr"></select>
+          <div style="font-size:10px; color:#8b949e; margin-top:5px; line-height:1.5;">
+            💡 영문은 첫 폰트, 한글은 두 번째 폰트로 자동 렌더됩니다.
+          </div>
+        </div>
       </section>
 
       <section class="sp-section">
