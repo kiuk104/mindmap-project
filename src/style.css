@@ -450,6 +450,76 @@ body.relation-drafting .node { cursor: crosshair !important; }
 }
 body.style-panel-open #style-panel { transform: translateX(0); }
 
+/* ── 우측 아이콘 패널 (스타일 패널과 동일한 슬라이드) ── */
+#icon-panel {
+  position: fixed; top: 54px; right: 0; bottom: 0;
+  width: 360px;
+  background: var(--bg-toolbar);
+  border-left: 1px solid var(--border);
+  box-shadow: -4px 0 18px rgba(0,0,0,0.25);
+  display: flex; flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.25s ease-out;
+  z-index: 90;
+}
+body.icon-panel-open #icon-panel { transform: translateX(0); }
+
+/* 아이콘 패널 — 상단 상태/현재 아이콘 영역 */
+.ip-status {
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--border-soft, #21262d);
+}
+.ip-selnote {
+  display: block;
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+.ip-selnote.dim { color: var(--text-dim); opacity: 0.7; }
+.ip-selnote b { color: var(--accent); }
+.ip-current-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ip-current {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px; height: 36px;
+  background: var(--bg-input, rgba(255,255,255,0.03));
+  border: 1px solid var(--border, #30363d);
+  border-radius: 8px;
+  font-size: 20px;
+}
+.ip-current.dim { color: var(--text-dim); font-size: 11px; }
+.ip-current img {
+  width: 24px; height: 24px;
+  object-fit: contain;
+}
+.ip-clear {
+  font-size: 11px;
+  padding: 5px 10px;
+}
+.ip-clear:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* 선택 없을 때 — 아이콘 그리드 dim */
+.ip-disabled .icon-pick {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.ip-disabled .icon-pick:hover {
+  transform: none;
+}
+
+@media (max-width: 768px) {
+  #icon-panel { width: 100%; top: 100px; }
+}
+
 .sp-header {
   display: flex; align-items: center; justify-content: space-between;
   padding: 14px 18px;

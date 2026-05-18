@@ -39,6 +39,7 @@
     <button class="btn btn-ghost" id="btn-reset">⌖ 화면 맞춤</button>
     <button class="btn btn-ghost" id="btn-line-style" title="연결선 스타일 (직선 → 곡선 → 직각)">━ 직선</button>
     <button class="btn btn-ghost" id="btn-style" title="맵 스타일 (테마·배경·연결선)">🎨 스타일</button>
+    <button class="btn btn-ghost" id="btn-icon" title="아이콘 선택 (Marker/Sticker/Illustration)">🙂 아이콘</button>
     <button class="btn btn-ghost" id="btn-settings" title="설정 (기본값)">⚙️ 설정</button>
     <button class="btn btn-ghost" id="btn-theme" title="다크/라이트 테마 전환">🌓</button>
     <div class="sep"></div>
@@ -279,6 +280,17 @@
       <p class="sp-hint">
         💡 모든 변경은 즉시 적용되고 자동 저장됩니다.
       </p>
+    </div>
+  </aside>
+
+  <!-- ── 아이콘 패널 (우측 슬라이드) ── -->
+  <aside id="icon-panel" aria-hidden="true">
+    <header class="sp-header">
+      <span class="sp-title">🙂 아이콘</span>
+      <button class="sp-close" id="ip-close" title="닫기 (Esc)">✕</button>
+    </header>
+    <div class="sp-body" id="ip-body">
+      <!-- 내용은 icon-panel.js가 동적으로 채움 -->
     </div>
   </aside>
 

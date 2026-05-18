@@ -21,6 +21,7 @@ import { showContextMenu, hideContextMenu, hideAllMenus, showBgMenu, initContext
 import { doImport, schedulePersist, restoreLocal, onSaveStateChange } from './io.js';
 import { runSearch, gotoHit, clearSearch }    from './search.js';
 import { initStylePanel, togglePanel, closePanel, isPanelOpen, setOnStyleApplied, syncSelectedNodeSection } from './style-panel.js';
+import { initIconPanel, toggleIconPanel, openIconPanel, closeIconPanel, isIconPanelOpen, syncIconPanel } from './icon-panel.js';
 import { undo, redo, pushHistory, beginPending, commitPending, cancelPending, onHistoryChange, setApplyHook, resetHistory } from './history.js';
 import { loadSettings, getSettings, updateSettings, onSettingsChange } from './settings.js';
 import { copyClipboard, cutClipboard, pasteClipboard, hasClipboard } from './clipboard.js';
@@ -59,6 +60,7 @@ registerHandlers({
 setPostRender(() => {
   schedulePersist();
   syncSelectedNodeSection();
+  syncIconPanel();
 });
 
 // ── 마지막 저장 시각 인디케이터 ──
@@ -242,7 +244,19 @@ $('btn-line-style').addEventListener('click', () => {
 // ── 스타일 패널 (우측 슬라이드) ──
 initStylePanel();
 setOnStyleApplied(updateLineStyleBtn);  // 패널에서 lineStyle 바꾸면 툴바 라벨도 갱신
-$('btn-style').addEventListener('click', togglePanel);
+
+// ── 아이콘 패널 (우측 슬라이드) ──
+initIconPanel();
+
+// 두 패널은 상호 배타적 — 하나 열면 다른 하나 자동 닫힘
+$('btn-style').addEventListener('click', () => {
+  if (isIconPanelOpen()) closeIconPanel();
+  togglePanel();
+});
+$('btn-icon').addEventListener('click', () => {
+  if (isPanelOpen()) closePanel();
+  toggleIconPanel();
+});
 
 // ── ⚙️ 설정 모달 ──
 $('btn-settings').addEventListener('click', openSettingsModal);
@@ -529,7 +543,8 @@ document.addEventListener('keydown', (e) => {
     case 'Escape':
       closeModal();
       hideAllMenus();
-      if (isPanelOpen()) closePanel();
+      if (isPanelOpen())     closePanel();
+      if (isIconPanelOpen()) closeIconPanel();
       if (state.relationDraft) {
         state.relationDraft = null;
         document.body.classList.remove('relation-drafting');
