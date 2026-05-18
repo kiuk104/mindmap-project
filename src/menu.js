@@ -158,6 +158,11 @@ export function initContextMenu() {
   });
   $('ctxbg-export').addEventListener('click', () => {
     hideBgMenu();
+    // 기본 저장 — main.js의 quickSaveOrAsk을 호출하기 위해 toolbar 버튼 클릭 트리거
+    $('btn-export').click();
+  });
+  $('ctxbg-export-as').addEventListener('click', () => {
+    hideBgMenu();
     openSaveModal();
   });
   $('ctxbg-import').addEventListener('click', () => {

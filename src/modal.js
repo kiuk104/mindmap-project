@@ -8,7 +8,7 @@ import { state } from './state.js';
 import { render } from './render.js';
 import { $, FONT_FAMILIES, FONT_NAMES, currentPalette, linkIcon, linkDefault, resolvePalette, COLOR_THEMES, composeFontFamily, ENGLISH_FONTS, ENGLISH_FONT_NAMES, KOREAN_FONTS, KOREAN_FONT_NAMES, DASH_NAMES, detectLinkType, googleDocsPreviewUrl } from './utils.js';
 import { removeLink } from './nodes.js';
-import { doDownload, copyJsonToClipboard, defaultFilename, serialize, loadFromString } from './io.js';
+import { doDownload, copyJsonToClipboard, defaultFilename, serialize, loadFromString, setLastSave, getLastSave } from './io.js';
 import { exportSvgFile, exportPngFile } from './export.js';
 import * as drive from './drive.js';
 import { pushHistory } from './history.js';
@@ -148,10 +148,13 @@ export function openSaveModal() {
         ? '☁️ 구글 드라이브 (먼저 연결 필요)'
         : '☁️ 구글 드라이브 (DRIVE_SETUP.md 참고)');
 
+  // 이전에 저장한 적 있으면 그 이름으로 시작 (Save As 복제 편의), 없으면 오늘 날짜 기반
+  const initialName = getLastSave()?.name || defaultFilename();
+
   $('modal-body').innerHTML = `
     <div class="fg">
       <label class="fl">파일 이름</label>
-      <input class="fi" id="sv-name" type="text" value="${defaultFilename()}" />
+      <input class="fi" id="sv-name" type="text" value="${escapeHTML(initialName)}" />
     </div>
     <div class="fg">
       <label class="fl">위치 / 형식</label>
@@ -223,6 +226,10 @@ export async function openDriveLoadModal() {
         try {
           const content = await drive.loadFromDrive(fid);
           if (loadFromString(content)) {
+            // 이 Drive 파일을 현재 저장 대상으로 기억 → 다음 Ctrl+S 시 같은 파일 덮어쓰기
+            const baseName = row.querySelector('.drive-name')?.textContent
+              .replace(/^📄\s*/, '').replace(/\.json$/i, '').trim();
+            if (baseName) setLastSave({ kind: 'drive', name: baseName });
             closeModal();
           } else {
             alert('올바른 마인드맵 JSON이 아닙니다.');
@@ -655,6 +662,8 @@ export function handleModalOK() {
       drive.saveToDrive(name, serialize())
         .then((file) => {
           alert(`드라이브에 저장되었습니다.\n파일명: ${file.name}`);
+          // 다음 Ctrl+S 시 같은 Drive 파일로 빠른 저장
+          setLastSave({ kind: 'drive', name });
           closeModal();
         })
         .catch((e) => {
@@ -666,6 +675,8 @@ export function handleModalOK() {
         });
     } else {
       doDownload(name);
+      // 다음 Ctrl+S 시 같은 파일명으로 빠른 다운로드
+      setLastSave({ kind: 'download', name });
       closeModal();
     }
   }

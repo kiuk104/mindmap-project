@@ -20,7 +20,7 @@ import { initSettingsPanel, toggleSettingsPanel, openSettingsPanel, closeSetting
 import { registerShortcuts, dispatchKey } from './shortcuts.js';
 import * as drive                            from './drive.js';
 import { showContextMenu, hideContextMenu, hideAllMenus, showBgMenu, initContextMenu } from './menu.js';
-import { doImport, schedulePersist, restoreLocal, onSaveStateChange } from './io.js';
+import { doImport, schedulePersist, restoreLocal, onSaveStateChange, quickSave, getLastSave } from './io.js';
 import { runSearch, gotoHit, clearSearch }    from './search.js';
 import { initStylePanel, togglePanel, closePanel, isPanelOpen, setOnStyleApplied, syncSelectedNodeSection } from './style-panel.js';
 import { initIconPanel, toggleIconPanel, openIconPanel, closeIconPanel, isIconPanelOpen, syncIconPanel } from './icon-panel.js';
@@ -206,7 +206,13 @@ initContextMenu();
 // ── 툴바 버튼 ──
 $('btn-add').addEventListener('click',    () => addChild());
 $('btn-link').addEventListener('click',   () => openLinkModal(state.selectedId));
-$('btn-export').addEventListener('click', openSaveModal);
+// 💾 저장 — 이전에 저장한 적이 있으면 같은 위치로 빠른 저장, 없으면 Save As 모달
+function quickSaveOrAsk() {
+  quickSave(drive).then((ok) => {
+    if (!ok) openSaveModal();
+  });
+}
+$('btn-export').addEventListener('click', quickSaveOrAsk);
 $('btn-import').addEventListener('click', () => $('file-in').click());
 $('file-in').addEventListener('change',   doImport);
 $('btn-reset').addEventListener('click',  resetView);
@@ -472,7 +478,8 @@ registerShortcuts({
   'copy':            () => { if (state.selectedIds.length) copyClipboard(); },
   'cut':             () => { if (state.selectedIds.length) cutClipboard(); },
   'paste':           () => { if (hasClipboard()) pasteClipboard(); },
-  'save':            () => openSaveModal(),
+  'save':            () => quickSaveOrAsk(),
+  'save-as':         () => openSaveModal(),
   'search':          () => { const si = $('search-input'); si.focus(); si.select(); },
   'nav-up':          () => navigateSibling(-1),
   'nav-down':        () => navigateSibling(1),
