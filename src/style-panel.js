@@ -13,7 +13,7 @@ import { render } from './render.js';
 import {
   $, COLOR_THEMES, THEME_NAMES, THEME_CATEGORIES, FONT_FAMILIES, FONT_NAMES, resolvePalette,
   ENGLISH_FONTS, ENGLISH_FONT_NAMES, KOREAN_FONTS, KOREAN_FONT_NAMES, composeFontFamily,
-  DASH_NAMES, NODE_SIZES, NODE_SIZE_NAMES,
+  DASH_NAMES, NODE_SIZES, NODE_SIZE_NAMES, NUMBERING_FORMATS,
 } from './utils.js';
 import { pushHistory, beginPending, commitPending, cancelPending } from './history.js';
 import { getSettings, updateSettings, onSettingsChange } from './settings.js';
@@ -132,6 +132,8 @@ export function syncSelectedNodeSection() {
 
       $('nd-shape').value  = n.shape       ?? 'rounded';
       $('nd-border').value = n.borderWidth ?? 'thin';
+      // 넘버링 — 이 노드의 자식들에게 적용되는 prefix 포맷
+      if ($('nd-numbering')) $('nd-numbering').value = n.numbering ?? 'none';
 
       // 외곽 스트로크
       $('nd-outline').value             = n.outlineWidth ?? 'none';
@@ -394,6 +396,12 @@ export function initStylePanel() {
   if ($('nd-size')) {
     $('nd-size').innerHTML = Object.entries(NODE_SIZE_NAMES).map(([k, name]) =>
       `<option value="${k}" style="font-size:${NODE_SIZES[k]}">${name}</option>`).join('');
+  }
+
+  // 자식 넘버링 select 빌드 (None / 1.2.3. / A.B.C. / a.b.c. / I.II.III.)
+  if ($('nd-numbering')) {
+    $('nd-numbering').innerHTML = Object.entries(NUMBERING_FORMATS).map(([k, label]) =>
+      `<option value="${k}">${label}</option>`).join('');
   }
 
   // 노드 배치 select + 적용 버튼
@@ -728,6 +736,7 @@ export function initStylePanel() {
 
   $('nd-shape') .addEventListener('change', (e) => withNodes((n) => { n.shape       = e.target.value; }));
   $('nd-border').addEventListener('change', (e) => withNodes((n) => { n.borderWidth = e.target.value; }));
+  $('nd-numbering')?.addEventListener('change', (e) => withNodes((n) => { n.numbering = e.target.value; }));
 
   // ── 외곽 스트로크 ──
   $('nd-outline').addEventListener('change', (e) => withNodes((n) => { n.outlineWidth = e.target.value; }));

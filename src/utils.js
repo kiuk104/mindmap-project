@@ -321,6 +321,7 @@ export function makeNode(id, text, x, y, parentId, color) {
     iconColor: null,     // Sticker(단색 SVG) 아이콘 색 오버라이드. null = 노드 텍스트 색 사용
     note: '',            // 노드에 연결된 긴 노트 (모달에서 편집). 빈 문자열이면 없음.
     tasks: [],           // [{id, text, done}] — 노드 내부 체크박스 할 일 목록
+    numbering: 'none',   // 'none' | '1' | 'A' | 'a' | 'I' — 자식 노드 텍스트에 자동 prefix
     textStyle: {
       bold: false, italic: false, underline: false, strikethrough: false,
       size: 'medium',   // 'small' | 'medium' | 'large'
@@ -380,6 +381,59 @@ export function parentIdsSet(nodes) {
     if (n.parentId) s.add(n.parentId);
   });
   return s;
+}
+
+/** 넘버링 포맷 키 → 표시 라벨 */
+export const NUMBERING_FORMATS = {
+  'none': 'None',
+  '1':    '1.2.3.',
+  'A':    'A.B.C.',
+  'a':    'a.b.c.',
+  'I':    'I.II.III.',
+};
+
+/** 정수 → 로마 숫자 (1~3999) */
+function toRoman(n) {
+  if (n <= 0) return '';
+  const map = [
+    ['M', 1000], ['CM', 900], ['D', 500], ['CD', 400],
+    ['C', 100], ['XC', 90], ['L', 50], ['XL', 40],
+    ['X', 10], ['IX', 9], ['V', 5], ['IV', 4], ['I', 1],
+  ];
+  let r = '';
+  for (const [s, v] of map) {
+    while (n >= v) { r += s; n -= v; }
+  }
+  return r;
+}
+
+/**
+ * 넘버링 prefix 생성. 0-based index를 받아 1-based 라벨 반환.
+ * @param {string} format - 'none' | '1' | 'A' | 'a' | 'I'
+ * @param {number} index
+ * @returns {string} 'A.' 등 (없으면 빈 문자열)
+ */
+export function formatNumber(format, index) {
+  if (!format || format === 'none') return '';
+  const i = index + 1;
+  switch (format) {
+    case '1': return `${i}.`;
+    case 'A': {
+      // Excel 컬럼식 — 26개 넘으면 AA, AB, ...
+      let s = '';
+      let n = i;
+      while (n > 0) { n--; s = String.fromCharCode(65 + (n % 26)) + s; n = Math.floor(n / 26); }
+      return `${s}.`;
+    }
+    case 'a': {
+      let s = '';
+      let n = i;
+      while (n > 0) { n--; s = String.fromCharCode(97 + (n % 26)) + s; n = Math.floor(n / 26); }
+      return `${s}.`;
+    }
+    case 'I': return `${toRoman(i)}.`;
+    default:  return '';
+  }
 }
 
 /** 점선 패턴 (stroke-dasharray) — dash gap [dash gap ...] 형식.

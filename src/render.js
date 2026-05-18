@@ -6,7 +6,7 @@
  */
 
 import { state } from './state.js';
-import { $, linkIcon, linkDefault, lighten, LINE_WIDTHS, NODE_SIZES, NODE_SHAPES, NODE_BORDERS, NODE_OUTLINES, DASH_PATTERNS, getRelationControls, getBranchControls, computeHiddenIds, parentIdsSet } from './utils.js';
+import { $, linkIcon, linkDefault, lighten, LINE_WIDTHS, NODE_SIZES, NODE_SHAPES, NODE_BORDERS, NODE_OUTLINES, DASH_PATTERNS, getRelationControls, getBranchControls, computeHiddenIds, parentIdsSet, formatNumber } from './utils.js';
 import { getZoneBox, hexToRgba } from './zones.js';
 import { getSettings } from './settings.js';
 import { isAssetIcon, assetIdToUrl } from './icon-assets.js';
@@ -293,6 +293,16 @@ export function render() {
   const hiddenIds = computeHiddenIds(state.nodes);
   const parentIds = parentIdsSet(state.nodes);
 
+  // 넘버링 prefix 캐시 — 부모.numbering이 설정된 경우 그 자식들의 인덱스 계산
+  // 형제 순서는 Object.keys 등장 순서(=생성 순서) 기준 안정성 보장
+  const numberPrefix = {};   // nodeId → 'A.' / '1.' 등
+  Object.values(state.nodes).forEach((p) => {
+    const fmt = p.numbering;
+    if (!fmt || fmt === 'none') return;
+    const sibs = Object.values(state.nodes).filter((c) => c.parentId === p.id);
+    sibs.forEach((c, i) => { numberPrefix[c.id] = formatNumber(fmt, i); });
+  });
+
   // ── SVG (부모-자식 선 + 관계선 + 화살표 marker) ──
   svg.innerHTML = buildSvgMarkup(hiddenIds);
 
@@ -373,6 +383,14 @@ export function render() {
     // 텍스트 + 아이콘 — Sticker는 mask span(컬러 변경 가능), Illustration은 <img>, 이모지는 <span>
     const textDiv = document.createElement('div');
     textDiv.className = 'node-text';
+    // 부모의 numbering이 설정돼 있으면 텍스트 맨 앞에 1./A./i. 형식 prefix
+    const prefix = numberPrefix[n.id] ? numberPrefix[n.id] + ' ' : '';
+    if (prefix) {
+      const span = document.createElement('span');
+      span.className = 'node-numbering';
+      span.textContent = prefix;
+      textDiv.appendChild(span);
+    }
     if (isAssetIcon(n.icon)) {
       const url = assetIdToUrl(n.icon);
       if (n.icon.startsWith('asset:sticker/')) {

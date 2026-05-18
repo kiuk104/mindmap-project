@@ -1011,6 +1011,13 @@ body.settings-panel-open #settings-panel { transform: translateX(0); }
   user-select: none;
   -webkit-user-drag: none;
 }
+/* 부모의 numbering 설정에서 자식 노드에 자동 부착되는 prefix */
+.node-numbering {
+  font-weight: 700;
+  margin-right: 4px;
+  opacity: 0.95;
+}
+
 .node-icon-emoji {
   display: inline-block;
   font-size: 1.35em;
