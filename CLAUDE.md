@@ -44,6 +44,8 @@ mindmap-project/
     ├── menu.js         # 노드 우클릭 + 배경 우클릭 메뉴
     ├── io.js           # JSON 저장/불러오기 + localStorage 자동 저장
     ├── search.js       # 노드 텍스트 검색 (Ctrl+F)
+    ├── history.js      # Undo/Redo (스냅샷 + pending 패턴)
+    ├── settings.js     # 전역 사용자 설정 (앱 테마·기본 폰트·관계선 기본값)
     ├── drive.js        # 구글 드라이브 OAuth + 파일 API
     ├── config.js       # GOOGLE_CLIENT_ID 설정
     ├── preview.js      # 유튜브/이미지 호버 미리보기
@@ -106,6 +108,8 @@ main.js
 | `menu.js`    | 노드/배경 우클릭 메뉴 표시 및 항목 핸들러 |
 | `io.js`      | JSON 저장/불러오기, localStorage 자동 저장(300ms 디바운스), 복구 |
 | `search.js`  | 노드 텍스트 검색 + 다음/이전 매치 이동 |
+| `history.js` | Undo/Redo 스택 — `pushHistory()` 즉시 푸시, `beginPending/commitPending/cancelPending`으로 드래그·인라인 편집을 한 엔트리로 묶음 |
+| `settings.js`| 전역 사용자 설정 (`localStorage.mindmap.settings`) — `loadSettings/getSettings/updateSettings/onSettingsChange`, `newRelationStyle()` |
 | `drive.js`   | Google Identity Services + Drive API (scope: `drive.file`) |
 | `preview.js` | 유튜브 썸네일·이미지 호버 팝업 |
 | `main.js`    | 진입점 — 초기화 + 모든 연결 |
@@ -116,10 +120,12 @@ main.js
 | 키 | 동작 |
 |---|---|
 | **Tab** | 자식 노드 추가 |
-| **Del / Backspace** | 선택 노드/관계선 삭제 |
+| **Del / Backspace** | 선택 노드/관계선 삭제 (다중 선택 시 일괄 삭제) |
 | **Esc** | 모달·메뉴 닫기, 검색·관계선 그리기 취소 |
 | **Ctrl+S / Cmd+S** | 저장 모달 |
 | **Ctrl+F / Cmd+F** | 검색창 포커스 |
+| **Ctrl+Z / Cmd+Z** | 실행 취소 (Undo) |
+| **Ctrl+Y / Cmd+Y** 또는 **Ctrl+Shift+Z** | 다시 실행 (Redo) |
 | **Enter** (검색창) | 다음 매치 |
 | **Shift+Enter** (검색창) | 이전 매치 |
 
@@ -175,11 +181,39 @@ main.js
 - [x] 관계선 (임의 노드 간 점선 화살표)
 - [x] 배경 우클릭 커스텀 메뉴
 - [x] GitHub Pages 자동 배포
+- [x] 다중 노드 선택 + 일괄 작업 (셀렉트박스 + 스타일 패널/색상/아이콘 일괄 적용)
+- [x] 실행 취소 (Undo/Redo) — Ctrl+Z/Y, 툴바 ↶/↷
+
+## 다중 노드 일괄 작업
+- 셀렉트박스(좌클릭 드래그) 또는 Shift+클릭으로 다중 선택
+- 다중 선택 상태에서 자동으로 적용되는 작업:
+  - **삭제**: Del/Backspace — 확인 후 노드·관계선 일괄 삭제 (1회 history 엔트리)
+  - **이동**: 그룹 드래그
+  - **색상/아이콘**: 컨텍스트 메뉴에서 변경하면 선택된 모든 노드에 적용
+  - **스타일 패널**: 텍스트 굵게/기울임/정렬/모양/테두리/부모 연결선이 전체에 적용
+    (토글 버튼은 primary 노드의 현재 값을 기준으로 반전)
+  - **관계선 스타일**: 다중 선택된 관계선에 색·두께·점선·화살표 일괄 적용
+    (라벨은 단일 선택에서만 편집 가능)
+
+## 전역 설정 (⚙️)
+툴바 **⚙️ 설정** 버튼 → 모달:
+| 항목 | 설명 | 영향 |
+|---|---|---|
+| 앱 테마 | 다크 / 라이트 / 시스템 따름 | 즉시 적용. `prefers-color-scheme` 변경도 감지 |
+| 기본 노드 폰트 | `default / gothic / serif / mono` | 새 마인드맵·"모두 지우기" 시 `state.style.font`에 반영 |
+| 관계선 기본값 | 색 · 점선 · 두께 · 화살표 | **새로 그리는 관계선**의 `r.style`에 복사됨. 이미 그려진 관계선은 영향 없음 |
+
+저장 위치: `localStorage.mindmap.settings`.
+🌓 토글 버튼은 settings.theme 값에 따라 다음 상태로 전환됩니다.
+
+## Undo/Redo 동작 원리
+- `history.js`가 스냅샷 기반 스택을 관리. 변형 직전에 `pushHistory()` 호출
+- 드래그·인라인 편집은 `beginPending()`(시작) → `commitPending()`(실제 변경 시) / `cancelPending()`(무변경) 패턴으로 1엔트리 보장
+- 스냅샷에는 `nodes / relations / style / lineStyle / 선택 ID`가 포함. 적용 후 `applyHook`이 배경·폰트·라인스타일 라벨을 재동기화
+- 파일 로드(`loadFromString`) 시 `resetHistory()`로 스택 초기화
 
 ## 향후 아이디어
-- [ ] 다중 노드 선택 + 일괄 작업
 - [ ] 노드 그룹화 / 색상으로 분류
 - [ ] 실시간 협업 (WebSocket / Firebase)
 - [ ] PWA (오프라인 / 홈 화면 설치)
 - [ ] 노드 접기/펴기 (하위 트리 토글)
-- [ ] 실행 취소 (Undo/Redo)

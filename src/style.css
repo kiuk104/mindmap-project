@@ -667,3 +667,49 @@ body.style-panel-open #style-panel { transform: translateX(0); }
   .icon-pick { font-size: 22px; }
   .icon-cats { max-height: 60vh; }
 }
+
+/* ── 설정 모달 ── */
+.settings-radio-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.radio-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 14px;
+  border: 1px solid var(--border, #30363d);
+  border-radius: 999px;
+  background: var(--bg-hover, rgba(255,255,255,0.04));
+  cursor: pointer;
+  font-size: 12px;
+  user-select: none;
+  transition: border-color 0.12s, background 0.12s;
+}
+.radio-chip input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  width: 0; height: 0;
+  pointer-events: none;
+}
+.radio-chip:hover { border-color: var(--accent, #1f6feb); }
+.radio-chip:has(input:checked) {
+  border-color: var(--accent, #1f6feb);
+  background: rgba(31, 111, 235, 0.18);
+  color: var(--accent, #1f6feb);
+  font-weight: 600;
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 16px;
+}
+.settings-mini {
+  font-size: 11px;
+  color: #8b949e;
+  margin-bottom: 5px;
+}
+@media (max-width: 540px) {
+  .settings-grid { grid-template-columns: 1fr; }
+}

@@ -11,6 +11,8 @@
 import { state } from './state.js';
 import { render, updateLines } from './render.js';
 import { $, setNodeSelection, clearNodeSelection, setRelationSelection, clearRelationSelection, getRelationControls } from './utils.js';
+import { pushHistory, beginPending, commitPending, cancelPending } from './history.js';
+import { newRelationStyle } from './settings.js';
 
 // ── Pan/드래그 상태 ──
 let panning = false;
@@ -23,6 +25,8 @@ let dragId   = null;
 let dragOffX = 0;
 let dragOffY = 0;
 let multiDragOffsets = null;    // 여러 노드 동시 드래그 시 각 노드 상대 좌표
+let dragMoved        = false;   // 실제로 노드가 이동했는지 (history commit 판단용)
+let relHandleMoved   = false;   // 관계선 핸들이 실제로 이동했는지
 
 // ── 셀렉트 박스 (왼쪽 클릭 드래그) ──
 let selBoxActive = false;
@@ -166,6 +170,8 @@ export function onRelationHandleDown(e, rid, handle) {
   relHandleDragging = true;
   relHandleId  = rid;
   relHandleKey = handle || 'c1';
+  relHandleMoved = false;
+  beginPending();
   setRelationSelection(state, [rid]);
   render();
 }
@@ -188,9 +194,11 @@ export function onNodeMouseDown(e, nodeId) {
   if (state.relationDraft) {
     const fromId = state.relationDraft.fromId;
     if (fromId !== nodeId && state.nodes[fromId]) {
+      pushHistory();
       state.relations.push({
         id: 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
         fromId, toId: nodeId, label: '',
+        style: newRelationStyle(),
       });
     }
     state.relationDraft = null;
@@ -217,6 +225,8 @@ export function onNodeMouseDown(e, nodeId) {
   // 드래그 준비 — 다중 선택 시엔 그룹 전체 이동
   dragging = true;
   dragId   = nodeId;
+  dragMoved = false;
+  beginPending();
   const cp = canvasCoord(e.clientX, e.clientY);
   dragOffX = cp.x - state.nodes[nodeId].x;
   dragOffY = cp.y - state.nodes[nodeId].y;
@@ -302,6 +312,7 @@ export function initCanvas() {
       const cp = canvasCoord(e.clientX, e.clientY);
       const newAnchorX = cp.x - dragOffX;
       const newAnchorY = cp.y - dragOffY;
+      dragMoved = true;
 
       if (multiDragOffsets) {
         // 다중 선택 드래그 — 모든 선택 노드를 함께 이동
@@ -400,6 +411,7 @@ export function initCanvas() {
           } else {
             r.handles.c1 = { dx: cp.x - a.x, dy: cp.y - a.y };
           }
+          relHandleMoved = true;
           updateLines();
         }
       }
@@ -409,16 +421,19 @@ export function initCanvas() {
   // 포인터 업 → 드래그/Pan/셀렉트박스 종료
   function endPointer() {
     if (relHandleDragging) {
+      if (relHandleMoved) commitPending();
+      else cancelPending();
       relHandleDragging = false;
       relHandleId = null;
       relHandleKey = null;
+      relHandleMoved = false;
       render();
     }
-    if (dragging && multiDragOffsets) {
-      // 다중 드래그 종료 시 한 번 render로 자동 저장 트리거
+    if (dragging) {
+      if (dragMoved) commitPending();
+      else cancelPending();
       multiDragOffsets = null;
-      render();
-    } else if (dragging) {
+      dragMoved = false;
       render();
     }
     if (selBoxActive) {

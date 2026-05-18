@@ -9,6 +9,9 @@ import { openLinkModal, openColorModal, openIconModal, openSaveModal } from './m
 import { resetView } from './canvas.js';
 import { clearLocal } from './io.js';
 import { $, uid, makeNode, setNodeSelection, clearNodeSelection, clearRelationSelection } from './utils.js';
+import { pushHistory, resetHistory } from './history.js';
+import { getSettings } from './settings.js';
+import { applyStyle } from './modal.js';
 
 /**
  * 노드 우클릭 메뉴 표시
@@ -123,6 +126,10 @@ export function initContextMenu() {
     render();
   });
 
+  // 다중 선택 시 "선택 노드 모두 삭제" — deleteNode가 자체적으로 pushHistory
+  // 단일 선택은 기존 deleteNode 흐름과 동일
+
+
   $('ctx-del').addEventListener('click', () => {
     hideContextMenu();
     deleteNode(state.ctxTargetId);
@@ -157,6 +164,7 @@ export function initContextMenu() {
       ? state.selectedRelationIds
       : (state.selectedRelationId ? [state.selectedRelationId] : []);
     if (ids.length === 0) return;
+    pushHistory();
     const toDel = new Set(ids);
     state.relations = state.relations.filter((r) => !toDel.has(r.id));
     clearRelationSelection(state);
@@ -167,6 +175,7 @@ export function initContextMenu() {
     hideBgMenu();
     if (!confirm('현재 마인드맵을 모두 지우고 처음 상태로 되돌릴까요?\n(자동저장 데이터도 삭제됩니다)')) return;
 
+    pushHistory();
     state.nodes              = {};
     state.relations          = [];
     clearNodeSelection(state);
@@ -174,6 +183,13 @@ export function initContextMenu() {
     state.relationDraft      = null;
     document.body.classList.remove('relation-drafting');
     clearLocal();
+
+    // 새 마인드맵 — 사용자 기본 폰트 적용
+    const s = getSettings();
+    if (s?.defaultFont) {
+      state.style = { ...state.style, font: s.defaultFont };
+      applyStyle();
+    }
 
     // 샘플 다시 생성
     const rootId = uid();

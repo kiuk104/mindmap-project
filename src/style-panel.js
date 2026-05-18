@@ -13,6 +13,7 @@ import { render } from './render.js';
 import {
   $, COLOR_THEMES, THEME_NAMES, FONT_FAMILIES, FONT_NAMES,
 } from './utils.js';
+import { pushHistory, beginPending, commitPending, cancelPending } from './history.js';
 
 const STORAGE_KEY  = 'mindmap.style';
 const LINESTYLE_KEY = 'mindmap.lineStyle';
@@ -68,11 +69,20 @@ function syncControlsFromState() {
 export function syncSelectedNodeSection() {
   const sec = $('sp-node-section');
   if (sec) {
-    const n = state.selectedId ? state.nodes[state.selectedId] : null;
+    const selIds = selectedNodeIds();
+    const n = selIds[0] ? state.nodes[selIds[0]] : null;
     if (!n) {
       sec.hidden = true;
     } else {
       sec.hidden = false;
+      // 섹션 제목에 다중 선택 개수 표시
+      const titleEl = sec.querySelector('.sp-section-title');
+      if (titleEl) {
+        titleEl.textContent = selIds.length > 1
+          ? `📌 선택 노드 스타일 (${selIds.length}개)`
+          : '📌 선택 노드 스타일';
+      }
+
       const ts = n.textStyle ?? {};
       $('nd-bold')      .classList.toggle('on', !!ts.bold);
       $('nd-italic')    .classList.toggle('on', !!ts.italic);
@@ -101,15 +111,44 @@ export function syncSelectedNodeSection() {
   syncSelectedRelationSection();
 }
 
+/** 패널이 다룰 노드 ID 목록 (다중 우선) */
+function selectedNodeIds() {
+  if (state.selectedIds && state.selectedIds.length) return state.selectedIds;
+  return state.selectedId ? [state.selectedId] : [];
+}
+
+/** 패널이 다룰 관계선 ID 목록 (다중 우선) */
+function selectedRelationIds() {
+  if (state.selectedRelationIds && state.selectedRelationIds.length) return state.selectedRelationIds;
+  return state.selectedRelationId ? [state.selectedRelationId] : [];
+}
+
 /** 선택된 관계선의 스타일을 패널 컨트롤에 반영 */
 function syncSelectedRelationSection() {
   const sec = $('sp-relation-section');
   if (!sec) return;
-  const r = state.selectedRelationId
-    ? state.relations.find((rr) => rr.id === state.selectedRelationId)
+  const relIds = selectedRelationIds();
+  const r = relIds[0]
+    ? state.relations.find((rr) => rr.id === relIds[0])
     : null;
   if (!r) { sec.hidden = true; return; }
   sec.hidden = false;
+
+  const titleEl = sec.querySelector('.sp-section-title');
+  if (titleEl) {
+    titleEl.textContent = relIds.length > 1
+      ? `📎 선택 관계선 스타일 (${relIds.length}개)`
+      : '📎 선택 관계선 스타일';
+  }
+
+  // 다중 선택일 땐 라벨은 비활성 (라벨 일괄 적용은 의도와 다를 수 있음)
+  const labelInput = $('rel-label');
+  if (labelInput) {
+    labelInput.disabled = relIds.length > 1;
+    labelInput.placeholder = relIds.length > 1
+      ? '— 다중 선택 시 라벨 편집 불가 —'
+      : '예: 참고, 의존, 유사 …';
+  }
 
   const rs = r.style ?? {};
   $('rel-color').value         = rs.color ?? '#8b949e';
@@ -117,7 +156,7 @@ function syncSelectedRelationSection() {
   $('rel-dash').value          = rs.dash  ?? 'dashed';
   $('rel-width').value         = rs.width ? String(rs.width) : '';
   $('rel-arrow').value         = rs.arrow ?? 'end';
-  $('rel-label').value         = r.label  ?? '';
+  $('rel-label').value         = relIds.length > 1 ? '' : (r.label ?? '');
 }
 
 /** localStorage에 저장 */
@@ -173,6 +212,7 @@ export function initStylePanel() {
   $('sp-themes').addEventListener('click', (e) => {
     const card = e.target.closest('.theme-pick');
     if (!card) return;
+    pushHistory();
     const themeKey = card.dataset.theme;
     state.style.theme = themeKey;
     $('sp-themes').querySelectorAll('.theme-pick').forEach((el) => {
@@ -184,13 +224,21 @@ export function initStylePanel() {
   });
 
   // ── 배경 색 ──
+  // input 이벤트는 슬라이드마다 발생 → history는 change에서만 push
   $('sp-bgcolor').addEventListener('input', (e) => {
+    state.style.bgColor = e.target.value;
+    delete e.target.dataset.reset;
+    applyVisuals();
+  });
+  $('sp-bgcolor').addEventListener('change', (e) => {
+    pushHistory();
     state.style.bgColor = e.target.value;
     delete e.target.dataset.reset;
     applyVisuals();
     persist();
   });
   $('sp-bgreset').addEventListener('click', () => {
+    pushHistory();
     state.style.bgColor = null;
     $('sp-bgcolor').value = '#0d1117';
     $('sp-bgcolor').dataset.reset = '1';
@@ -200,6 +248,7 @@ export function initStylePanel() {
 
   // ── 폰트 ──
   $('sp-font').addEventListener('change', (e) => {
+    pushHistory();
     state.style.font = e.target.value;
     applyVisuals();
     persist();
@@ -207,6 +256,7 @@ export function initStylePanel() {
 
   // ── 라인 스타일 ──
   $('sp-linestyle').addEventListener('change', (e) => {
+    pushHistory();
     state.lineStyle = e.target.value;
     persist();
     render();
@@ -215,6 +265,7 @@ export function initStylePanel() {
 
   // ── 라인 두께 ──
   $('sp-linewidth').addEventListener('change', (e) => {
+    pushHistory();
     state.style.lineWidth = e.target.value;
     persist();
     render();
@@ -222,6 +273,7 @@ export function initStylePanel() {
 
   // ── 자식 색상 연결선 ──
   $('sp-colored').addEventListener('change', (e) => {
+    pushHistory();
     state.style.coloredBranch = e.target.checked;
     persist();
     render();
@@ -230,80 +282,133 @@ export function initStylePanel() {
   // ── 닫기 ──
   $('sp-close').addEventListener('click', closePanel);
 
-  // ── 선택 노드 스타일 핸들러 ──
-  function withNode(fn) {
-    const n = state.nodes[state.selectedId];
-    if (!n) return;
-    if (!n.textStyle) {
-      n.textStyle = { bold: false, italic: false, underline: false, strikethrough: false, size: 'medium', align: 'center' };
-    }
-    fn(n);
+  // ── 선택 노드 스타일 핸들러 (다중 선택 시 전체에 일괄 적용) ──
+  /**
+   * @param {(n: object) => void} fn       각 노드에 적용
+   * @param {boolean} [hist=true]          true면 호출 시 pushHistory
+   */
+  function withNodes(fn, hist = true) {
+    const ids = selectedNodeIds();
+    if (!ids.length) return;
+    if (hist) pushHistory();
+    ids.forEach((id) => {
+      const n = state.nodes[id];
+      if (!n) return;
+      if (!n.textStyle) {
+        n.textStyle = { bold: false, italic: false, underline: false, strikethrough: false, size: 'medium', align: 'center' };
+      }
+      if (!n.branchStyle) n.branchStyle = { color: null, width: null, dash: null };
+      fn(n);
+    });
     render();
   }
 
-  $('nd-bold')     .addEventListener('click', () => withNode((n) => { n.textStyle.bold      = !n.textStyle.bold; }));
-  $('nd-italic')   .addEventListener('click', () => withNode((n) => { n.textStyle.italic    = !n.textStyle.italic; }));
-  $('nd-underline').addEventListener('click', () => withNode((n) => { n.textStyle.underline = !n.textStyle.underline; }));
-  $('nd-strike')   .addEventListener('click', () => withNode((n) => { n.textStyle.strikethrough = !n.textStyle.strikethrough; }));
+  // 토글류 — 첫 번째 선택 노드의 현재 값을 기준으로 반전 후 전체에 적용
+  function toggleNodes(pickCurrent, applyValue) {
+    const ids = selectedNodeIds();
+    if (!ids.length) return;
+    const primary = state.nodes[ids[0]];
+    if (!primary) return;
+    const target = !pickCurrent(primary);
+    withNodes((n) => applyValue(n, target));
+  }
 
-  $('nd-size')  .addEventListener('change', (e) => withNode((n) => { n.textStyle.size = e.target.value; }));
+  $('nd-bold').addEventListener('click', () => toggleNodes(
+    (n) => !!n.textStyle?.bold,
+    (n, v) => { n.textStyle.bold = v; },
+  ));
+  $('nd-italic').addEventListener('click', () => toggleNodes(
+    (n) => !!n.textStyle?.italic,
+    (n, v) => { n.textStyle.italic = v; },
+  ));
+  $('nd-underline').addEventListener('click', () => toggleNodes(
+    (n) => !!n.textStyle?.underline,
+    (n, v) => { n.textStyle.underline = v; },
+  ));
+  $('nd-strike').addEventListener('click', () => toggleNodes(
+    (n) => !!n.textStyle?.strikethrough,
+    (n, v) => { n.textStyle.strikethrough = v; },
+  ));
+
+  $('nd-size').addEventListener('change', (e) => withNodes((n) => { n.textStyle.size = e.target.value; }));
 
   ['left', 'center', 'right'].forEach((a) => {
-    $('nd-align-' + a).addEventListener('click', () => withNode((n) => { n.textStyle.align = a; }));
+    $('nd-align-' + a).addEventListener('click', () => withNodes((n) => { n.textStyle.align = a; }));
   });
 
-  $('nd-shape') .addEventListener('change', (e) => withNode((n) => { n.shape       = e.target.value; }));
-  $('nd-border').addEventListener('change', (e) => withNode((n) => { n.borderWidth = e.target.value; }));
+  $('nd-shape') .addEventListener('change', (e) => withNodes((n) => { n.shape       = e.target.value; }));
+  $('nd-border').addEventListener('change', (e) => withNodes((n) => { n.borderWidth = e.target.value; }));
 
-  // ── 부모 연결선 (branchStyle) ──
-  function withBranch(fn) {
-    const n = state.nodes[state.selectedId];
-    if (!n) return;
-    if (!n.branchStyle) n.branchStyle = { color: null, width: null, dash: null };
-    fn(n.branchStyle);
-    render();
-  }
+  // ── 부모 연결선 (branchStyle) — 색상 input은 슬라이드 도중 history 누적 방지하려고 change만 push ──
   $('nd-branch-color').addEventListener('input', (e) => {
-    withBranch((bs) => { bs.color = e.target.value; });
+    // 슬라이더 도중에는 history 없이 미리보기
+    withNodes((n) => { n.branchStyle.color = e.target.value; }, /*hist*/ false);
     delete e.target.dataset.reset;
   });
+  $('nd-branch-color').addEventListener('change', (e) => {
+    pushHistory();
+    withNodes((n) => { n.branchStyle.color = e.target.value; }, /*hist*/ false);
+  });
   $('nd-branch-color-reset').addEventListener('click', () => {
-    withBranch((bs) => { bs.color = null; });
+    withNodes((n) => { n.branchStyle.color = null; });
     $('nd-branch-color').dataset.reset = '1';
   });
   $('nd-branch-dash').addEventListener('change', (e) => {
-    withBranch((bs) => { bs.dash = e.target.value || null; });
+    withNodes((n) => { n.branchStyle.dash = e.target.value || null; });
   });
   $('nd-branch-width').addEventListener('change', (e) => {
-    withBranch((bs) => { bs.width = e.target.value ? Number(e.target.value) : null; });
+    withNodes((n) => { n.branchStyle.width = e.target.value ? Number(e.target.value) : null; });
   });
 
-  // ── 관계선 스타일 (state.relations[i].style) ──
-  function withRelation(fn) {
-    const r = state.relations.find((rr) => rr.id === state.selectedRelationId);
-    if (!r) return;
-    if (!r.style) r.style = { color: null, width: null, dash: null, arrow: null };
-    fn(r);
+  // ── 관계선 스타일 — 다중 선택 시 전체에 일괄 적용 ──
+  function withRelations(fn, hist = true) {
+    const ids = selectedRelationIds();
+    if (!ids.length) return;
+    if (hist) pushHistory();
+    ids.forEach((rid) => {
+      const r = state.relations.find((rr) => rr.id === rid);
+      if (!r) return;
+      if (!r.style) r.style = { color: null, width: null, dash: null, arrow: null };
+      fn(r);
+    });
     render();
   }
   $('rel-color').addEventListener('input', (e) => {
-    withRelation((r) => { r.style.color = e.target.value; });
+    withRelations((r) => { r.style.color = e.target.value; }, /*hist*/ false);
     delete e.target.dataset.reset;
   });
+  $('rel-color').addEventListener('change', (e) => {
+    pushHistory();
+    withRelations((r) => { r.style.color = e.target.value; }, /*hist*/ false);
+  });
   $('rel-color-reset').addEventListener('click', () => {
-    withRelation((r) => { r.style.color = null; });
+    withRelations((r) => { r.style.color = null; });
     $('rel-color').dataset.reset = '1';
   });
   $('rel-dash').addEventListener('change', (e) => {
-    withRelation((r) => { r.style.dash = e.target.value; });
+    withRelations((r) => { r.style.dash = e.target.value; });
   });
   $('rel-width').addEventListener('change', (e) => {
-    withRelation((r) => { r.style.width = e.target.value ? Number(e.target.value) : null; });
+    withRelations((r) => { r.style.width = e.target.value ? Number(e.target.value) : null; });
   });
   $('rel-arrow').addEventListener('change', (e) => {
-    withRelation((r) => { r.style.arrow = e.target.value; });
+    withRelations((r) => { r.style.arrow = e.target.value; });
+  });
+  // 라벨 편집은 한 번의 편집 세션 = 한 번의 history 엔트리
+  let labelInitial = '';
+  let labelDirty   = false;
+  $('rel-label').addEventListener('focus', (e) => {
+    labelInitial = e.target.value;
+    labelDirty   = false;
+    beginPending();
   });
   $('rel-label').addEventListener('input', (e) => {
-    withRelation((r) => { r.label = e.target.value; });
+    labelDirty = true;
+    withRelations((r) => { r.label = e.target.value; }, /*hist*/ false);
+  });
+  $('rel-label').addEventListener('blur', (e) => {
+    if (labelDirty && e.target.value !== labelInitial) commitPending();
+    else                                                cancelPending();
+    labelDirty = false;
   });
 }

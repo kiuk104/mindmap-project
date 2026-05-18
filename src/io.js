@@ -9,6 +9,7 @@
 import { state } from './state.js';
 import { render } from './render.js';
 import { resetView } from './canvas.js';
+import { resetHistory } from './history.js';
 
 const STORAGE_KEY = 'mindmap.v3';
 
@@ -54,6 +55,7 @@ export function loadFromString(jsonStr) {
       state.lineStyle = data.lineStyle;
     }
     document.body.classList.remove('relation-drafting');
+    resetHistory();
     render();
     resetView();
     return true;

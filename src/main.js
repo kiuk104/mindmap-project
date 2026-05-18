@@ -15,12 +15,14 @@ import { showPreview, hidePreview }        from './preview.js';
 import { addChild, deleteNode, startEdit, removeLink } from './nodes.js';
 import { initCanvas, view, applyTransform, resetView } from './canvas.js';
 import { onNodeMouseDown, onRelationHandleDown, consumePanDragFlag } from './canvas.js';
-import { openLinkModal, openColorModal, openSaveModal, openDriveLoadModal, closeModal, handleModalOK, applyStyle } from './modal.js';
+import { openLinkModal, openColorModal, openSaveModal, openDriveLoadModal, openSettingsModal, closeModal, handleModalOK, applyStyle } from './modal.js';
 import * as drive                            from './drive.js';
 import { showContextMenu, hideContextMenu, hideAllMenus, showBgMenu, initContextMenu } from './menu.js';
 import { doImport, schedulePersist, restoreLocal, onSaveStateChange } from './io.js';
 import { runSearch, gotoHit, clearSearch }    from './search.js';
 import { initStylePanel, togglePanel, closePanel, isPanelOpen, setOnStyleApplied, syncSelectedNodeSection } from './style-panel.js';
+import { undo, redo, pushHistory, beginPending, commitPending, cancelPending, onHistoryChange, setApplyHook, resetHistory } from './history.js';
+import { loadSettings, getSettings, updateSettings, onSettingsChange } from './settings.js';
 
 // ── render.js에 핸들러 주입 ──
 // render.js는 다른 모듈을 직접 import하지 않고
@@ -42,7 +44,10 @@ registerHandlers({
     if (!r) return;
     const newLabel = prompt('관계선 라벨 (비워두면 제거):', r.label ?? '');
     if (newLabel === null) return; // 취소
-    r.label = newLabel.trim();
+    const next = newLabel.trim();
+    if (next === (r.label ?? '')) return;
+    pushHistory();
+    r.label = next;
     render();
   },
   onRelationHandleDown,
@@ -68,6 +73,10 @@ onSaveStateChange((ts) => {
 
 // ── 초기 노드 생성 ──
 function createSamples() {
+  // 사용자 기본 폰트가 있다면 새 맵에 반영
+  const s = getSettings();
+  if (s?.defaultFont) state.style = { ...state.style, font: s.defaultFont };
+
   const rootId = uid();
   state.nodes[rootId] = makeNode(rootId, '중심 주제', 2500, 2500, null, '#f85149');
 
@@ -100,6 +109,9 @@ function init() {
   }
 }
 
+// ── 사용자 설정 로드 (앱 시작 시 1회) ──
+loadSettings();
+
 // ── 캔버스 이벤트 초기화 ──
 initCanvas();
 
@@ -113,6 +125,14 @@ $('btn-export').addEventListener('click', openSaveModal);
 $('btn-import').addEventListener('click', () => $('file-in').click());
 $('file-in').addEventListener('change',   doImport);
 $('btn-reset').addEventListener('click',  resetView);
+
+// ── Undo / Redo 버튼 + 활성화 상태 ──
+$('btn-undo').addEventListener('click', () => undo());
+$('btn-redo').addEventListener('click', () => redo());
+onHistoryChange(({ canUndo, canRedo }) => {
+  const u = $('btn-undo'); if (u) u.disabled = !canUndo;
+  const r = $('btn-redo'); if (r) r.disabled = !canRedo;
+});
 
 // ── 맵 스타일 (테마/배경/두께/색상 연결선) ──
 const STYLE_KEY = 'mindmap.style';
@@ -137,6 +157,7 @@ function updateLineStyleBtn() {
 updateLineStyleBtn();
 
 $('btn-line-style').addEventListener('click', () => {
+  pushHistory();
   const idx = LINE_STYLES.indexOf(state.lineStyle);
   state.lineStyle = LINE_STYLES[(idx + 1) % LINE_STYLES.length];
   localStorage.setItem(LINE_STYLE_KEY, state.lineStyle);
@@ -149,25 +170,75 @@ initStylePanel();
 setOnStyleApplied(updateLineStyleBtn);  // 패널에서 lineStyle 바꾸면 툴바 라벨도 갱신
 $('btn-style').addEventListener('click', togglePanel);
 
-// ── 테마 토글 ──
-const THEME_KEY = 'mindmap.theme';
-function applyTheme(theme) {
-  if (theme === 'light') document.documentElement.setAttribute('data-theme', 'light');
-  else                   document.documentElement.removeAttribute('data-theme');
-  const btn = $('btn-theme');
-  if (btn) btn.textContent = theme === 'light' ? '🌙' : '☀️';
-  btn.title = theme === 'light' ? '다크 모드로' : '라이트 모드로';
-}
-// 초기 테마: localStorage > 시스템 설정 > 다크
-const savedTheme = localStorage.getItem(THEME_KEY);
-const systemLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
-applyTheme(savedTheme ?? (systemLight ? 'light' : 'dark'));
+// ── ⚙️ 설정 모달 ──
+$('btn-settings').addEventListener('click', openSettingsModal);
 
+// ── 테마 토글 (settings.theme: 'dark' | 'light' | 'system') ──
+const THEME_KEY = 'mindmap.theme';   // 하위호환: 옛 키도 읽음
+const mqlSystemLight = window.matchMedia ? window.matchMedia('(prefers-color-scheme: light)') : null;
+
+/** settings.theme 값을 받아 실제 light/dark을 결정해 DOM에 반영 */
+function applyAppTheme(themePref) {
+  let effective;
+  if (themePref === 'system') {
+    effective = mqlSystemLight && mqlSystemLight.matches ? 'light' : 'dark';
+  } else {
+    effective = themePref === 'light' ? 'light' : 'dark';
+  }
+  if (effective === 'light') document.documentElement.setAttribute('data-theme', 'light');
+  else                       document.documentElement.removeAttribute('data-theme');
+
+  const btn = $('btn-theme');
+  if (btn) {
+    if (themePref === 'system') {
+      btn.textContent = '🖥️';
+      btn.title = '시스템 따름 (클릭: 수동 전환)';
+    } else {
+      btn.textContent = effective === 'light' ? '🌙' : '☀️';
+      btn.title = effective === 'light' ? '다크 모드로' : '라이트 모드로';
+    }
+  }
+}
+
+// 옛 'mindmap.theme' 키 → settings 마이그레이션 (1회)
+// settings가 한 번도 저장되지 않은 사용자라면 legacy 값을 옮겨준다.
+{
+  const legacy = localStorage.getItem(THEME_KEY);
+  const everSavedSettings = localStorage.getItem('mindmap.settings') !== null;
+  if ((legacy === 'light' || legacy === 'dark') && !everSavedSettings) {
+    updateSettings({ theme: legacy });
+  }
+  if (legacy !== null) localStorage.removeItem(THEME_KEY);
+}
+applyAppTheme(getSettings().theme);
+
+// 시스템 테마 변경 감지 (settings.theme === 'system'일 때만 반응)
+if (mqlSystemLight) {
+  mqlSystemLight.addEventListener('change', () => {
+    if (getSettings().theme === 'system') applyAppTheme('system');
+  });
+}
+
+// 🌓 버튼: 수동 토글 — 설정 값에 따라 동작
+//   system → 현재 effective의 반대로 (light/dark)
+//   light  → dark
+//   dark   → light
 $('btn-theme').addEventListener('click', () => {
-  const current = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
-  const next = current === 'light' ? 'dark' : 'light';
-  applyTheme(next);
-  localStorage.setItem(THEME_KEY, next);
+  const pref = getSettings().theme;
+  let next;
+  if (pref === 'system') {
+    const effLight = mqlSystemLight && mqlSystemLight.matches;
+    next = effLight ? 'dark' : 'light';
+  } else {
+    next = pref === 'light' ? 'dark' : 'light';
+  }
+  // settings에 저장 → onSettingsChange가 applyAppTheme 호출
+  updateSettings({ theme: next });
+});
+
+// 설정 변경 구독 — 테마는 즉시 반영
+onSettingsChange((s) => {
+  applyAppTheme(s.theme);
 });
 
 // ── Drive 연결 버튼 ──
@@ -259,6 +330,25 @@ document.addEventListener('keydown', (e) => {
     return;
   }
 
+  // Ctrl+Z / Cmd+Z → Undo. Shift 동반은 Redo.
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) {
+    // 입력 필드에서는 브라우저 기본 동작 유지
+    const tag = document.activeElement.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+    e.preventDefault();
+    if (e.shiftKey) redo();
+    else            undo();
+    return;
+  }
+  // Ctrl+Y / Cmd+Y → Redo
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || e.key === 'Y')) {
+    const tag = document.activeElement.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+    e.preventDefault();
+    redo();
+    return;
+  }
+
   // 입력 필드에서는 단축키 무시
   const tag = document.activeElement.tagName;
   if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
@@ -276,18 +366,37 @@ document.addEventListener('keydown', (e) => {
       if (total === 0) break;
       if (total > 1 && !confirm(`선택된 ${total}개 항목을 모두 삭제할까요?`)) break;
 
+      // 일괄 삭제는 한 번의 history 엔트리로 묶음
+      pushHistory();
+
       // 관계선 먼저 삭제
       if (selRels.length) {
         const toDel = new Set(selRels);
         state.relations = state.relations.filter((r) => !toDel.has(r.id));
         clearRelationSelection(state);
       }
-      // 노드 삭제 (deleteNode가 render 호출)
+      // 노드 삭제 (deleteNode가 각각 pushHistory를 하지 않도록 별도 helper로)
       if (selNodes.length) {
-        selNodes.forEach((id) => deleteNode(id));
-      } else {
-        render();
+        // deleteNode를 직접 부르면 매 호출마다 pushHistory가 일어남.
+        // 여기서는 위에서 한 번만 push하고, 삭제 로직을 인라인으로 수행.
+        const rootId = Object.keys(state.nodes).find((k) => !state.nodes[k].parentId);
+        const removed = new Set();
+        function rm(nodeId) {
+          if (nodeId === rootId) return; // 루트 보호
+          Object.keys(state.nodes)
+            .filter((k) => state.nodes[k].parentId === nodeId)
+            .forEach(rm);
+          removed.add(nodeId);
+          delete state.nodes[nodeId];
+        }
+        selNodes.forEach(rm);
+        state.relations = state.relations.filter(
+          (r) => !removed.has(r.fromId) && !removed.has(r.toId),
+        );
+        state.selectedIds = (state.selectedIds ?? []).filter((sid) => !removed.has(sid));
+        state.selectedId  = state.selectedIds.length === 1 ? state.selectedIds[0] : null;
       }
+      render();
       break;
     }
     case 'Escape':
@@ -303,6 +412,14 @@ document.addEventListener('keydown', (e) => {
       render();
       break;
   }
+});
+
+// ── Undo/Redo 적용 후 후크: 전역 시각 요소 재동기화 ──
+setApplyHook(() => {
+  applyStyle();          // 배경색·폰트
+  updateLineStyleBtn();  // 툴바 라인스타일 라벨
+  // 스타일 패널이 열려있다면 컨트롤도 갱신
+  syncSelectedNodeSection();
 });
 
 // ── 시작 ──

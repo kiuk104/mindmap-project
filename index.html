@@ -27,6 +27,9 @@
     <button class="btn btn-red"   id="btn-add">＋ 노드 추가 <small>(Tab)</small></button>
     <button class="btn btn-blue"  id="btn-link">🔗 링크 추가</button>
     <div class="sep"></div>
+    <button class="btn btn-ghost" id="btn-undo" title="실행 취소 (Ctrl+Z)" disabled>↶ 실행취소</button>
+    <button class="btn btn-ghost" id="btn-redo" title="다시 실행 (Ctrl+Y / Ctrl+Shift+Z)" disabled>↷ 다시실행</button>
+    <div class="sep"></div>
     <button class="btn btn-ghost" id="btn-export">💾 저장 <small>(Ctrl+S)</small></button>
     <button class="btn btn-ghost" id="btn-import">📂 불러오기</button>
     <input type="file" id="file-in" accept=".json" style="display:none" />
@@ -36,6 +39,7 @@
     <button class="btn btn-ghost" id="btn-reset">⌖ 화면 맞춤</button>
     <button class="btn btn-ghost" id="btn-line-style" title="연결선 스타일 (직선 → 곡선 → 직각)">━ 직선</button>
     <button class="btn btn-ghost" id="btn-style" title="맵 스타일 (테마·배경·연결선)">🎨 스타일</button>
+    <button class="btn btn-ghost" id="btn-settings" title="설정 (기본값)">⚙️ 설정</button>
     <button class="btn btn-ghost" id="btn-theme" title="다크/라이트 테마 전환">🌓</button>
     <div class="sep"></div>
     <div class="search-box">
@@ -280,8 +284,8 @@
   <div id="hud">100%</div>
   <div id="help-hud">
     더블클릭: 텍스트 편집 &nbsp;|&nbsp; 우클릭: 메뉴<br />
-    배경 드래그: 화면 이동 &nbsp;|&nbsp; 스크롤: 줌<br />
-    Tab: 자식 추가 &nbsp;|&nbsp; Del: 선택 삭제
+    배경 드래그: 셀렉트박스 &nbsp;|&nbsp; 우클릭 드래그: 화면 이동 &nbsp;|&nbsp; 스크롤: 줌<br />
+    Tab: 자식 추가 &nbsp;|&nbsp; Del: 선택 삭제 &nbsp;|&nbsp; Ctrl+Z/Y: 실행취소/재실행
   </div>
 
   <script type="module" src="/src/main.js"></script>

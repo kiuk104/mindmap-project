@@ -5,6 +5,7 @@
 import { state } from './state.js';
 import { render } from './render.js';
 import { uid, makeNode, currentPalette, setNodeSelection, $ } from './utils.js';
+import { pushHistory, beginPending, commitPending, cancelPending } from './history.js';
 
 /**
  * 자식 노드 추가
@@ -16,6 +17,8 @@ export function addChild(parentId) {
     ?? Object.keys(state.nodes).find((k) => !state.nodes[k].parentId);
 
   if (!parentId) return;
+
+  pushHistory();
 
   const parent = state.nodes[parentId];
   const angle  = Math.random() * Math.PI * 2;
@@ -53,6 +56,8 @@ export function deleteNode(id) {
     return;
   }
 
+  pushHistory();
+
   const removed = new Set();
   function removeRecursive(nodeId) {
     Object.keys(state.nodes)
@@ -81,6 +86,7 @@ export function deleteNode(id) {
  * @param {number} linkIndex
  */
 export function removeLink(nodeId, linkIndex) {
+  pushHistory();
   state.nodes[nodeId].links.splice(linkIndex, 1);
   render();
 }
@@ -98,6 +104,10 @@ export function startEdit(e, id) {
 
   const textDiv = el.querySelector('.node-text');
   const node    = state.nodes[id];
+  const originalText = node.text;
+
+  // 텍스트 변경이 있을 때만 history에 push되도록 pending 사용
+  beginPending();
 
   const ta = document.createElement('textarea');
   ta.className = 'node-text-edit';
@@ -108,13 +118,20 @@ export function startEdit(e, id) {
   ta.focus();
   ta.select();
 
+  let escaped = false;
   ta.addEventListener('blur', () => {
-    node.text = ta.value.trim() || node.text;
+    const next = ta.value.trim() || node.text;
+    if (!escaped && next !== originalText) {
+      commitPending();
+      node.text = next;
+    } else {
+      cancelPending();
+    }
     render();
   });
   ta.addEventListener('keydown', (ev) => {
     if (ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); ta.blur(); }
-    if (ev.key === 'Escape') { ta.value = node.text; ta.blur(); }
+    if (ev.key === 'Escape') { escaped = true; ta.value = node.text; ta.blur(); }
     ev.stopPropagation();
   });
 }
