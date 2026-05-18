@@ -1343,6 +1343,26 @@ body.settings-panel-open #settings-panel { transform: translateX(0); }
   min-width: 22px;
 }
 
+/* ── 노드 배치 select 옆 미리보기 ── */
+.layout-preview {
+  flex: 0 0 64px;
+  width: 64px;
+  height: 44px;
+  border: 1px solid var(--border, #30363d);
+  border-radius: 6px;
+  background: var(--bg-input, rgba(255, 255, 255, 0.04));
+  color: var(--text-bright, #e6edf3);
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.layout-preview svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
 /* ── Dash 패턴 커스텀 dropdown ── */
 .dash-picker {
   position: relative;

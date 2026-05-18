@@ -193,6 +193,90 @@ export function applyLayout(type) {
   render();
 }
 
+/**
+ * 각 레이아웃 미리보기 SVG (currentColor로 stroke·fill).
+ * 60×40 viewBox — UI의 작은 미리보기 박스에 들어감.
+ */
+export const LAYOUT_ICONS = {
+  'logic-right': `<svg viewBox="0 0 60 40" stroke="currentColor" fill="currentColor" stroke-width="1.2">
+    <rect x="2" y="14" width="14" height="12" rx="2"/>
+    <rect x="42" y="2" width="14" height="8" rx="1.5"/>
+    <rect x="42" y="16" width="14" height="8" rx="1.5"/>
+    <rect x="42" y="30" width="14" height="8" rx="1.5"/>
+    <path d="M16 20 L42 6 M16 20 L42 20 M16 20 L42 34" fill="none"/>
+  </svg>`,
+  'logic-left': `<svg viewBox="0 0 60 40" stroke="currentColor" fill="currentColor" stroke-width="1.2">
+    <rect x="44" y="14" width="14" height="12" rx="2"/>
+    <rect x="4" y="2"  width="14" height="8" rx="1.5"/>
+    <rect x="4" y="16" width="14" height="8" rx="1.5"/>
+    <rect x="4" y="30" width="14" height="8" rx="1.5"/>
+    <path d="M44 20 L18 6 M44 20 L18 20 M44 20 L18 34" fill="none"/>
+  </svg>`,
+  'brace': `<svg viewBox="0 0 60 40" stroke="currentColor" fill="currentColor" stroke-width="1.2">
+    <rect x="2" y="14" width="14" height="12" rx="2"/>
+    <rect x="44" y="3"  width="14" height="7" rx="1.5"/>
+    <rect x="44" y="16" width="14" height="7" rx="1.5"/>
+    <rect x="44" y="29" width="14" height="7" rx="1.5"/>
+    <path d="M20 8 Q26 8 26 20 Q26 32 20 32 M26 20 L42 20" fill="none" stroke-width="1.5"/>
+  </svg>`,
+  'org-down': `<svg viewBox="0 0 60 40" stroke="currentColor" fill="currentColor" stroke-width="1.2">
+    <rect x="22" y="2"  width="16" height="9" rx="1.5"/>
+    <rect x="3"  y="26" width="14" height="9" rx="1.5"/>
+    <rect x="23" y="26" width="14" height="9" rx="1.5"/>
+    <rect x="43" y="26" width="14" height="9" rx="1.5"/>
+    <path d="M30 11 L30 18 M10 26 L10 18 L50 18 L50 26 M30 18 L30 26" fill="none"/>
+  </svg>`,
+  'org-up': `<svg viewBox="0 0 60 40" stroke="currentColor" fill="currentColor" stroke-width="1.2">
+    <rect x="22" y="29" width="16" height="9" rx="1.5"/>
+    <rect x="3"  y="5"  width="14" height="9" rx="1.5"/>
+    <rect x="23" y="5"  width="14" height="9" rx="1.5"/>
+    <rect x="43" y="5"  width="14" height="9" rx="1.5"/>
+    <path d="M30 29 L30 22 M10 14 L10 22 L50 22 L50 14 M30 22 L30 14" fill="none"/>
+  </svg>`,
+  'tree': `<svg viewBox="0 0 60 40" stroke="currentColor" fill="currentColor" stroke-width="1.2">
+    <rect x="2"  y="2"   width="14" height="6" rx="1"/>
+    <rect x="12" y="13"  width="14" height="6" rx="1"/>
+    <rect x="12" y="23"  width="14" height="6" rx="1"/>
+    <rect x="22" y="33"  width="14" height="6" rx="1"/>
+    <path d="M9 8 L9 36 M9 16 L12 16 M9 26 L12 26 M19 29 L19 36 M19 36 L22 36" fill="none"/>
+  </svg>`,
+  'timeline': `<svg viewBox="0 0 60 40" stroke="currentColor" fill="currentColor" stroke-width="1.5">
+    <line x1="4" y1="20" x2="56" y2="20"/>
+    <circle cx="6"  cy="20" r="4"/>
+    <circle cx="17" cy="20" r="3"/>
+    <circle cx="28" cy="20" r="3"/>
+    <circle cx="39" cy="20" r="3"/>
+    <circle cx="50" cy="20" r="3"/>
+  </svg>`,
+  'fishbone': `<svg viewBox="0 0 60 40" stroke="currentColor" fill="currentColor" stroke-width="1.2">
+    <line x1="3" y1="20" x2="57" y2="20" stroke-width="1.6"/>
+    <rect x="0"  y="16" width="8" height="8" rx="1.5"/>
+    <rect x="52" y="16" width="8" height="8" rx="1.5"/>
+    <line x1="14" y1="20" x2="22" y2="6" fill="none"/>
+    <line x1="22" y1="20" x2="30" y2="34" fill="none"/>
+    <line x1="30" y1="20" x2="38" y2="6" fill="none"/>
+    <line x1="38" y1="20" x2="46" y2="34" fill="none"/>
+  </svg>`,
+  'tree-table': `<svg viewBox="0 0 60 40" stroke="currentColor" fill="none" stroke-width="1.2">
+    <rect x="3" y="3" width="54" height="34"/>
+    <line x1="3"  y1="13" x2="57" y2="13"/>
+    <line x1="3"  y1="22" x2="57" y2="22"/>
+    <line x1="3"  y1="31" x2="57" y2="31"/>
+    <line x1="22" y1="3"  x2="22" y2="37"/>
+  </svg>`,
+  'matrix': `<svg viewBox="0 0 60 40" stroke="currentColor" fill="currentColor" stroke-width="1">
+    <rect x="3"  y="3"  width="16" height="10" rx="1"/>
+    <rect x="22" y="3"  width="16" height="10" rx="1"/>
+    <rect x="41" y="3"  width="16" height="10" rx="1"/>
+    <rect x="3"  y="15" width="16" height="10" rx="1"/>
+    <rect x="22" y="15" width="16" height="10" rx="1"/>
+    <rect x="41" y="15" width="16" height="10" rx="1"/>
+    <rect x="3"  y="27" width="16" height="10" rx="1"/>
+    <rect x="22" y="27" width="16" height="10" rx="1"/>
+    <rect x="41" y="27" width="16" height="10" rx="1"/>
+  </svg>`,
+};
+
 /** 사람이 읽을 수 있는 라벨 — 스크린샷의 9종 구조에 대응 */
 export const LAYOUT_LABELS = {
   'logic-right': 'Logic Chart',

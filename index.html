@@ -208,6 +208,17 @@
         </div>
 
         <div class="sp-sub">
+          <div class="sp-mini-label">글자 색</div>
+          <div class="sp-row">
+            <input type="color" id="nd-text-color" class="sp-color-input" />
+            <button type="button" class="btn btn-ghost sp-row-btn" id="nd-text-color-reset">자동</button>
+          </div>
+          <div style="font-size:10px; color:#8b949e; margin-top:3px;">
+            "자동" = 배경 색에 따라 검정/흰 글자 자동 선택
+          </div>
+        </div>
+
+        <div class="sp-sub">
           <div class="sp-mini-label">자식 노드 넘버링</div>
           <select class="fi" id="nd-numbering"></select>
           <div style="font-size:10px; color:#8b949e; margin-top:4px;">
@@ -350,7 +361,10 @@
 
       <section class="sp-section">
         <div class="sp-section-title">🌳 노드 배치 (자동 정렬)</div>
-        <select class="fi" id="sp-layout" style="margin-bottom:6px;"></select>
+        <div style="display:flex; gap:8px; align-items:flex-start; margin-bottom:6px;">
+          <select class="fi" id="sp-layout" style="flex:1;"></select>
+          <div id="sp-layout-preview" class="layout-preview" aria-hidden="true"></div>
+        </div>
         <button type="button" class="btn btn-ghost" id="sp-layout-apply" style="width:100%;">
           ↻ 이 구조로 재배치
         </button>

@@ -21,7 +21,7 @@ import { openCustomThemeModal } from './modal.js';
 import { enhanceDashPicker } from './dash-picker.js';
 import { deleteCallout } from './callouts.js';
 import { deleteZone } from './zones.js';
-import { applyLayout, LAYOUT_LABELS } from './layouts.js';
+import { applyLayout, LAYOUT_LABELS, LAYOUT_ICONS } from './layouts.js';
 
 const STORAGE_KEY    = 'mindmap.style';
 const LINESTYLE_KEY  = 'mindmap.lineStyle';
@@ -132,6 +132,11 @@ export function syncSelectedNodeSection() {
 
       $('nd-shape').value  = n.shape       ?? 'rounded';
       $('nd-border').value = n.borderWidth ?? 'thin';
+      // 글자 색 — null이면 자동 (배경 대비). 명시 시 그 값.
+      if ($('nd-text-color')) {
+        $('nd-text-color').value         = n.textColor ?? '#e6edf3';
+        $('nd-text-color').dataset.reset = n.textColor ? '' : '1';
+      }
       // 넘버링 — 이 노드의 자식들에게 적용되는 prefix 포맷
       if ($('nd-numbering')) $('nd-numbering').value = n.numbering ?? 'none';
 
@@ -404,11 +409,20 @@ export function initStylePanel() {
       `<option value="${k}">${label}</option>`).join('');
   }
 
-  // 노드 배치 select + 적용 버튼
+  // 노드 배치 select + 적용 버튼 + 옆 미리보기
   if ($('sp-layout')) {
     $('sp-layout').innerHTML = Object.entries(LAYOUT_LABELS).map(([k, label]) =>
       `<option value="${k}">${label}</option>`).join('');
   }
+  function updateLayoutPreview() {
+    const box = $('sp-layout-preview');
+    if (!box) return;
+    const type = $('sp-layout')?.value || '';
+    box.innerHTML = LAYOUT_ICONS[type] || '';
+  }
+  $('sp-layout')?.addEventListener('change', updateLayoutPreview);
+  updateLayoutPreview();
+
   $('sp-layout-apply')?.addEventListener('click', () => {
     const type = $('sp-layout').value;
     if (!type) return;
@@ -737,6 +751,20 @@ export function initStylePanel() {
   $('nd-shape') .addEventListener('change', (e) => withNodes((n) => { n.shape       = e.target.value; }));
   $('nd-border').addEventListener('change', (e) => withNodes((n) => { n.borderWidth = e.target.value; }));
   $('nd-numbering')?.addEventListener('change', (e) => withNodes((n) => { n.numbering = e.target.value; }));
+
+  // ── 노드 글자 색 (명시 / 자동) ──
+  $('nd-text-color')?.addEventListener('input', (e) => {
+    withNodes((n) => { n.textColor = e.target.value; }, /*hist*/ false);
+    delete e.target.dataset.reset;
+  });
+  $('nd-text-color')?.addEventListener('change', (e) => {
+    pushHistory();
+    withNodes((n) => { n.textColor = e.target.value; }, /*hist*/ false);
+  });
+  $('nd-text-color-reset')?.addEventListener('click', () => {
+    withNodes((n) => { n.textColor = null; });
+    $('nd-text-color').dataset.reset = '1';
+  });
 
   // ── 외곽 스트로크 ──
   $('nd-outline').addEventListener('change', (e) => withNodes((n) => { n.outlineWidth = e.target.value; }));

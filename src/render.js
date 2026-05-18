@@ -6,7 +6,7 @@
  */
 
 import { state } from './state.js';
-import { $, linkIcon, linkDefault, lighten, LINE_WIDTHS, NODE_SIZES, NODE_SHAPES, NODE_BORDERS, NODE_OUTLINES, DASH_PATTERNS, getRelationControls, getBranchControls, computeHiddenIds, parentIdsSet, formatNumber } from './utils.js';
+import { $, linkIcon, linkDefault, lighten, LINE_WIDTHS, NODE_SIZES, NODE_SHAPES, NODE_BORDERS, NODE_OUTLINES, DASH_PATTERNS, getRelationControls, getBranchControls, computeHiddenIds, parentIdsSet, formatNumber, contrastingTextColor } from './utils.js';
 import { getZoneBox, hexToRgba } from './zones.js';
 import { getSettings } from './settings.js';
 import { isAssetIcon, assetIdToUrl } from './icon-assets.js';
@@ -337,6 +337,8 @@ export function render() {
     el.style.top        = n.y + 'px';
     el.style.background = n.color;
     if (!isRoot) el.style.borderColor = lighten(n.color, 30);
+    // 글자 색 — 사용자 지정값 우선, 없으면 배경에 대비되는 자동 색
+    el.style.color = n.textColor || contrastingTextColor(n.color);
 
     // ── 노드별 텍스트 스타일 적용 ──
     const ts = n.textStyle ?? {};
@@ -561,7 +563,8 @@ export function render() {
       box.style.top  = (p.y + co.dy) + 'px';
       const bgColor = co.color || '#fde68a';
       box.style.background = bgColor;
-      if (co.textColor) box.style.color = co.textColor;
+      // 사용자 지정 글자 색이 없으면 배경에 대비되는 자동 색
+      box.style.color = co.textColor || contrastingTextColor(bgColor);
       box.textContent = co.text || '';
 
       // 이벤트 — 드래그/선택/편집은 H 핸들러로

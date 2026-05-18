@@ -285,6 +285,32 @@ export function googleDocsPreviewUrl(url) {
 }
 
 /**
+ * 배경 색에 대비되는 글자 색 자동 선택 (WCAG 상대 휘도 기반).
+ *   밝은 배경 → 짙은 회색 (#1f2937)
+ *   어두운 배경 → 흰색 (#ffffff)
+ * @param {string} bgHex - '#RRGGBB' 또는 'rgba(...)'
+ * @returns {string} '#1f2937' 또는 '#ffffff'
+ */
+export function contrastingTextColor(bgHex) {
+  if (!bgHex) return '#ffffff';
+  let r, g, b;
+  if (bgHex.startsWith('rgba') || bgHex.startsWith('rgb')) {
+    const m = bgHex.match(/\d+(\.\d+)?/g);
+    if (!m) return '#ffffff';
+    r = Number(m[0]); g = Number(m[1]); b = Number(m[2]);
+  } else {
+    const hex = bgHex.replace('#', '');
+    if (hex.length !== 6) return '#ffffff';
+    r = parseInt(hex.slice(0, 2), 16);
+    g = parseInt(hex.slice(2, 4), 16);
+    b = parseInt(hex.slice(4, 6), 16);
+  }
+  // WCAG 상대 휘도 (간이 — sRGB 감마 보정 생략, 0..1)
+  const lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+  return lum > 0.6 ? '#1f2937' : '#ffffff';
+}
+
+/**
  * hex 색상을 밝게 만들기
  * @param {string} hex   예: '#1f6feb'
  * @param {number} pct   밝기 증가량 (0~255)
@@ -319,6 +345,7 @@ export function makeNode(id, text, x, y, parentId, color) {
     collapsed: false,    // true면 하위 트리 숨김
     image: null,         // {url, fit, height} 또는 null. url은 http(s) 또는 data:image/* 가능
     iconColor: null,     // Sticker(단색 SVG) 아이콘 색 오버라이드. null = 노드 텍스트 색 사용
+    textColor: null,     // 명시적 글자 색. null = 배경 색에 대비되는 자동 색 (contrastingTextColor)
     note: '',            // 노드에 연결된 긴 노트 (모달에서 편집). 빈 문자열이면 없음.
     tasks: [],           // [{id, text, done}] — 노드 내부 체크박스 할 일 목록
     numbering: 'none',   // 'none' | '1' | 'A' | 'a' | 'I' — 자식 노드 텍스트에 자동 prefix
