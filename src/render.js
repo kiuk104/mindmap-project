@@ -8,6 +8,7 @@
 import { state } from './state.js';
 import { $, linkIcon, linkDefault, lighten, LINE_WIDTHS, NODE_SIZES, NODE_SHAPES, NODE_BORDERS, NODE_OUTLINES, DASH_PATTERNS, getRelationControls, getBranchControls, computeHiddenIds, parentIdsSet } from './utils.js';
 import { getZoneBox, hexToRgba } from './zones.js';
+import { getSettings } from './settings.js';
 import { isAssetIcon, assetIdToUrl } from './icon-assets.js';
 
 // main.js가 주입할 핸들러 (기본값은 빈 함수)
@@ -261,7 +262,8 @@ function buildSvgMarkup(hiddenIds) {
   // 콜아웃은 CSS ::before로 말풍선 꼬리를 그리므로 SVG 연결선을 별도로 그리지 않음
 
   // ── 단일 선택 노드의 부모-자식 곡선 핸들 (curved 스타일 + 부모 있음) ──
-  if (state.lineStyle === 'curved' && state.selectedId) {
+  // settings.showCurveHandles가 false면 스킵 → 사용자가 보기 모드에서 숨길 수 있음
+  if (state.lineStyle === 'curved' && state.selectedId && getSettings().showCurveHandles !== false) {
     const n = state.nodes[state.selectedId];
     if (n && n.parentId && state.nodes[n.parentId] && !hiddenIds.has(n.id)) {
       const p = state.nodes[n.parentId];

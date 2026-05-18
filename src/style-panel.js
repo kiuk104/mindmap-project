@@ -16,7 +16,7 @@ import {
   DASH_NAMES,
 } from './utils.js';
 import { pushHistory, beginPending, commitPending, cancelPending } from './history.js';
-import { getSettings, onSettingsChange } from './settings.js';
+import { getSettings, updateSettings, onSettingsChange } from './settings.js';
 import { openCustomThemeModal } from './modal.js';
 import { enhanceDashPicker } from './dash-picker.js';
 import { deleteCallout } from './callouts.js';
@@ -91,6 +91,10 @@ function syncControlsFromState() {
   const cs = s.curveStrength ?? 0.5;
   if ($('sp-curve-strength')) $('sp-curve-strength').value = String(cs);
   if ($('sp-curve-val'))      $('sp-curve-val').textContent = Number(cs).toFixed(2);
+  // 커브 수정 핸들 표시 토글 (settings.showCurveHandles)
+  if ($('sp-curve-handles')) {
+    $('sp-curve-handles').checked = getSettings().showCurveHandles !== false;
+  }
 
   syncSelectedNodeSection();
 }
@@ -623,6 +627,12 @@ export function initStylePanel() {
     pushHistory();
     state.style.curveStrength = Number(e.target.value);
     persist();
+  });
+
+  // ── 커브 수정 핸들 표시 토글 ──
+  $('sp-curve-handles')?.addEventListener('change', (e) => {
+    updateSettings({ showCurveHandles: e.target.checked });
+    render();
   });
 
   // ── 라인 두께 ──
