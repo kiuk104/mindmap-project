@@ -21,6 +21,7 @@ import { openCustomThemeModal } from './modal.js';
 import { enhanceDashPicker } from './dash-picker.js';
 import { deleteCallout } from './callouts.js';
 import { deleteZone } from './zones.js';
+import { applyLayout, LAYOUT_LABELS } from './layouts.js';
 
 const STORAGE_KEY    = 'mindmap.style';
 const LINESTYLE_KEY  = 'mindmap.lineStyle';
@@ -388,6 +389,17 @@ export function initStylePanel() {
       `<option value="${k}">${name}${k === 'dashed' ? ' (기본)' : ''}</option>`).join('');
     enhanceDashPicker($('zone-border-dash'));
   }
+
+  // 노드 배치 select + 적용 버튼
+  if ($('sp-layout')) {
+    $('sp-layout').innerHTML = Object.entries(LAYOUT_LABELS).map(([k, label]) =>
+      `<option value="${k}">${label}</option>`).join('');
+  }
+  $('sp-layout-apply')?.addEventListener('click', () => {
+    const type = $('sp-layout').value;
+    if (!type) return;
+    applyLayout(type);
+  });
 
   // ── 콜아웃 편집 ──
   function withCallout(fn, hist = true) {
