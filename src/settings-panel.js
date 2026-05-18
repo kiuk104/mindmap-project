@@ -17,7 +17,7 @@ import { getSettings, updateSettings, onSettingsChange } from './settings.js';
 import { enhanceDashPicker } from './dash-picker.js';
 import { ACTIONS, getBinding, isBindingCustomized, eventToBinding } from './shortcuts.js';
 import { pushHistory } from './history.js';
-import { applyStyle } from './modal.js';
+import { applyStyle, openFontBrowserModal } from './modal.js';
 
 let _initialized = false;
 
@@ -87,11 +87,14 @@ function buildBody() {
         Google Fonts의 폰트 이름을 입력하세요 (예: <b>Roboto</b>, <b>Pretendard</b>, <b>Nanum Gothic</b>).
         앱에서 자동으로 다운로드해 폰트 목록에 추가합니다.
       </div>
-      <div class="sp-row" style="margin-bottom:8px;">
+      <div class="sp-row" style="margin-bottom:6px;">
         <input type="text" class="fi" id="stp-add-font-name"
-          placeholder="폰트 이름" style="flex:1;" />
-        <button type="button" class="btn btn-ghost sp-row-btn" id="stp-add-font-btn">➕ 추가</button>
+          placeholder="이름 직접 입력 (예: Roboto)" style="flex:1;" />
+        <button type="button" class="btn btn-ghost sp-row-btn" id="stp-add-font-btn">➕</button>
       </div>
+      <button type="button" class="btn btn-ghost" id="stp-browse-fonts" style="width:100%; margin-bottom:8px;">
+        🔍 인기 폰트 찾아보기 (검색 + 미리보기)
+      </button>
       <div id="stp-custom-fonts-list" class="custom-fonts-list">
         ${(s.customFonts ?? []).map((cf) => `
           <div class="custom-font-row" data-id="${cf.id}">
@@ -219,6 +222,15 @@ function buildBody() {
       e.preventDefault();
       $('stp-add-font-btn').click();
     }
+  });
+  // 폰트 찾기 모달 — addCustomFont/이미 추가됐는지 여부 헬퍼를 콜백으로 전달
+  $('stp-browse-fonts')?.addEventListener('click', () => {
+    openFontBrowserModal(
+      (name) => addCustomFont(name),
+      (name) => (getSettings().customFonts ?? []).some(
+        (f) => f.name.toLowerCase() === name.toLowerCase()
+      ),
+    );
   });
   // 목록 안 삭제 버튼들
   $('stp-custom-fonts-list')?.querySelectorAll('.custom-font-del').forEach((btn) => {

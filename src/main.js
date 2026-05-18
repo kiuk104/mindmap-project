@@ -19,7 +19,7 @@ import { addCallout, deleteCallout, selectCallout, removeCalloutsByParents,
          onCalloutPointerDown, onCalloutPointerMove, onCalloutPointerUp,
          isCalloutDragging } from './callouts.js';
 import { deleteZone, renameZone, selectZone } from './zones.js';
-import { openLinkModal, openColorModal, openSaveModal, openDriveLoadModal, openGDocsPreviewModal, openNoteModal, closeModal, handleModalOK, applyStyle } from './modal.js';
+import { openLinkModal, openColorModal, openSaveModal, openDriveLoadModal, openGDocsPreviewModal, openNoteModal, openShareModal, tryLoadFromHash, closeModal, handleModalOK, applyStyle } from './modal.js';
 import { initSettingsPanel, toggleSettingsPanel, openSettingsPanel, closeSettingsPanel, isSettingsPanelOpen } from './settings-panel.js';
 import { registerShortcuts, dispatchKey } from './shortcuts.js';
 import * as drive                            from './drive.js';
@@ -215,7 +215,9 @@ function createSamples() {
 }
 
 function init() {
-  const restored = restoreLocal();
+  // URL hash에 공유 데이터가 있으면 그것이 최우선 (localStorage·샘플보다 우선)
+  const fromHash = tryLoadFromHash();
+  const restored = fromHash || restoreLocal();
   if (!restored) createSamples();
 
   render();
@@ -250,6 +252,7 @@ function quickSaveOrAsk() {
   });
 }
 $('btn-export').addEventListener('click', quickSaveOrAsk);
+$('btn-share').addEventListener('click', openShareModal);
 $('btn-import').addEventListener('click', () => $('file-in').click());
 $('file-in').addEventListener('change',   doImport);
 $('btn-reset').addEventListener('click',  resetView);

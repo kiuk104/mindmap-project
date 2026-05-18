@@ -15,6 +15,7 @@ import { pushHistory } from './history.js';
 import { getSettings, updateSettings } from './settings.js';
 import { enhanceDashPicker } from './dash-picker.js';
 import { toastSuccess, toastError } from './toast.js';
+import { POPULAR_FONTS } from './popular-fonts.js';
 
 /** 현재 다중 선택을 포함한 대상 노드 ID 목록을 반환 (없으면 단일 ctx 대상) */
 function targetNodeIds(fallback) {
@@ -319,6 +320,242 @@ export function openGDocsPreviewModal(url) {
   if (okBtn) { okBtn.textContent = '닫기'; okBtn.dataset.previewClose = '1'; }
   if (cancel) cancel.style.display = 'none';
 
+  showModal();
+}
+
+/**
+ * 공유 모달 — JSON 복사 / URL hash 공유 / PNG·SVG 내보내기
+ * URL hash 공유: serialize → base64 → 클립보드로 복사. 받는 사람이 그 URL을 열면
+ * 앱이 location.hash에서 데이터를 디코드해 즉시 로드.
+ */
+export function openShareModal() {
+  state.modalKind = 'share';
+  $('modal-title').textContent = '🔗 공유';
+
+  const json = serialize();
+  // 대략적인 URL 길이 추산 — base64는 4/3배. 2000자 넘으면 경고.
+  const approxUrlLen = Math.ceil(json.length * 4 / 3) + (location.origin + location.pathname).length + 6;
+  const urlTooLong = approxUrlLen > 6000;
+
+  $('modal-body').innerHTML = `
+    <div class="fg" style="display:grid; grid-template-columns:1fr; gap:8px;">
+      <button type="button" class="btn btn-ghost share-opt" data-share="url"
+        ${urlTooLong ? 'disabled title="맵이 너무 큽니다. JSON이나 Drive를 이용하세요."' : ''}>
+        🔗 <b>URL로 공유</b>
+        <span class="share-hint">
+          맵 전체를 인코딩한 링크를 클립보드에 복사 ${urlTooLong ? '· 사용 불가 (맵 큼)' : `· 약 ${approxUrlLen}자`}
+        </span>
+      </button>
+
+      <button type="button" class="btn btn-ghost share-opt" data-share="json">
+        📋 <b>JSON 클립보드 복사</b>
+        <span class="share-hint">받는 사람이 📂 불러오기로 붙여넣기. 파일·메신저 어디든 OK</span>
+      </button>
+
+      <button type="button" class="btn btn-ghost share-opt" data-share="download">
+        💾 <b>JSON 파일 다운로드</b>
+        <span class="share-hint">.json 파일로 받아 첨부·드라이브에 올리기</span>
+      </button>
+
+      <button type="button" class="btn btn-ghost share-opt" data-share="png">
+        🖼️ <b>PNG 이미지로 내보내기</b>
+        <span class="share-hint">발표·문서 임베드에 적합 (2x 고해상도)</span>
+      </button>
+
+      <button type="button" class="btn btn-ghost share-opt" data-share="svg">
+        📐 <b>SVG 이미지로 내보내기</b>
+        <span class="share-hint">벡터, 크기 변경에도 깔끔</span>
+      </button>
+
+      ${drive.isAvailable() && drive.isSignedIn() ? `
+        <button type="button" class="btn btn-ghost share-opt" data-share="drive">
+          ☁️ <b>Google Drive에 저장</b>
+          <span class="share-hint">${escapeHTML(drive.getEmail() ?? '')} · 큰 맵도 OK</span>
+        </button>
+      ` : ''}
+    </div>
+  `;
+
+  $('modal-body').querySelectorAll('.share-opt').forEach((btn) => {
+    btn.addEventListener('click', () => handleShareOption(btn.dataset.share));
+  });
+
+  // 공유 모달엔 OK 필요 없음 — 닫기로
+  const okBtn  = $('modal-ok');
+  const cancel = $('modal-cancel');
+  if (okBtn) { okBtn.textContent = '닫기'; okBtn.dataset.previewClose = '1'; }
+  if (cancel) cancel.style.display = 'none';
+
+  showModal();
+}
+
+function handleShareOption(kind) {
+  if (kind === 'json') {
+    copyJsonToClipboard().then((ok) => {
+      if (ok) toastSuccess('📋 JSON이 클립보드에 복사됨');
+      else    toastError('클립보드 복사 실패');
+    });
+    closeModal();
+    return;
+  }
+  if (kind === 'url') {
+    try {
+      const json = serialize();
+      const b64 = btoa(unescape(encodeURIComponent(json)));
+      const url = location.origin + location.pathname + '#data=' + b64;
+      navigator.clipboard.writeText(url).then(() => {
+        toastSuccess(`🔗 공유 URL이 클립보드에 복사됨 (${url.length}자)`);
+      }).catch(() => toastError('클립보드 복사 실패'));
+    } catch (e) {
+      toastError('URL 생성 실패: ' + e.message);
+    }
+    closeModal();
+    return;
+  }
+  if (kind === 'download') {
+    doDownload(defaultFilename());
+    toastSuccess('💾 JSON 다운로드됨');
+    closeModal();
+    return;
+  }
+  if (kind === 'png') {
+    const name = defaultFilename();
+    exportPngFile(name).then(() => {
+      toastSuccess(`🖼️ "${name}.png" 내보내기 완료`);
+      closeModal();
+    }).catch((e) => toastError('PNG 실패: ' + e.message));
+    return;
+  }
+  if (kind === 'svg') {
+    const name = defaultFilename();
+    exportSvgFile(name);
+    toastSuccess(`📐 "${name}.svg" 내보내기 완료`);
+    closeModal();
+    return;
+  }
+  if (kind === 'drive') {
+    const name = defaultFilename();
+    drive.saveToDrive(name, serialize())
+      .then((file) => {
+        toastSuccess(`☁️ Drive에 "${file.name}" 저장됨`);
+        closeModal();
+      })
+      .catch((e) => toastError('Drive 저장 실패: ' + e.message));
+    return;
+  }
+}
+
+/**
+ * URL hash로 받은 공유 데이터 자동 로드 (앱 시작 시 호출).
+ * 'data=...' 가 있으면 디코드 후 loadFromString, 그 후 hash 정리.
+ */
+export function tryLoadFromHash() {
+  const hash = location.hash || '';
+  const m = hash.match(/data=([^&]+)/);
+  if (!m) return false;
+  try {
+    const json = decodeURIComponent(escape(atob(m[1])));
+    if (loadFromString(json)) {
+      toastSuccess('🔗 공유 링크에서 마인드맵을 불러왔습니다');
+      // URL 정리 — 새로고침 시 또 로드되지 않도록
+      history.replaceState(null, '', location.pathname);
+      return true;
+    }
+  } catch {}
+  toastError('공유 URL의 데이터를 읽지 못했습니다');
+  return false;
+}
+
+/**
+ * 폰트 찾기 모달 — Google Fonts 인기 목록에서 검색·클릭으로 settings.customFonts에 추가.
+ * 모달 열릴 때 모든 후보 폰트의 <link>를 lazy-inject해서 각 행이 실제 폰트로 미리보임.
+ */
+export function openFontBrowserModal(addFn, isAddedFn) {
+  state.modalKind = 'font-browser';
+  $('modal-title').textContent = '✨ 폰트 찾기 (Google Fonts)';
+
+  // 카테고리별 그룹
+  const groups = {};
+  POPULAR_FONTS.forEach((f) => {
+    (groups[f.cat] ||= []).push(f);
+  });
+
+  $('modal-body').innerHTML = `
+    <div class="fg">
+      <input type="text" class="fi" id="fb-search"
+        placeholder="🔍 폰트 이름·카테고리 검색 (Roboto, Sans, Korean…)" autocomplete="off" />
+    </div>
+    <div class="fb-list" id="fb-list">
+      ${Object.entries(groups).map(([cat, fonts]) => `
+        <div class="fb-cat" data-cat="${escapeHTML(cat)}">
+          <div class="fb-cat-title">${escapeHTML(cat)}</div>
+          <div class="fb-cat-items">
+            ${fonts.map((f) => {
+              const added = isAddedFn(f.name);
+              return `
+                <button type="button" class="fb-item ${added ? 'added' : ''}"
+                  data-font="${escapeHTML(f.name)}"
+                  style="font-family: '${escapeHTML(f.name)}', system-ui, sans-serif;">
+                  <span class="fb-item-name">${escapeHTML(f.name)}</span>
+                  <span class="fb-item-sample">가나다 ABC 123</span>
+                  <span class="fb-item-status">${added ? '✓' : '＋'}</span>
+                </button>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+
+  // 모달이 열릴 때 모든 폰트 <link>를 lazy-inject (목록에서 실제 폰트로 보이도록)
+  POPULAR_FONTS.forEach((f) => {
+    const linkId = 'fb-preview-' + f.name.replace(/\s+/g, '_');
+    if (document.getElementById(linkId)) return;
+    const link = document.createElement('link');
+    link.id = linkId;
+    link.rel = 'stylesheet';
+    link.href = 'https://fonts.googleapis.com/css2?family=' +
+      encodeURIComponent(f.name).replace(/%20/g, '+') + '&display=swap';
+    document.head.appendChild(link);
+  });
+
+  // 검색 필터
+  $('fb-search').addEventListener('input', (e) => {
+    const q = e.target.value.trim().toLowerCase();
+    $('fb-list').querySelectorAll('.fb-item').forEach((btn) => {
+      const name = btn.dataset.font.toLowerCase();
+      const cat = btn.closest('.fb-cat')?.dataset.cat?.toLowerCase() ?? '';
+      const match = !q || name.includes(q) || cat.includes(q);
+      btn.style.display = match ? '' : 'none';
+    });
+    // 빈 카테고리도 숨김
+    $('fb-list').querySelectorAll('.fb-cat').forEach((cat) => {
+      const visible = [...cat.querySelectorAll('.fb-item')].some((b) => b.style.display !== 'none');
+      cat.style.display = visible ? '' : 'none';
+    });
+  });
+
+  // 클릭으로 추가
+  $('fb-list').querySelectorAll('.fb-item').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const name = btn.dataset.font;
+      const ok = addFn(name);
+      if (ok) {
+        btn.classList.add('added');
+        btn.querySelector('.fb-item-status').textContent = '✓';
+        toastSuccess(`✨ "${name}" 추가됨`);
+      }
+    });
+  });
+
+  // OK = 닫기 (앞서 share/gdocs-preview처럼)
+  const okBtn  = $('modal-ok');
+  const cancel = $('modal-cancel');
+  if (okBtn) { okBtn.textContent = '닫기'; okBtn.dataset.previewClose = '1'; }
+  if (cancel) cancel.style.display = 'none';
+
+  setTimeout(() => { $('fb-search')?.focus(); }, 30);
   showModal();
 }
 
@@ -677,8 +914,8 @@ export function openColorModal(nodeId) {
 
 /** 모달 확인 버튼 처리 */
 export function handleModalOK() {
-  // 미리보기 모달엔 OK 액션이 없음 — 그냥 닫기
-  if (state.modalKind === 'gdocs-preview') {
+  // OK 액션이 없는 닫기-만 모달들
+  if (state.modalKind === 'gdocs-preview' || state.modalKind === 'share' || state.modalKind === 'font-browser') {
     closeModal();
     return;
   }

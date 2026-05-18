@@ -338,7 +338,8 @@ export function render() {
     el.style.background = n.color;
     if (!isRoot) el.style.borderColor = lighten(n.color, 30);
     // 글자 색 — 사용자 지정값 우선, 없으면 배경에 대비되는 자동 색
-    el.style.color = n.textColor || contrastingTextColor(n.color);
+    const resolvedTextColor = n.textColor || contrastingTextColor(n.color);
+    el.style.color = resolvedTextColor;
 
     // ── 노드별 텍스트 스타일 적용 ──
     const ts = n.textStyle ?? {};
@@ -351,8 +352,10 @@ export function render() {
     el.style.fontSize  = NODE_SIZES[ts.size]   ?? NODE_SIZES.medium;
     el.style.textAlign = ts.align              ?? 'center';
     // 텍스트 스트로크 (외곽선) — 0이면 적용 안 함
+    // 색은 ts.strokeColor 우선, 없으면 폰트 색을 그대로 따름 (auto)
     if (ts.strokeWidth && ts.strokeWidth > 0) {
-      el.style.webkitTextStroke = `${ts.strokeWidth}px ${ts.strokeColor || '#000000'}`;
+      const strokeC = ts.strokeColor || resolvedTextColor;
+      el.style.webkitTextStroke = `${ts.strokeWidth}px ${strokeC}`;
       el.style.paintOrder = 'stroke fill';
     }
 

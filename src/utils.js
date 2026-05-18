@@ -355,8 +355,8 @@ export function makeNode(id, text, x, y, parentId, color) {
       bold: false, italic: false, underline: false, strikethrough: false,
       size: 'medium',   // 'small' | 'medium' | 'large'
       align: 'center',  // 'left' | 'center' | 'right'
-      strokeWidth: 0,   // 텍스트 스트로크 두께 (px). 0이면 없음.
-      strokeColor: '#000000',  // 스트로크 색상
+      strokeWidth: 0,    // 텍스트 스트로크 두께 (px). 0이면 없음.
+      strokeColor: null, // null = 폰트 색을 따름 (textColor 또는 자동 대비), 명시 시 hex
     },
     shape: 'rounded',     // 'rounded' | 'sharp' | 'pill'
     borderWidth: 'thin',  // 'none' | 'thin' | 'normal' | 'thick' | 'xthick' | 'huge'

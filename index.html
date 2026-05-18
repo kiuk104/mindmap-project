@@ -44,6 +44,7 @@
     <button class="btn btn-ghost" id="btn-redo" title="다시 실행 (Ctrl+Y / Ctrl+Shift+Z)" disabled>↷ 다시실행</button>
     <div class="sep"></div>
     <button class="btn btn-ghost" id="btn-export">💾 저장 <small>(Ctrl+S)</small></button>
+    <button class="btn btn-ghost" id="btn-share" title="공유 — URL/JSON/이미지">🔗 공유</button>
     <button class="btn btn-ghost" id="btn-import">📂 불러오기</button>
     <input type="file" id="file-in" accept=".json" style="display:none" />
     <button class="btn btn-ghost" id="btn-drive-load">☁️ 드라이브 불러오기</button>
@@ -163,15 +164,19 @@
         </div>
 
         <div class="sp-sub">
-          <div class="sp-mini-label">텍스트 스트로크 (외곽선)</div>
-          <select class="fi" id="nd-stroke-w" style="margin-bottom:6px;">
-            <option value="0">없음</option>
-            <option value="0.5">얇게 (0.5px)</option>
-            <option value="1">보통 (1px)</option>
-            <option value="2">굵게 (2px)</option>
-            <option value="3">아주 굵게 (3px)</option>
-          </select>
-          <input type="color" id="nd-stroke-color" class="sp-color-input" value="#000000" />
+          <div class="sp-mini-label" style="display:flex; justify-content:space-between;">
+            <span>텍스트 스트로크</span>
+            <span id="nd-stroke-w-val" style="color:var(--text-bright); font-weight:600;">0.00px</span>
+          </div>
+          <input type="range" id="nd-stroke-w" class="fi"
+            min="0" max="5" step="0.25" value="0" style="padding:0; margin-bottom:6px;" />
+          <div class="sp-row">
+            <input type="color" id="nd-stroke-color" class="sp-color-input" />
+            <button type="button" class="btn btn-ghost sp-row-btn" id="nd-stroke-color-reset">자동</button>
+          </div>
+          <div style="font-size:10px; color:#8b949e; margin-top:3px;">
+            "자동" = 폰트 색을 그대로 외곽선에 사용
+          </div>
         </div>
 
         <div class="sp-sub">

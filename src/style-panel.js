@@ -124,8 +124,13 @@ export function syncSelectedNodeSection() {
       $('nd-underline') .classList.toggle('on', !!ts.underline);
       $('nd-strike')    .classList.toggle('on', !!ts.strikethrough);
       $('nd-size').value = ts.size ?? 'medium';
-      if ($('nd-stroke-w'))     $('nd-stroke-w').value     = String(ts.strokeWidth ?? 0);
-      if ($('nd-stroke-color')) $('nd-stroke-color').value = ts.strokeColor ?? '#000000';
+      const sw = ts.strokeWidth ?? 0;
+      if ($('nd-stroke-w'))     $('nd-stroke-w').value     = String(sw);
+      if ($('nd-stroke-w-val')) $('nd-stroke-w-val').textContent = Number(sw).toFixed(2) + 'px';
+      if ($('nd-stroke-color')) {
+        $('nd-stroke-color').value         = ts.strokeColor ?? '#000000';
+        $('nd-stroke-color').dataset.reset = ts.strokeColor ? '' : '1';
+      }
 
       const align = ts.align ?? 'center';
       ['left', 'center', 'right'].forEach((a) => {
@@ -759,13 +764,26 @@ export function initStylePanel() {
   ));
 
   $('nd-size').addEventListener('change', (e) => withNodes((n) => { n.textStyle.size = e.target.value; }));
-  $('nd-stroke-w')?.addEventListener('change', (e) => withNodes((n) => { n.textStyle.strokeWidth = Number(e.target.value); }));
+  // 스트로크 폭 — 슬라이더: input은 미리보기, change에서 history push
+  $('nd-stroke-w')?.addEventListener('input', (e) => {
+    const v = Number(e.target.value);
+    if ($('nd-stroke-w-val')) $('nd-stroke-w-val').textContent = v.toFixed(2) + 'px';
+    withNodes((n) => { n.textStyle.strokeWidth = v; }, /*hist*/ false);
+  });
+  $('nd-stroke-w')?.addEventListener('change', () => pushHistory());
+
+  // 스트로크 색 — null이면 폰트 색 그대로 (auto)
   $('nd-stroke-color')?.addEventListener('input', (e) => {
     withNodes((n) => { n.textStyle.strokeColor = e.target.value; }, /*hist*/ false);
+    delete e.target.dataset.reset;
   });
   $('nd-stroke-color')?.addEventListener('change', (e) => {
     pushHistory();
     withNodes((n) => { n.textStyle.strokeColor = e.target.value; }, /*hist*/ false);
+  });
+  $('nd-stroke-color-reset')?.addEventListener('click', () => {
+    withNodes((n) => { n.textStyle.strokeColor = null; });
+    $('nd-stroke-color').dataset.reset = '1';
   });
 
   ['left', 'center', 'right'].forEach((a) => {
