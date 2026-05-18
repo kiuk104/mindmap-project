@@ -210,12 +210,9 @@ export const KOREAN_FONT_NAMES = {
 
 /**
  * state.style의 폰트 설정을 CSS font-family 문자열로 합성.
- * 우선순위:
- *   1) fontEn / fontKr이 하나라도 있으면 영문→한글→fallback 체인으로 조합
- *   2) 아니면 단일 프리셋 FONT_FAMILIES[font] 사용
- *   3) 둘 다 없으면 default
+ * customFonts 배열을 두 번째 인자로 받아 빌트인 외 사용자 폰트도 조회.
  */
-export function composeFontFamily(style) {
+export function composeFontFamily(style, customFonts = []) {
   const fEn = style?.fontEn;
   const fKr = style?.fontKr;
   if (fEn || fKr) {
@@ -225,7 +222,12 @@ export function composeFontFamily(style) {
     parts.push('sans-serif');
     return parts.join(', ');
   }
-  return FONT_FAMILIES[style?.font] ?? FONT_FAMILIES.default;
+  // 빌트인 우선
+  if (FONT_FAMILIES[style?.font]) return FONT_FAMILIES[style.font];
+  // 커스텀 (settings.customFonts) 조회
+  const cf = customFonts.find((c) => c.id === style?.font);
+  if (cf && cf.family) return cf.family;
+  return FONT_FAMILIES.default;
 }
 
 /** 기본 스타일 객체 */
@@ -353,6 +355,8 @@ export function makeNode(id, text, x, y, parentId, color) {
       bold: false, italic: false, underline: false, strikethrough: false,
       size: 'medium',   // 'small' | 'medium' | 'large'
       align: 'center',  // 'left' | 'center' | 'right'
+      strokeWidth: 0,   // 텍스트 스트로크 두께 (px). 0이면 없음.
+      strokeColor: '#000000',  // 스트로크 색상
     },
     shape: 'rounded',     // 'rounded' | 'sharp' | 'pill'
     borderWidth: 'thin',  // 'none' | 'thin' | 'normal' | 'thick' | 'xthick' | 'huge'

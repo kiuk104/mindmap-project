@@ -350,6 +350,11 @@ export function render() {
     if (deco.length) el.style.textDecoration = deco.join(' ');
     el.style.fontSize  = NODE_SIZES[ts.size]   ?? NODE_SIZES.medium;
     el.style.textAlign = ts.align              ?? 'center';
+    // 텍스트 스트로크 (외곽선) — 0이면 적용 안 함
+    if (ts.strokeWidth && ts.strokeWidth > 0) {
+      el.style.webkitTextStroke = `${ts.strokeWidth}px ${ts.strokeColor || '#000000'}`;
+      el.style.paintOrder = 'stroke fill';
+    }
 
     // ── 모양 (border-radius) ──
     el.style.borderRadius = NODE_SHAPES[n.shape] ?? NODE_SHAPES.rounded;

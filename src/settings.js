@@ -29,6 +29,10 @@ const DEFAULT = {
   },
   /** 사용자가 만든 커스텀 색상 테마 — [{ id, name, palette: string[] }] */
   customThemes: [],
+  /** 사용자가 추가한 폰트 — [{ id, name, family, googleLink }]
+   *  googleLink가 있으면 앱 시작 시 <link rel="stylesheet">로 자동 주입.
+   *  family는 CSS font-family에 그대로 들어가는 문자열. */
+  customFonts: [],
   /** 키보드 단축키 오버라이드 — { actionId: 'Ctrl+Z' } (없는 액션은 ACTIONS의 default 사용) */
   shortcuts: {},
 };
@@ -50,6 +54,7 @@ export function loadSettings() {
         ...saved,
         defaultRelation: { ...DEFAULT.defaultRelation, ...(saved.defaultRelation ?? {}) },
         customThemes: Array.isArray(saved.customThemes) ? saved.customThemes : [],
+        customFonts:  Array.isArray(saved.customFonts)  ? saved.customFonts  : [],
         shortcuts: (saved.shortcuts && typeof saved.shortcuts === 'object') ? saved.shortcuts : {},
       };
     }

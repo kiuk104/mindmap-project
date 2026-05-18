@@ -82,6 +82,28 @@ function buildBody() {
     </section>
 
     <section class="sp-section">
+      <div class="sp-section-title">✨ 사용자 폰트 추가 (Google Fonts)</div>
+      <div style="font-size:11px; color:#8b949e; margin-bottom:6px; line-height:1.5;">
+        Google Fonts의 폰트 이름을 입력하세요 (예: <b>Roboto</b>, <b>Pretendard</b>, <b>Nanum Gothic</b>).
+        앱에서 자동으로 다운로드해 폰트 목록에 추가합니다.
+      </div>
+      <div class="sp-row" style="margin-bottom:8px;">
+        <input type="text" class="fi" id="stp-add-font-name"
+          placeholder="폰트 이름" style="flex:1;" />
+        <button type="button" class="btn btn-ghost sp-row-btn" id="stp-add-font-btn">➕ 추가</button>
+      </div>
+      <div id="stp-custom-fonts-list" class="custom-fonts-list">
+        ${(s.customFonts ?? []).map((cf) => `
+          <div class="custom-font-row" data-id="${cf.id}">
+            <span class="custom-font-name" style="font-family:${cf.family}">${escapeHTML(cf.name)}</span>
+            <button type="button" class="btn btn-ghost custom-font-del" data-id="${cf.id}"
+              title="삭제">✕</button>
+          </div>
+        `).join('') || '<div style="font-size:11px; color:#8b949e;">— 추가된 폰트가 없습니다 —</div>'}
+      </div>
+    </section>
+
+    <section class="sp-section">
       <div class="sp-section-title">▭ 기본 노드 테두리</div>
       <div class="sp-mini-label">새로 만드는 노드의 테두리 두께</div>
       <select class="fi" id="stp-border">
@@ -182,6 +204,28 @@ function buildBody() {
   $('stp-shadow').addEventListener('change', (e) => {
     updateSettings({ nodeShadow: e.target.checked });
     applyNodeShadow();
+  });
+
+  // ── 사용자 폰트 추가 ──
+  $('stp-add-font-btn')?.addEventListener('click', () => {
+    const input = $('stp-add-font-name');
+    if (addCustomFont(input.value)) {
+      input.value = '';
+      buildBody();   // 목록 재빌드
+    }
+  });
+  $('stp-add-font-name')?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      $('stp-add-font-btn').click();
+    }
+  });
+  // 목록 안 삭제 버튼들
+  $('stp-custom-fonts-list')?.querySelectorAll('.custom-font-del').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      removeCustomFont(btn.dataset.id);
+      buildBody();
+    });
   });
 
   // ── 🌐 전역 적용 — 설정의 기본값을 모든 기존 콘텐츠에 일괄 적용 ──
@@ -365,6 +409,58 @@ export function applyNodeShadow() {
   document.body.classList.toggle('no-node-shadow', !on);
 }
 
+/**
+ * 사용자가 추가한 모든 Google Fonts <link>를 <head>에 (중복 없이) 주입.
+ * 앱 시작 시 1회 + 새 폰트 추가될 때마다 호출.
+ */
+export function injectCustomFonts() {
+  const cf = getSettings().customFonts ?? [];
+  cf.forEach((f) => {
+    if (!f.googleLink) return;
+    const id = 'gf-link-' + f.id;
+    if (document.getElementById(id)) return;     // 이미 주입됨
+    const link = document.createElement('link');
+    link.id = id;
+    link.rel = 'stylesheet';
+    link.href = f.googleLink;
+    document.head.appendChild(link);
+  });
+}
+
+/** Google Fonts 이름 → CSS URL */
+function googleFontsUrl(name) {
+  const enc = encodeURIComponent(name).replace(/%20/g, '+');
+  return `https://fonts.googleapis.com/css2?family=${enc}&display=swap`;
+}
+
+/** 새 사용자 폰트 추가 */
+function addCustomFont(name) {
+  name = (name || '').trim();
+  if (!name) return false;
+  const id = 'cf_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+  // family — 이름에 공백 있으면 따옴표, fallback은 sans-serif
+  const family = `'${name.replace(/'/g, "\\'")}', system-ui, sans-serif`;
+  const googleLink = googleFontsUrl(name);
+  const cur = getSettings().customFonts ?? [];
+  // 같은 이름 중복 방지
+  if (cur.some((f) => f.name.toLowerCase() === name.toLowerCase())) {
+    alert('같은 이름의 폰트가 이미 추가돼 있습니다.');
+    return false;
+  }
+  updateSettings({ customFonts: [...cur, { id, name, family, googleLink }] });
+  injectCustomFonts();
+  return true;
+}
+
+/** 사용자 폰트 삭제 */
+function removeCustomFont(id) {
+  const cur = getSettings().customFonts ?? [];
+  // 주입된 <link>도 제거
+  const linkEl = document.getElementById('gf-link-' + id);
+  if (linkEl) linkEl.remove();
+  updateSettings({ customFonts: cur.filter((f) => f.id !== id) });
+}
+
 // ── 초기화 ──────────────────────────────────────────────
 export function initSettingsPanel() {
   if (_initialized) return;
@@ -374,6 +470,8 @@ export function initSettingsPanel() {
 
   // 초기 시각 상태 — 저장된 설정에서 섀도우 토글 적용
   applyNodeShadow();
+  // 저장된 사용자 폰트 <link> 주입 (Google Fonts CDN)
+  injectCustomFonts();
 
   // 설정 외부 변경(예: 🌓 토글 버튼)이 있어도 패널이 열려 있으면 동기화
   onSettingsChange(() => {

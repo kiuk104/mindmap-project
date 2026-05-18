@@ -124,6 +124,8 @@ export function syncSelectedNodeSection() {
       $('nd-underline') .classList.toggle('on', !!ts.underline);
       $('nd-strike')    .classList.toggle('on', !!ts.strikethrough);
       $('nd-size').value = ts.size ?? 'medium';
+      if ($('nd-stroke-w'))     $('nd-stroke-w').value     = String(ts.strokeWidth ?? 0);
+      if ($('nd-stroke-color')) $('nd-stroke-color').value = ts.strokeColor ?? '#000000';
 
       const align = ts.align ?? 'center';
       ['left', 'center', 'right'].forEach((a) => {
@@ -257,7 +259,8 @@ function persist() {
 function applyVisuals() {
   if (state.style?.bgColor) document.body.style.background = state.style.bgColor;
   else                       document.body.style.background = '';
-  document.documentElement.style.setProperty('--node-font', composeFontFamily(state.style));
+  document.documentElement.style.setProperty('--node-font',
+    composeFontFamily(state.style, getSettings().customFonts));
 }
 
 /** 모든 노드를 현재 테마 팔레트로 다시 칠하기 (즉시 적용용 — 확인 없음) */
@@ -357,10 +360,23 @@ export function initStylePanel() {
     if ($('sp-themes')) $('sp-themes').innerHTML = buildThemeGrid();
   });
 
-  // 폰트 셀렉트 빌드 — 단일 / 영문 / 한글
-  $('sp-font').innerHTML = Object.entries(FONT_NAMES).map(([key, name]) => `
-    <option value="${key}" style="font-family: ${FONT_FAMILIES[key]}">${name} — 가나다 ABC</option>
-  `).join('');
+  // 폰트 셀렉트 빌드 — 빌트인 + 사용자 추가 폰트
+  function buildFontSelect() {
+    const cf = getSettings().customFonts ?? [];
+    const builtIn = Object.entries(FONT_NAMES).map(([key, name]) => `
+      <option value="${key}" style="font-family: ${FONT_FAMILIES[key]}">${name} — 가나다 ABC</option>
+    `).join('');
+    const custom = cf.length === 0 ? '' :
+      `<optgroup label="사용자 추가">` +
+      cf.map((f) => `
+        <option value="${f.id}" style="font-family: ${f.family}">${escapeHTML(f.name)} — 가나다 ABC</option>
+      `).join('') +
+      `</optgroup>`;
+    $('sp-font').innerHTML = builtIn + custom;
+  }
+  buildFontSelect();
+  // 설정에서 폰트 추가/삭제되면 select 재빌드
+  onSettingsChange(() => buildFontSelect());
   if ($('sp-font-en')) {
     $('sp-font-en').innerHTML = Object.entries(ENGLISH_FONT_NAMES).map(([key, name]) => `
       <option value="${key}" style="font-family: ${ENGLISH_FONTS[key]}, sans-serif">${name} — ABC abc 123</option>
@@ -743,6 +759,14 @@ export function initStylePanel() {
   ));
 
   $('nd-size').addEventListener('change', (e) => withNodes((n) => { n.textStyle.size = e.target.value; }));
+  $('nd-stroke-w')?.addEventListener('change', (e) => withNodes((n) => { n.textStyle.strokeWidth = Number(e.target.value); }));
+  $('nd-stroke-color')?.addEventListener('input', (e) => {
+    withNodes((n) => { n.textStyle.strokeColor = e.target.value; }, /*hist*/ false);
+  });
+  $('nd-stroke-color')?.addEventListener('change', (e) => {
+    pushHistory();
+    withNodes((n) => { n.textStyle.strokeColor = e.target.value; }, /*hist*/ false);
+  });
 
   ['left', 'center', 'right'].forEach((a) => {
     $('nd-align-' + a).addEventListener('click', () => withNodes((n) => { n.textStyle.align = a; }));

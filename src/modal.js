@@ -256,8 +256,8 @@ export function applyStyle() {
   } else {
     document.body.style.background = '';
   }
-  // 폰트 — fontEn/fontKr이 지정되면 합성, 아니면 단일 프리셋
-  const font = composeFontFamily(state.style);
+  // 폰트 — fontEn/fontKr이 지정되면 합성, 아니면 단일 프리셋 (커스텀 폰트 포함)
+  const font = composeFontFamily(state.style, getSettings().customFonts);
   document.documentElement.style.setProperty('--node-font', font);
 }
 
