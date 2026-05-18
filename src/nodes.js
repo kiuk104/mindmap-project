@@ -6,6 +6,7 @@ import { state } from './state.js';
 import { render } from './render.js';
 import { uid, makeNode, currentPalette, setNodeSelection, $ } from './utils.js';
 import { pushHistory, beginPending, commitPending, cancelPending } from './history.js';
+import { getSettings } from './settings.js';
 
 /**
  * 자식 노드 추가
@@ -24,16 +25,19 @@ export function addChild(parentId) {
   const angle  = Math.random() * Math.PI * 2;
   const dist   = 200;
   const id     = uid();
-  const palette = currentPalette(state);
-  const color  = palette[Math.floor(Math.random() * palette.length)];
+  const settings = getSettings();
+  const palette  = currentPalette(state, settings.customThemes);
+  const color    = palette[Math.floor(Math.random() * palette.length)];
 
-  state.nodes[id] = makeNode(
+  const newNode = makeNode(
     id, '새 노드',
     parent.x + Math.cos(angle) * dist,
     parent.y + Math.sin(angle) * dist,
     parentId,
     color,
   );
+  if (settings.defaultNodeBorder) newNode.borderWidth = settings.defaultNodeBorder;
+  state.nodes[id] = newNode;
 
   setNodeSelection(state, [id]);
   render();

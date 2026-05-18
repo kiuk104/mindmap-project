@@ -203,9 +203,12 @@ export function initContextMenu() {
       applyStyle();
     }
 
-    // 샘플 다시 생성
+    // 샘플 다시 생성 — settings.defaultNodeBorder 적용
+    const border = s?.defaultNodeBorder;
     const rootId = uid();
-    state.nodes[rootId] = makeNode(rootId, '중심 주제', 2500, 2500, null, '#f85149');
+    const root = makeNode(rootId, '중심 주제', 2500, 2500, null, '#f85149');
+    if (border) root.borderWidth = border;
+    state.nodes[rootId] = root;
     const samples = [
       { text: '📄 자료 링크',   dx: -230, dy: -160, color: '#1f6feb' },
       { text: '▶️ 영상 자료',   dx:  230, dy: -160, color: '#f85149' },
@@ -214,7 +217,9 @@ export function initContextMenu() {
     ];
     samples.forEach(({ text, dx, dy, color }) => {
       const id = uid();
-      state.nodes[id] = makeNode(id, text, 2500 + dx, 2500 + dy, rootId, color);
+      const n = makeNode(id, text, 2500 + dx, 2500 + dy, rootId, color);
+      if (border) n.borderWidth = border;
+      state.nodes[id] = n;
     });
 
     render();

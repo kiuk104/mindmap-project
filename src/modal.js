@@ -6,7 +6,7 @@
 
 import { state } from './state.js';
 import { render } from './render.js';
-import { $, FONT_FAMILIES, FONT_NAMES, currentPalette, linkIcon, linkDefault } from './utils.js';
+import { $, FONT_FAMILIES, FONT_NAMES, currentPalette, linkIcon, linkDefault, resolvePalette, COLOR_THEMES } from './utils.js';
 import { removeLink } from './nodes.js';
 import { doDownload, copyJsonToClipboard, defaultFilename, serialize, loadFromString } from './io.js';
 import { exportSvgFile, exportPngFile } from './export.js';
@@ -374,6 +374,109 @@ function updateImagePreview(url) {
     onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'❌ 이미지 로드 실패', className:'img-preview-empty'}))" />`;
 }
 
+// ── 커스텀 테마 모달 ─────────────────────────────────────
+let _ctEditingId = null;   // 편집 모드일 때 기존 ID, 신규면 null
+
+/**
+ * 커스텀 테마 생성/편집 모달
+ * @param {string|null} themeId  - 기존 커스텀 테마 ID면 편집, null이면 신규
+ */
+export function openCustomThemeModal(themeId = null) {
+  state.modalKind = 'customTheme';
+  _ctEditingId = themeId;
+
+  const s = getSettings();
+  const existing = themeId ? s.customThemes.find((t) => t.id === themeId) : null;
+
+  $('modal-title').textContent = existing ? '🎨 테마 편집' : '🎨 새 커스텀 테마';
+
+  // 시작 색상 — 편집이면 기존 팔레트, 신규면 현재 적용된 테마의 색을 그대로 (이전 값 보존)
+  const startPalette = existing
+    ? existing.palette.slice(0, 8)
+    : resolvePalette(state.style?.theme, s.customThemes).slice(0, 8);
+  while (startPalette.length < 8) startPalette.push('#888888');
+
+  const colorPickersHTML = startPalette.map((c, i) => `
+    <div class="ct-color-cell">
+      <input type="color" class="sp-color-input ct-color" data-idx="${i}" value="${c}" />
+      <span class="ct-color-label">${i + 1}</span>
+    </div>
+  `).join('');
+
+  $('modal-body').innerHTML = `
+    <div class="fg">
+      <label class="fl">테마 이름</label>
+      <input class="fi" id="ct-name" type="text" maxlength="24"
+        placeholder="예: 내 봄 테마"
+        value="${escapeHTML(existing?.name ?? '')}" />
+    </div>
+    <div class="fg">
+      <label class="fl">8가지 노드 색상</label>
+      <div class="ct-colors">${colorPickersHTML}</div>
+      <div style="font-size:11px; color:#8b949e; margin-top:8px;">
+        💡 ${existing
+          ? '저장하면 이 테마를 쓰는 노드에도 즉시 반영됩니다.'
+          : '현재 적용된 팔레트가 미리 채워져 있습니다. 원하는대로 바꾼 뒤 저장하세요.'}
+      </div>
+    </div>
+    ${existing ? `
+      <button type="button" class="btn btn-ghost" id="ct-delete"
+        style="margin-top:8px; color:#f85149;">🗑️ 이 테마 삭제</button>
+    ` : ''}
+  `;
+
+  $('ct-delete')?.addEventListener('click', () => {
+    if (!existing) return;
+    if (!confirm(`"${existing.name}" 테마를 삭제할까요?`)) return;
+    const next = s.customThemes.filter((t) => t.id !== existing.id);
+    updateSettings({ customThemes: next });
+    // 이 테마를 쓰던 맵이라면 default로 대체
+    if (state.style?.theme === existing.id) {
+      state.style.theme = 'default';
+    }
+    closeModal();
+    render();
+  });
+
+  // 첫 포커스
+  setTimeout(() => { $('ct-name')?.focus(); }, 30);
+
+  showModal();
+}
+
+function handleCustomThemeOK() {
+  const name = $('ct-name').value.trim();
+  if (!name) {
+    alert('테마 이름을 입력하세요.');
+    $('ct-name').focus();
+    return;
+  }
+
+  const colors = [];
+  $('modal-body').querySelectorAll('.ct-color').forEach((el) => {
+    colors[Number(el.dataset.idx)] = el.value;
+  });
+
+  const s = getSettings();
+  let nextThemes;
+  let savedId;
+
+  if (_ctEditingId) {
+    nextThemes = s.customThemes.map((t) =>
+      t.id === _ctEditingId ? { ...t, name, palette: colors } : t
+    );
+    savedId = _ctEditingId;
+  } else {
+    savedId = 'ct_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+    nextThemes = [...s.customThemes, { id: savedId, name, palette: colors }];
+  }
+
+  updateSettings({ customThemes: nextThemes });
+  _ctEditingId = null;
+  closeModal();
+  render();
+}
+
 /** 설정 모달 열기 — 앱 테마·기본 폰트·관계선 기본값 */
 export function openSettingsModal() {
   state.modalKind = 'settings';
@@ -409,6 +512,18 @@ export function openSettingsModal() {
     <div class="fg">
       <label class="fl">기본 노드 폰트 <span style="color:#8b949e; font-weight:400;">(새 마인드맵에 적용)</span></label>
       <select class="fi" id="st-font">${fontOptions}</select>
+    </div>
+
+    <div class="fg">
+      <label class="fl">기본 노드 테두리 두께 <span style="color:#8b949e; font-weight:400;">(새 노드에 적용)</span></label>
+      <select class="fi" id="st-border">
+        <option value="none"   ${s.defaultNodeBorder === 'none'   ? 'selected' : ''}>없음</option>
+        <option value="thin"   ${s.defaultNodeBorder === 'thin'   ? 'selected' : ''}>얇게 (1px)</option>
+        <option value="normal" ${s.defaultNodeBorder === 'normal' ? 'selected' : ''}>보통 (2px)</option>
+        <option value="thick"  ${s.defaultNodeBorder === 'thick'  ? 'selected' : ''}>굵게 (4px)</option>
+        <option value="xthick" ${s.defaultNodeBorder === 'xthick' ? 'selected' : ''}>더 굵게 (6px)</option>
+        <option value="huge"   ${s.defaultNodeBorder === 'huge'   ? 'selected' : ''}>아주 굵게 (10px)</option>
+      </select>
     </div>
 
     <div class="fg">
@@ -553,6 +668,7 @@ export function handleModalOK() {
     const themeInput = $('modal-body').querySelector('input[name="st-theme"]:checked');
     const theme   = themeInput ? themeInput.value : 'system';
     const font    = $('st-font').value;
+    const border  = $('st-border').value;
     const colorEl = $('st-rel-color');
     const dr = {
       color: colorEl.dataset.reset ? null : colorEl.value,
@@ -560,8 +676,11 @@ export function handleModalOK() {
       width: $('st-rel-width').value ? Number($('st-rel-width').value) : null,
       arrow: $('st-rel-arrow').value,
     };
-    updateSettings({ theme, defaultFont: font, defaultRelation: dr });
+    updateSettings({ theme, defaultFont: font, defaultNodeBorder: border, defaultRelation: dr });
     closeModal();
+
+  } else if (state.modalKind === 'customTheme') {
+    handleCustomThemeOK();
 
   } else if (state.modalKind === 'save') {
     const name   = $('sv-name').value.trim();

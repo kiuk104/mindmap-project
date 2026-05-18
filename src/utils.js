@@ -32,9 +32,20 @@ export const THEME_NAMES = {
 /** 기본 노드 색상 팔레트 (하위 호환) */
 export const COLORS = COLOR_THEMES.default;
 
-/** 현재 활성 팔레트 반환 (state 참조) */
-export function currentPalette(state) {
-  return COLOR_THEMES[state?.style?.theme] ?? COLOR_THEMES.default;
+/**
+ * 테마 키 → 색상 배열. 빌트인이 우선이고, 없으면 customThemes에서 검색.
+ * @param {string} themeKey
+ * @param {Array<{id, name, palette: string[]}>} [customThemes]
+ */
+export function resolvePalette(themeKey, customThemes = []) {
+  if (COLOR_THEMES[themeKey]) return COLOR_THEMES[themeKey];
+  const custom = customThemes.find((t) => t.id === themeKey);
+  return custom?.palette?.length ? custom.palette : COLOR_THEMES.default;
+}
+
+/** 현재 활성 팔레트 반환 (state 참조, customThemes는 선택적 인자) */
+export function currentPalette(state, customThemes) {
+  return resolvePalette(state?.style?.theme, customThemes);
 }
 
 /** 연결선 두께 매핑 */

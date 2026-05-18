@@ -152,9 +152,12 @@ function createSamples() {
   // 사용자 기본 폰트가 있다면 새 맵에 반영
   const s = getSettings();
   if (s?.defaultFont) state.style = { ...state.style, font: s.defaultFont };
+  const border = s?.defaultNodeBorder;
 
   const rootId = uid();
-  state.nodes[rootId] = makeNode(rootId, '중심 주제', 2500, 2500, null, '#f85149');
+  const root = makeNode(rootId, '중심 주제', 2500, 2500, null, '#f85149');
+  if (border) root.borderWidth = border;
+  state.nodes[rootId] = root;
 
   const samples = [
     { text: '📄 자료 링크',   dx: -230, dy: -160, color: '#1f6feb' },
@@ -164,7 +167,9 @@ function createSamples() {
   ];
   samples.forEach(({ text, dx, dy, color }) => {
     const id = uid();
-    state.nodes[id] = makeNode(id, text, 2500 + dx, 2500 + dy, rootId, color);
+    const n = makeNode(id, text, 2500 + dx, 2500 + dy, rootId, color);
+    if (border) n.borderWidth = border;
+    state.nodes[id] = n;
   });
 }
 

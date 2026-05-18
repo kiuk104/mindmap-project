@@ -11,9 +11,11 @@
 import { state } from './state.js';
 import { render } from './render.js';
 import {
-  $, COLOR_THEMES, THEME_NAMES, FONT_FAMILIES, FONT_NAMES,
+  $, COLOR_THEMES, THEME_NAMES, FONT_FAMILIES, FONT_NAMES, resolvePalette,
 } from './utils.js';
 import { pushHistory, beginPending, commitPending, cancelPending } from './history.js';
+import { getSettings, onSettingsChange } from './settings.js';
+import { openCustomThemeModal } from './modal.js';
 
 const STORAGE_KEY  = 'mindmap.style';
 const LINESTYLE_KEY = 'mindmap.lineStyle';
@@ -182,7 +184,7 @@ function applyVisuals() {
 
 /** 모든 노드를 현재 테마 팔레트로 다시 칠하기 (즉시 적용용 — 확인 없음) */
 function recolorAllNodes(themeKey) {
-  const palette = COLOR_THEMES[themeKey] ?? COLOR_THEMES.default;
+  const palette = resolvePalette(themeKey, getSettings().customThemes);
   let idx = 0;
   Object.values(state.nodes).forEach((n) => {
     n.color = palette[idx % palette.length];
@@ -190,20 +192,58 @@ function recolorAllNodes(themeKey) {
   });
 }
 
+/** 테마 그리드 HTML 빌드 — 빌트인 + 커스텀 + "새 테마" 추가 타일 */
+function buildThemeGrid() {
+  const customThemes = getSettings().customThemes ?? [];
+  const currentKey   = state.style?.theme;
+
+  const builtInHTML = Object.entries(COLOR_THEMES).map(([key, palette]) => `
+    <div class="theme-pick ${key === currentKey ? 'sel' : ''}" data-theme="${key}">
+      <div class="theme-swatches">
+        ${palette.slice(0, 6).map((c) => `<span class="theme-swatch" style="background:${c}"></span>`).join('')}
+      </div>
+      <div class="theme-name">${THEME_NAMES[key] ?? key}</div>
+    </div>
+  `).join('');
+
+  const customHTML = customThemes.map((t) => `
+    <div class="theme-pick custom ${t.id === currentKey ? 'sel' : ''}" data-theme="${t.id}">
+      <div class="theme-swatches">
+        ${t.palette.slice(0, 6).map((c) => `<span class="theme-swatch" style="background:${c}"></span>`).join('')}
+      </div>
+      <div class="theme-name">${escapeHTML(t.name)}</div>
+      <button type="button" class="theme-edit" data-edit="${t.id}" title="편집">✎</button>
+    </div>
+  `).join('');
+
+  const addHTML = `
+    <div class="theme-pick theme-add" data-action="new-theme" title="새 커스텀 테마">
+      <div class="theme-add-plus">＋</div>
+      <div class="theme-name">새 테마</div>
+    </div>
+  `;
+
+  return builtInHTML + customHTML + addHTML;
+}
+
+function escapeHTML(s) {
+  return String(s ?? '').replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[c]));
+}
+
 /** 컨트롤 빌드 + 이벤트 바인딩 (앱 시작 시 1회) */
 export function initStylePanel() {
   if (_initialized) return;
   _initialized = true;
 
-  // 테마 그리드 빌드
-  $('sp-themes').innerHTML = Object.entries(COLOR_THEMES).map(([key, palette]) => `
-    <div class="theme-pick" data-theme="${key}">
-      <div class="theme-swatches">
-        ${palette.slice(0, 6).map((c) => `<span class="theme-swatch" style="background:${c}"></span>`).join('')}
-      </div>
-      <div class="theme-name">${THEME_NAMES[key]}</div>
-    </div>
-  `).join('');
+  // 테마 그리드 빌드 (빌트인 + 커스텀 + 새 테마 타일)
+  $('sp-themes').innerHTML = buildThemeGrid();
+
+  // 설정 변경 시 (커스텀 테마 추가/편집/삭제) 그리드 재빌드
+  onSettingsChange(() => {
+    if ($('sp-themes')) $('sp-themes').innerHTML = buildThemeGrid();
+  });
 
   // 폰트 셀렉트 빌드
   $('sp-font').innerHTML = Object.entries(FONT_NAMES).map(([key, name]) => `
@@ -213,10 +253,26 @@ export function initStylePanel() {
   // 초기 상태 동기화
   syncControlsFromState();
 
-  // ── 이벤트: 테마 선택 — 클릭 즉시 모든 노드에 적용 ──
+  // ── 이벤트: 테마 그리드 클릭 — 일반 선택 / + 새 테마 / 커스텀 편집 분기 ──
   $('sp-themes').addEventListener('click', (e) => {
+    // 1) 커스텀 테마 편집(✎) 버튼
+    const editBtn = e.target.closest('[data-edit]');
+    if (editBtn) {
+      e.stopPropagation();
+      openCustomThemeModal(editBtn.dataset.edit);
+      return;
+    }
+
+    // 2) "+ 새 테마" 타일
+    const addCard = e.target.closest('[data-action="new-theme"]');
+    if (addCard) {
+      openCustomThemeModal(null);
+      return;
+    }
+
+    // 3) 일반 테마 선택 (빌트인 또는 커스텀)
     const card = e.target.closest('.theme-pick');
-    if (!card) return;
+    if (!card || !card.dataset.theme) return;
     pushHistory();
     const themeKey = card.dataset.theme;
     state.style.theme = themeKey;

@@ -18,12 +18,15 @@ const KEY = 'mindmap.settings';
 const DEFAULT = {
   theme: 'system',          // 'dark' | 'light' | 'system'
   defaultFont: 'default',   // FONT_FAMILIES 키
+  defaultNodeBorder: 'thin',// NODE_BORDERS 키 — 새 노드의 borderWidth 기본값
   defaultRelation: {
     color: null,            // null = 테마 기본 색
     dash:  'dashed',        // 'solid' | 'dashed' | 'dotted'
     width: null,            // null = 기본 두께 (2)
     arrow: 'end',           // 'end' | 'start' | 'both' | 'none'
   },
+  /** 사용자가 만든 커스텀 색상 테마 — [{ id, name, palette: string[] }] */
+  customThemes: [],
 };
 
 let settings = clone(DEFAULT);
@@ -42,6 +45,7 @@ export function loadSettings() {
         ...DEFAULT,
         ...saved,
         defaultRelation: { ...DEFAULT.defaultRelation, ...(saved.defaultRelation ?? {}) },
+        customThemes: Array.isArray(saved.customThemes) ? saved.customThemes : [],
       };
     }
   } catch {}

@@ -220,7 +220,9 @@ main.js
 |---|---|---|
 | 앱 테마 | 다크 / 라이트 / 시스템 따름 | 즉시 적용. `prefers-color-scheme` 변경도 감지 |
 | 기본 노드 폰트 | `default / gothic / serif / mono` | 새 마인드맵·"모두 지우기" 시 `state.style.font`에 반영 |
+| 기본 노드 테두리 | `none / thin / normal / thick / xthick / huge` | 새 노드(addChild·샘플)의 `borderWidth`에 적용 |
 | 관계선 기본값 | 색 · 점선 · 두께 · 화살표 | **새로 그리는 관계선**의 `r.style`에 복사됨. 이미 그려진 관계선은 영향 없음 |
+| 커스텀 테마 | 8색 팔레트를 직접 정의 | `settings.customThemes`에 영구 저장, 스타일 패널 테마 그리드에 함께 노출 |
 
 저장 위치: `localStorage.mindmap.settings`.
 🌓 토글 버튼은 settings.theme 값에 따라 다음 상태로 전환됩니다.
