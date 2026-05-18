@@ -628,6 +628,28 @@ body.style-panel-open #style-panel { transform: translateX(0); }
   gap: 6px;
 }
 
+/* 카테고리 필터 툴바 */
+.icon-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 2px 10px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--border, #30363d);
+}
+.icon-toolbar-label {
+  font-size: 12px;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+.icon-filter {
+  flex: 0 0 auto;
+  width: 220px;
+  font-size: 12px;
+  padding: 5px 9px;
+}
+
 .icon-cats {
   max-height: 440px;
   overflow-y: auto;
@@ -635,13 +657,41 @@ body.style-panel-open #style-panel { transform: translateX(0); }
 }
 .icon-cat { margin-bottom: 14px; }
 .icon-cat:last-child { margin-bottom: 0; }
-.icon-cat-title {
-  font-size: 11px;
-  color: var(--text-dim);
+
+/* 카테고리 헤더 — 클릭으로 접기/펴기 */
+.icon-cat-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 2px;
+  cursor: pointer;
+  user-select: none;
   margin-bottom: 6px;
+  border-radius: 4px;
+  transition: background 0.12s;
+}
+.icon-cat-header:hover { background: var(--bg-hover, rgba(255,255,255,0.04)); }
+.cat-arrow {
+  display: inline-block;
+  width: 12px;
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 10px;
+  transition: transform 0.18s;
+}
+.icon-cat-title {
+  font-size: 12px;
+  color: var(--text-bright, #e6edf3);
   font-weight: 600;
   letter-spacing: 0.3px;
 }
+.icon-cat-title .cat-kr {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-weight: 400;
+  margin-left: 4px;
+}
+.icon-cat.collapsed .icon-grid { display: none; }
 
 .icon-grid {
   display: grid;
@@ -662,10 +712,39 @@ body.style-panel-open #style-panel { transform: translateX(0); }
 .icon-pick:hover { background: var(--bg-hover); transform: scale(1.08); }
 .icon-pick.sel   { border-color: var(--accent); background: var(--bg-hover); }
 
+/* Illustration 탭 — 더 큰 타일 + 그라데이션 배경으로 일러스트 느낌 */
+.icon-grid.illustration {
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.icon-grid.illustration .icon-pick {
+  font-size: 32px;
+  background: linear-gradient(135deg,
+    rgba(255, 200, 130, 0.18),
+    rgba(140, 180, 255, 0.18));
+  border-radius: 14px;
+  aspect-ratio: 1 / 1;
+}
+.icon-grid.illustration .icon-pick:hover {
+  background: linear-gradient(135deg,
+    rgba(255, 200, 130, 0.3),
+    rgba(140, 180, 255, 0.3));
+  transform: scale(1.06);
+}
+.icon-grid.illustration .icon-pick.sel {
+  background: linear-gradient(135deg,
+    rgba(31, 111, 235, 0.28),
+    rgba(140, 180, 255, 0.28));
+  border-color: var(--accent);
+}
+
 @media (max-width: 768px) {
   .icon-grid { grid-template-columns: repeat(6, 1fr); }
+  .icon-grid.illustration { grid-template-columns: repeat(3, 1fr); }
   .icon-pick { font-size: 22px; }
+  .icon-grid.illustration .icon-pick { font-size: 28px; }
   .icon-cats { max-height: 60vh; }
+  .icon-filter { width: 160px; }
 }
 
 /* ── 노드 임베드 이미지 ── */

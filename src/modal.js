@@ -6,7 +6,7 @@
 
 import { state } from './state.js';
 import { render } from './render.js';
-import { $, FONT_FAMILIES, FONT_NAMES, currentPalette, linkIcon, linkDefault, ICON_GROUPS, ICON_TAB_NAMES } from './utils.js';
+import { $, FONT_FAMILIES, FONT_NAMES, currentPalette, linkIcon, linkDefault, ICON_GROUPS, ICON_TAB_NAMES, ICON_CAT_NAMES_KR } from './utils.js';
 import { removeLink } from './nodes.js';
 import { doDownload, copyJsonToClipboard, defaultFilename, serialize, loadFromString } from './io.js';
 import { exportSvgFile, exportPngFile } from './export.js';
@@ -246,8 +246,10 @@ function formatTime(iso) {
   }
 }
 
-/** 아이콘 모달 현재 활성 탭 (모듈 스코프 — 모달 다시 열어도 유지) */
+/** 아이콘 모달 현재 활성 탭 / 카테고리 필터 (모듈 스코프 — 모달 다시 열어도 유지) */
 let activeIconTab = 'marker';
+let activeIconCategory = '';            // '' = 전체
+const collapsedCategories = new Set();  // 접힌 카테고리(전역 — 탭 간 공유)
 
 /**
  * 노드 아이콘 선택 모달 — 마커/스티커 탭 + 카테고리별 그룹
@@ -263,34 +265,66 @@ export function openIconModal(nodeId) {
   showModal();
 }
 
-/** 아이콘 모달 본문 다시 그리기 (탭 전환 시 호출) */
+/** 아이콘 모달 본문 다시 그리기 (탭/카테고리 전환 시 호출) */
 function renderIconBody() {
   const current = state.nodes[state.ctxTargetId]?.icon ?? '';
-  const groups  = ICON_GROUPS[activeIconTab];
+  const groups  = ICON_GROUPS[activeIconTab] ?? {};
+  const catKeys = Object.keys(groups);
 
-  // 탭 헤더 + 클리어 + 카테고리들
+  // 활성 카테고리가 현재 탭에 없으면 'All'로 폴백
+  if (activeIconCategory && !catKeys.includes(activeIconCategory)) {
+    activeIconCategory = '';
+  }
+
+  // 탭 헤더
   const tabsHTML = Object.entries(ICON_TAB_NAMES).map(([key, name]) => `
-    <button class="icon-tab ${key === activeIconTab ? 'active' : ''}" data-tab="${key}">${name}</button>
+    <button type="button" class="icon-tab ${key === activeIconTab ? 'active' : ''}" data-tab="${key}">${name}</button>
   `).join('');
 
-  const categoriesHTML = Object.entries(groups).map(([cat, icons]) => `
-    <div class="icon-cat">
-      <div class="icon-cat-title">${cat}</div>
-      <div class="icon-grid">
-        ${icons.map((i) => `
-          <span class="icon-pick ${i === current ? 'sel' : ''}" data-icon="${i}">${i}</span>
-        `).join('')}
+  // 카테고리 필터 드롭다운
+  const catOptionsHTML = `<option value="">All</option>` + catKeys.map((cat) => {
+    const kr = ICON_CAT_NAMES_KR[cat] ?? '';
+    const label = kr ? `${cat} (${kr})` : cat;
+    return `<option value="${cat}" ${cat === activeIconCategory ? 'selected' : ''}>${label}</option>`;
+  }).join('');
+
+  // 카테고리 섹션들 (illustration 탭은 더 큰 타일 + 컬러 배경)
+  const isIllustration = activeIconTab === 'illustration';
+  const visibleCats = activeIconCategory ? [activeIconCategory] : catKeys;
+
+  const categoriesHTML = visibleCats.map((cat) => {
+    const icons = groups[cat] ?? [];
+    const collapsed = collapsedCategories.has(activeIconTab + ':' + cat);
+    const kr = ICON_CAT_NAMES_KR[cat];
+    return `
+      <div class="icon-cat ${collapsed ? 'collapsed' : ''}" data-cat="${cat}">
+        <div class="icon-cat-header" data-cat-toggle="${cat}">
+          <span class="cat-arrow">▾</span>
+          <span class="icon-cat-title">${cat}${kr ? ` <span class="cat-kr">${kr}</span>` : ''}</span>
+        </div>
+        <div class="icon-grid ${isIllustration ? 'illustration' : ''}">
+          ${icons.map((i) => `
+            <span class="icon-pick ${i === current ? 'sel' : ''}" data-icon="${i}" title="${i}">${i}</span>
+          `).join('')}
+        </div>
       </div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 
   $('modal-body').innerHTML = `
     <div class="icon-tabs">${tabsHTML}</div>
+
+    <div class="icon-toolbar">
+      <label class="icon-toolbar-label">Category</label>
+      <select class="fi icon-filter" id="icon-cat-filter">${catOptionsHTML}</select>
+    </div>
+
     <div class="icon-clear-row">
       <span class="icon-pick icon-clear ${!current ? 'sel' : ''}" data-icon="">
         🚫 아이콘 제거
       </span>
     </div>
+
     <div class="icon-cats">${categoriesHTML}</div>
   `;
 
@@ -298,7 +332,28 @@ function renderIconBody() {
   $('modal-body').querySelectorAll('.icon-tab').forEach((b) => {
     b.addEventListener('click', () => {
       activeIconTab = b.dataset.tab;
+      activeIconCategory = '';   // 탭 전환 시 필터 리셋
       renderIconBody();
+    });
+  });
+
+  // 카테고리 필터 드롭다운
+  $('icon-cat-filter').addEventListener('change', (e) => {
+    activeIconCategory = e.target.value;
+    renderIconBody();
+  });
+
+  // 카테고리 헤더 클릭 → 접기/펴기 토글
+  $('modal-body').querySelectorAll('.icon-cat-header').forEach((h) => {
+    h.addEventListener('click', () => {
+      const cat = h.dataset.catToggle;
+      const key = activeIconTab + ':' + cat;
+      if (collapsedCategories.has(key)) collapsedCategories.delete(key);
+      else                              collapsedCategories.add(key);
+      const wrap = h.closest('.icon-cat');
+      if (wrap) wrap.classList.toggle('collapsed');
+      const arrow = h.querySelector('.cat-arrow');
+      if (arrow) arrow.textContent = collapsedCategories.has(key) ? '▸' : '▾';
     });
   });
 
