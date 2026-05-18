@@ -566,26 +566,37 @@ export const ICON_CAT_NAMES_KR = {
 /**
  * 노드 다중 선택 헬퍼 — state.selectedIds와 state.selectedId를 일관되게 갱신.
  * 단일 선택은 selectedId에 반영하고, 다중일 땐 selectedId = null.
+ * 노드 선택이 변경되면 콜아웃/존 선택은 자동 해제 — 동시에 두 종류가 선택돼
+ * 시각 표시가 누적되는 것을 막음.
  */
 export function setNodeSelection(state, ids) {
   state.selectedIds = Array.isArray(ids) ? [...ids] : [];
   state.selectedId  = state.selectedIds.length === 1 ? state.selectedIds[0] : null;
+  state.selectedCalloutId = null;
+  state.selectedZoneId    = null;
 }
 
-/** 노드 선택 모두 해제 */
+/** 노드 선택 모두 해제 (콜아웃·존 선택도 함께 해제) */
 export function clearNodeSelection(state) {
   state.selectedIds = [];
   state.selectedId  = null;
+  state.selectedCalloutId = null;
+  state.selectedZoneId    = null;
 }
 
-/** 관계선 다중 선택 — selectedRelationIds와 selectedRelationId를 일관되게 갱신 */
+/** 관계선 다중 선택 — selectedRelationIds와 selectedRelationId를 일관되게 갱신.
+ *  마찬가지로 콜아웃/존 선택도 자동 해제. */
 export function setRelationSelection(state, ids) {
   state.selectedRelationIds = Array.isArray(ids) ? [...ids] : [];
   state.selectedRelationId  = state.selectedRelationIds.length === 1 ? state.selectedRelationIds[0] : null;
+  state.selectedCalloutId = null;
+  state.selectedZoneId    = null;
 }
 
-/** 관계선 선택 모두 해제 */
+/** 관계선 선택 모두 해제 (콜아웃·존 선택도 함께 해제) */
 export function clearRelationSelection(state) {
   state.selectedRelationIds = [];
   state.selectedRelationId  = null;
+  state.selectedCalloutId = null;
+  state.selectedZoneId    = null;
 }

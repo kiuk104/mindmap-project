@@ -5,7 +5,7 @@
 import { state } from './state.js';
 import { render } from './render.js';
 import { view, applyTransform } from './canvas.js';
-import { $ } from './utils.js';
+import { $, setNodeSelection } from './utils.js';
 import { expandAncestors } from './nodes.js';
 
 /** 검색어로 매칭되는 노드 ID 목록을 갱신하고 화면에 반영 */
@@ -83,8 +83,7 @@ function centerOnNode(nodeId) {
   view.py = wrap.clientHeight / 2 - node.y * view.sc;
   applyTransform();
 
-  state.selectedIds         = [nodeId];
-  state.selectedId          = nodeId;
+  setNodeSelection(state, [nodeId]);
   state.selectedRelationId  = null;
   render();
 }
