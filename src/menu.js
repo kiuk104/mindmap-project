@@ -6,6 +6,8 @@ import { state } from './state.js';
 import { render } from './render.js';
 import { addChild, deleteNode, startEdit, toggleCollapse } from './nodes.js';
 import { openLinkModal, openColorModal, openImageModal, openSaveModal, openNoteModal, openTasksModal } from './modal.js';
+import { addCallout } from './callouts.js';
+import { createZoneFromSelection } from './zones.js';
 import { openIconPanel } from './icon-panel.js';
 import { resetView } from './canvas.js';
 import { clearLocal } from './io.js';
@@ -55,6 +57,11 @@ export function showBgMenu(e) {
     delRelItem.textContent = count > 1
       ? `🗑️ 선택한 관계선 ${count}개 삭제 (Del)`
       : '🗑️ 선택한 관계선 삭제 (Del)';
+  }
+  // 다중 노드 선택 시에만 "존으로 묶기" 노출
+  const makeZoneItem = $('ctxbg-make-zone');
+  if (makeZoneItem) {
+    makeZoneItem.style.display = (state.selectedIds?.length >= 2) ? 'flex' : 'none';
   }
 
   positionMenu($('ctx-bg-menu'), e.clientX, e.clientY);
@@ -136,14 +143,9 @@ export function initContextMenu() {
     openTasksModal(state.ctxTargetId);
   });
 
-  // 콜아웃은 Phase 3에서 구현 — 일단 placeholder
   $('ctx-callout').addEventListener('click', () => {
     hideContextMenu();
-    if (typeof window.__addCallout === 'function') {
-      window.__addCallout(state.ctxTargetId);
-    } else {
-      alert('콜아웃 기능 준비 중입니다.');
-    }
+    addCallout(state.ctxTargetId);
   });
 
   $('ctx-relation').addEventListener('click', () => {
@@ -175,6 +177,10 @@ export function initContextMenu() {
   $('ctxbg-fit').addEventListener('click', () => {
     hideBgMenu();
     resetView();
+  });
+  $('ctxbg-make-zone').addEventListener('click', () => {
+    hideBgMenu();
+    createZoneFromSelection();
   });
   $('ctxbg-export').addEventListener('click', () => {
     hideBgMenu();

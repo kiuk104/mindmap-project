@@ -47,9 +47,11 @@ export function serialize() {
   return JSON.stringify({
     nodes: state.nodes,
     relations: state.relations ?? [],
+    callouts:  state.callouts  ?? [],
+    zones:     state.zones     ?? [],
     style: state.style,
     lineStyle: state.lineStyle,
-    version: 4,
+    version: 5,
   }, null, 2);
 }
 
@@ -64,10 +66,14 @@ export function loadFromString(jsonStr) {
     if (!data.nodes) throw new Error('nodes 없음');
     state.nodes              = data.nodes;
     state.relations          = Array.isArray(data.relations) ? data.relations : [];
+    state.callouts           = Array.isArray(data.callouts)  ? data.callouts  : [];
+    state.zones              = Array.isArray(data.zones)     ? data.zones     : [];
     state.selectedId          = null;
     state.selectedIds         = [];
     state.selectedRelationId  = null;
     state.selectedRelationIds = [];
+    state.selectedCalloutId   = null;
+    state.selectedZoneId      = null;
     state.relationDraft       = null;
     // 스타일/라인스타일 복원 (없으면 현재 값 유지)
     if (data.style && typeof data.style === 'object') {
@@ -124,10 +130,14 @@ export function restoreLocal() {
 
     state.nodes              = data.nodes;
     state.relations          = Array.isArray(data.relations) ? data.relations : [];
+    state.callouts           = Array.isArray(data.callouts)  ? data.callouts  : [];
+    state.zones              = Array.isArray(data.zones)     ? data.zones     : [];
     state.selectedId          = null;
     state.selectedIds         = [];
     state.selectedRelationId  = null;
     state.selectedRelationIds = [];
+    state.selectedCalloutId   = null;
+    state.selectedZoneId      = null;
     state.relationDraft       = null;
     return true;
   } catch {

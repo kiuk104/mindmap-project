@@ -76,6 +76,16 @@ export function deleteNode(id) {
   state.relations = state.relations.filter(
     (r) => !removed.has(r.fromId) && !removed.has(r.toId),
   );
+  // 삭제된 노드에 매달린 콜아웃도 제거
+  if (Array.isArray(state.callouts)) {
+    state.callouts = state.callouts.filter((c) => !removed.has(c.parentId));
+  }
+  // 존의 멤버에서도 제거
+  if (Array.isArray(state.zones)) {
+    state.zones = state.zones
+      .map((z) => ({ ...z, nodeIds: z.nodeIds.filter((id) => !removed.has(id)) }))
+      .filter((z) => z.nodeIds.length > 0);
+  }
 
   // 선택 목록에서 삭제된 ID 제거
   state.selectedIds = (state.selectedIds ?? []).filter((sid) => !removed.has(sid));

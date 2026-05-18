@@ -12,6 +12,18 @@ export const state = {
   /** @type {Relation[]} 임의 노드 간 관계선 (부모-자식 외) */
   relations: [],
 
+  /** @type {Callout[]} 콜아웃 — 노드에서 가지처럼 뻗어나가는 별도 텍스트 박스 */
+  callouts: [],
+
+  /** @type {Zone[]} 존 — 여러 노드를 묶어 시각적 영역으로 표시 */
+  zones: [],
+
+  /** 현재 선택된 콜아웃 ID */
+  selectedCalloutId: null,
+
+  /** 현재 선택된 존 ID */
+  selectedZoneId: null,
+
   /** @type {string|null} 현재 'primary' 선택 노드 (selectedIds[0] when single, else null) */
   selectedId: null,
 

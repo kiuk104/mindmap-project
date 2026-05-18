@@ -14,7 +14,11 @@ import { $, uid, makeNode, COLORS, setNodeSelection, clearNodeSelection, setRela
 import { showPreview, hidePreview }        from './preview.js';
 import { addChild, deleteNode, startEdit, removeLink, toggleCollapse, expandAncestors } from './nodes.js';
 import { initCanvas, view, applyTransform, resetView } from './canvas.js';
-import { onNodeMouseDown, onRelationHandleDown, onBranchHandleDown, consumePanDragFlag } from './canvas.js';
+import { onNodeMouseDown, onRelationHandleDown, onBranchHandleDown, consumePanDragFlag, canvasCoord } from './canvas.js';
+import { addCallout, deleteCallout, selectCallout, removeCalloutsByParents,
+         onCalloutPointerDown, onCalloutPointerMove, onCalloutPointerUp,
+         isCalloutDragging } from './callouts.js';
+import { deleteZone, renameZone, selectZone } from './zones.js';
 import { openLinkModal, openColorModal, openSaveModal, openDriveLoadModal, openGDocsPreviewModal, openNoteModal, closeModal, handleModalOK, applyStyle } from './modal.js';
 import { initSettingsPanel, toggleSettingsPanel, openSettingsPanel, closeSettingsPanel, isSettingsPanelOpen } from './settings-panel.js';
 import { registerShortcuts, dispatchKey } from './shortcuts.js';
@@ -66,7 +70,39 @@ registerHandlers({
     n.tasks[idx].done = checked;
     render();
   },
+  onCalloutPointerDown: (e, coId) => onCalloutPointerDown(e, coId, canvasCoord),
+  onCalloutEdit:        editCalloutInline,
+  onCalloutContextMenu: (e, coId) => {
+    // 간단히 confirm 기반 삭제. 추후 정식 메뉴로 확장 가능.
+    if (confirm('이 콜아웃을 삭제할까요?')) deleteCallout(coId);
+  },
+  onZoneClick:          selectZone,
+  onZoneRename:         renameZone,
+  onZoneContextMenu:    (e, zoneId) => {
+    const choice = prompt('존 동작: (1) 이름 바꾸기  (2) 삭제\n번호 입력:', '1');
+    if (choice === '1') renameZone(zoneId);
+    else if (choice === '2') deleteZone(zoneId);
+  },
 });
+
+/** 콜아웃 텍스트를 인라인으로 편집 */
+function editCalloutInline(coId) {
+  const co = state.callouts?.find((c) => c.id === coId);
+  if (!co) return;
+  const next = prompt('콜아웃 내용:', co.text ?? '');
+  if (next === null) return;
+  if (next === co.text) return;
+  pushHistory();
+  co.text = next;
+  render();
+}
+
+// 콜아웃 드래그를 위한 전역 pointermove/up 리스너
+document.addEventListener('pointermove', (e) => {
+  onCalloutPointerMove(e, canvasCoord);
+});
+document.addEventListener('pointerup',   () => { onCalloutPointerUp(); });
+document.addEventListener('pointercancel', () => { onCalloutPointerUp(); });
 
 // ── 매 render() 끝에: 자동 저장 + 패널 동기화 ──
 setPostRender(() => {
@@ -426,6 +462,10 @@ $('canvas-wrap').addEventListener('contextmenu', (e) => {
 
 // ── 단축키 액션 핸들러들 ──
 function actionDeleteSelected() {
+  // 콜아웃 / 존 단일 선택은 우선 처리
+  if (state.selectedCalloutId) { deleteCallout(state.selectedCalloutId); return; }
+  if (state.selectedZoneId)    { deleteZone(state.selectedZoneId);       return; }
+
   const selRels  = [...(state.selectedRelationIds ?? [])];
   const selNodes = [...state.selectedIds];
   const total = selRels.length + selNodes.length;
@@ -471,6 +511,8 @@ function actionEscape() {
   }
   clearNodeSelection(state);
   clearRelationSelection(state);
+  state.selectedCalloutId = null;
+  state.selectedZoneId    = null;
   render();
 }
 

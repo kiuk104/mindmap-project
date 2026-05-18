@@ -1135,6 +1135,45 @@ body.settings-panel-open #settings-panel { transform: translateX(0); }
 }
 .task-edit-row .task-edit-del:hover { color: #f85149; }
 
+/* ── 존(Zone) 박스 + 라벨 (SVG 요소) ── */
+#svg-layer .zone-box {
+  cursor: pointer;
+  transition: opacity 0.12s, stroke-width 0.12s;
+}
+#svg-layer .zone-box:hover { opacity: 0.85; }
+#svg-layer .zone-label {
+  cursor: pointer;
+  user-select: none;
+  pointer-events: all;
+}
+
+/* ── 콜아웃 (노드 옆 별도 메모 박스) ── */
+.callout {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  min-width: 80px;
+  max-width: 220px;
+  padding: 8px 12px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #1f2937;
+  background: #fde68a;
+  border: 1.5px solid rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+  cursor: move;
+  user-select: none;
+  word-break: break-word;
+  z-index: 5;
+}
+.callout:hover {
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25);
+}
+.callout.selected {
+  outline: 2px solid var(--accent, #1f6feb);
+  outline-offset: 2px;
+}
+
 /* ── 노드 임베드 이미지 ── */
 /* 래퍼: 노드 패딩을 음수 마진으로 무시하고 가장자리까지 확장.
    border-radius는 부모(.node)로부터 inherit 받아 상단 곡선과 자연스럽게 맞춤.

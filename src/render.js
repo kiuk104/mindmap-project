@@ -7,6 +7,7 @@
 
 import { state } from './state.js';
 import { $, linkIcon, linkDefault, lighten, LINE_WIDTHS, NODE_SIZES, NODE_SHAPES, NODE_BORDERS, NODE_OUTLINES, DASH_PATTERNS, getRelationControls, getBranchControls, computeHiddenIds, parentIdsSet } from './utils.js';
+import { getZoneBox } from './zones.js';
 import { isAssetIcon, assetIdToUrl } from './icon-assets.js';
 
 // main.js가 주입할 핸들러 (기본값은 빈 함수)
@@ -25,6 +26,12 @@ const H = {
   onGDocsClick:         null,
   onNoteClick:          null,
   onTaskToggle:         null,
+  onCalloutPointerDown: null,
+  onCalloutEdit:        null,
+  onCalloutContextMenu: null,
+  onZoneClick:          null,
+  onZoneRename:         null,
+  onZoneContextMenu:    null,
 };
 
 // 렌더 후에 호출되는 훅 (예: 자동 저장)
@@ -120,6 +127,36 @@ function buildSvgMarkup(hiddenIds) {
     </filter>
   </defs>`;
 
+  // ── 존(zone) 박스 — 모든 선·노드 뒤에 그려지도록 SVG 최하단 ──
+  if (Array.isArray(state.zones)) {
+    state.zones.forEach((z) => {
+      // 멤버 노드 중 숨겨지지 않은 것만 bbox 계산에 포함
+      const visibleMembers = (z.nodeIds ?? []).filter((id) => state.nodes[id] && !hiddenIds.has(id));
+      if (visibleMembers.length === 0) return;
+      const zoneForBbox = { ...z, nodeIds: visibleMembers };
+      const box = getZoneBox(zoneForBbox, (id) => {
+        const el = document.getElementById('nd-' + id);
+        return { w: el?.offsetWidth ?? 150, h: el?.offsetHeight ?? 44 };
+      });
+      if (!box) return;
+      const sel = state.selectedZoneId === z.id;
+      const stroke = sel ? 'var(--accent)' : 'rgba(255,255,255,0.18)';
+      const strokeWidth = sel ? 2 : 1.5;
+      h += `<rect class="zone-box" data-zone="${z.id}"
+        x="${box.x}" y="${box.y}" width="${box.w}" height="${box.h}"
+        rx="14" ry="14"
+        fill="${z.color || 'rgba(31,111,235,0.10)'}"
+        stroke="${stroke}" stroke-width="${strokeWidth}"
+        stroke-dasharray="${sel ? 'none' : '6 4'}"/>`;
+      if (z.label) {
+        h += `<text class="zone-label" data-zone="${z.id}"
+          x="${box.x + 14}" y="${box.y + 16}"
+          fill="${sel ? 'var(--accent)' : 'var(--text-bright,#e6edf3)'}"
+          font-size="12" font-weight="600">${escapeXml(z.label)}</text>`;
+      }
+    });
+  }
+
   // 부모-자식 연결선 (스타일에 따라 분기) — 숨겨진 노드 연결선은 스킵
   const style = state.lineStyle ?? 'straight';
   Object.values(state.nodes).forEach((n) => {
@@ -211,6 +248,24 @@ function buildSvgMarkup(hiddenIds) {
         cx="${c2.x}" cy="${c2.y}" r="6"/>`;
     }
   });
+
+  // ── 콜아웃 연결선 (부모 노드 → 콜아웃 박스) ──
+  // 콜아웃 본체 DOM은 캔버스 div에서, 연결선만 SVG로
+  if (Array.isArray(state.callouts)) {
+    state.callouts.forEach((co) => {
+      const p = state.nodes[co.parentId];
+      if (!p || hiddenIds.has(co.parentId)) return;
+      const tx = p.x + co.dx;
+      const ty = p.y + co.dy;
+      const sel = state.selectedCalloutId === co.id;
+      const strokeColor = sel ? 'var(--accent)' : 'var(--text-dim, #8b949e)';
+      const strokeWidth = sel ? 2 : 1.5;
+      h += `<path class="callout-link" data-co="${co.id}"
+        d="M ${p.x} ${p.y} Q ${(p.x + tx) / 2} ${p.y} ${tx} ${ty}"
+        fill="none" stroke="${strokeColor}" stroke-width="${strokeWidth}"
+        stroke-dasharray="2 5" stroke-linecap="round"/>`;
+    });
+  }
 
   // ── 단일 선택 노드의 부모-자식 곡선 핸들 (curved 스타일 + 부모 있음) ──
   if (state.lineStyle === 'curved' && state.selectedId) {
@@ -480,6 +535,36 @@ export function render() {
     canvas.appendChild(el);
   });
 
+  // ── 콜아웃 div 렌더 ──
+  if (Array.isArray(state.callouts)) {
+    state.callouts.forEach((co) => {
+      const p = state.nodes[co.parentId];
+      if (!p || hiddenIds.has(co.parentId)) return;
+      const box = document.createElement('div');
+      box.id = 'co-' + co.id;
+      box.className = 'callout' + (state.selectedCalloutId === co.id ? ' selected' : '');
+      box.style.left = (p.x + co.dx) + 'px';
+      box.style.top  = (p.y + co.dy) + 'px';
+      box.style.background = co.color || '#fde68a';
+      box.textContent = co.text || '';
+
+      // 이벤트 — 드래그/선택/편집은 H 핸들러로
+      box.addEventListener('pointerdown', (e) => {
+        if (H.onCalloutPointerDown) H.onCalloutPointerDown(e, co.id);
+      });
+      box.addEventListener('dblclick', (e) => {
+        e.stopPropagation();
+        if (H.onCalloutEdit) H.onCalloutEdit(co.id);
+      });
+      box.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (H.onCalloutContextMenu) H.onCalloutContextMenu(e, co.id);
+      });
+      canvas.appendChild(box);
+    });
+  }
+
   postRenderHook();
 }
 
@@ -515,6 +600,23 @@ function bindRelationHandlers(svg) {
     c.addEventListener('pointerdown', (e) => {
       e.stopPropagation();
       H.onBranchHandleDown(e, c.getAttribute('data-node'), c.getAttribute('data-handle'));
+    });
+  });
+  // 존 박스/라벨 — 클릭으로 선택, 우클릭으로 컨텍스트 메뉴
+  svg.querySelectorAll('[data-zone]').forEach((el) => {
+    el.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0) return;
+      e.stopPropagation();
+      if (H.onZoneClick) H.onZoneClick(el.getAttribute('data-zone'));
+    });
+    el.addEventListener('dblclick', (e) => {
+      e.stopPropagation();
+      if (H.onZoneRename) H.onZoneRename(el.getAttribute('data-zone'));
+    });
+    el.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (H.onZoneContextMenu) H.onZoneContextMenu(e, el.getAttribute('data-zone'));
     });
   });
 }
