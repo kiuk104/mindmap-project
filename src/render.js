@@ -7,6 +7,7 @@
 
 import { state } from './state.js';
 import { $, linkIcon, linkDefault, lighten, LINE_WIDTHS, NODE_SIZES, NODE_SHAPES, NODE_BORDERS, DASH_PATTERNS, getRelationControls, computeHiddenIds, parentIdsSet } from './utils.js';
+import { isAssetIcon, assetIdToUrl } from './icon-assets.js';
 
 // main.js가 주입할 핸들러 (기본값은 빈 함수)
 const H = {
@@ -272,10 +273,21 @@ export function render() {
       el.appendChild(img);
     }
 
-    // 텍스트 (아이콘이 있으면 앞에 표시)
+    // 텍스트 + 아이콘 — 자산 아이콘이면 <img>, 이모지면 텍스트 prefix
     const textDiv = document.createElement('div');
-    textDiv.className   = 'node-text';
-    textDiv.textContent = (n.icon ? n.icon + ' ' : '') + (n.text ?? '');
+    textDiv.className = 'node-text';
+    if (isAssetIcon(n.icon)) {
+      const iconImg = document.createElement('img');
+      iconImg.className = 'node-icon-img';
+      iconImg.src       = assetIdToUrl(n.icon);
+      iconImg.alt       = '';
+      iconImg.draggable = false;
+      iconImg.addEventListener('error', () => { iconImg.style.display = 'none'; });
+      textDiv.appendChild(iconImg);
+      textDiv.appendChild(document.createTextNode((n.text ?? '')));
+    } else {
+      textDiv.textContent = (n.icon ? n.icon + ' ' : '') + (n.text ?? '');
+    }
     el.appendChild(textDiv);
 
     // 링크 배지

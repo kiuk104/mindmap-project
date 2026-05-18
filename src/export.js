@@ -11,6 +11,7 @@
 
 import { state } from './state.js';
 import { lighten, computeHiddenIds, getRelationControls, DASH_PATTERNS, NODE_SIZES } from './utils.js';
+import { isAssetIcon, assetIdToUrl } from './icon-assets.js';
 
 /** XML 특수문자 이스케이프 */
 function escapeXml(s) {
@@ -166,7 +167,18 @@ export function buildExportSvg() {
         preserveAspectRatio="xMidYMid meet"/>`;
     }
 
-    const text = (n.icon ? n.icon + ' ' : '') + (n.text ?? '');
+    // 자산 아이콘은 노드 좌상단에 22px 마커로 (이모지는 텍스트 앞에 prefix됨)
+    const isAsset = isAssetIcon(n.icon);
+    if (isAsset) {
+      const iconUrl = assetIdToUrl(n.icon);
+      if (iconUrl) {
+        svg += `<image x="${nx + 6}" y="${ny + 6}" width="22" height="22"
+          href="${escapeXml(iconUrl)}"
+          preserveAspectRatio="xMidYMid meet"/>`;
+      }
+    }
+
+    const text = (n.icon && !isAsset ? n.icon + ' ' : '') + (n.text ?? '');
     const weight = ts.bold ? '700' : '400';
     const style  = ts.italic ? 'italic' : 'normal';
     const decoParts = [];

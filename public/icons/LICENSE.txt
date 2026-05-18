@@ -1,0 +1,16 @@
+# Icon Assets — Licenses
+
+This directory contains third-party icons fetched by `npm run icons`.
+
+## Sticker — Lucide
+- Source: https://lucide.dev/
+- License: ISC (https://github.com/lucide-icons/lucide/blob/main/LICENSE)
+- Lucide is a fork of Feather Icons (MIT).
+
+## Illustration — OpenMoji
+- Source: https://openmoji.org/
+- License: CC BY-SA 4.0
+- Attribution: "All emojis designed by OpenMoji – the open-source emoji and
+  icon project. License: CC BY-SA 4.0"
+
+When redistributing, keep this notice intact.

@@ -7,6 +7,7 @@
 import { state } from './state.js';
 import { render } from './render.js';
 import { $, FONT_FAMILIES, FONT_NAMES, currentPalette, linkIcon, linkDefault, ICON_GROUPS, ICON_TAB_NAMES, ICON_CAT_NAMES_KR } from './utils.js';
+import { ICON_ASSETS, assetIdToUrl } from './icon-assets.js';
 import { removeLink } from './nodes.js';
 import { doDownload, copyJsonToClipboard, defaultFilename, serialize, loadFromString } from './io.js';
 import { exportSvgFile, exportPngFile } from './export.js';
@@ -268,7 +269,12 @@ export function openIconModal(nodeId) {
 /** 아이콘 모달 본문 다시 그리기 (탭/카테고리 전환 시 호출) */
 function renderIconBody() {
   const current = state.nodes[state.ctxTargetId]?.icon ?? '';
-  const groups  = ICON_GROUPS[activeIconTab] ?? {};
+
+  // 데이터 소스 — Marker는 이모지 그룹, Sticker/Illustration은 자산 카탈로그
+  const isAssetTab = activeIconTab === 'sticker' || activeIconTab === 'illustration';
+  const groups = isAssetTab
+    ? (ICON_ASSETS[activeIconTab] ?? {})
+    : (ICON_GROUPS[activeIconTab]  ?? {});
   const catKeys = Object.keys(groups);
 
   // 활성 카테고리가 현재 탭에 없으면 'All'로 폴백
@@ -288,25 +294,44 @@ function renderIconBody() {
     return `<option value="${cat}" ${cat === activeIconCategory ? 'selected' : ''}>${label}</option>`;
   }).join('');
 
-  // 카테고리 섹션들 (illustration 탭은 더 큰 타일 + 컬러 배경)
+  // 카테고리 섹션들
   const isIllustration = activeIconTab === 'illustration';
+  const isSticker      = activeIconTab === 'sticker';
   const visibleCats = activeIconCategory ? [activeIconCategory] : catKeys;
 
   const categoriesHTML = visibleCats.map((cat) => {
-    const icons = groups[cat] ?? [];
+    const entries = groups[cat] ?? [];
     const collapsed = collapsedCategories.has(activeIconTab + ':' + cat);
     const kr = ICON_CAT_NAMES_KR[cat];
+
+    // 자산 탭: entries는 [{id, name, file}] — <img> 타일
+    // 이모지 탭: entries는 ['🔴', '🟠', ...] — 텍스트 타일
+    const tilesHTML = entries.map((entry) => {
+      if (isAssetTab) {
+        const fullId = 'asset:' + entry.id;
+        const url = assetIdToUrl(fullId);
+        return `
+          <span class="icon-pick asset-pick ${fullId === current ? 'sel' : ''}"
+            data-icon="${fullId}" title="${entry.name}">
+            <img src="${url}" alt="${entry.name}" draggable="false" />
+          </span>`;
+      }
+      return `
+        <span class="icon-pick ${entry === current ? 'sel' : ''}"
+          data-icon="${entry}" title="${entry}">${entry}</span>`;
+    }).join('');
+
+    const gridClass = 'icon-grid'
+      + (isIllustration ? ' illustration' : '')
+      + (isSticker      ? ' sticker'      : '');
+
     return `
       <div class="icon-cat ${collapsed ? 'collapsed' : ''}" data-cat="${cat}">
         <div class="icon-cat-header" data-cat-toggle="${cat}">
           <span class="cat-arrow">▾</span>
           <span class="icon-cat-title">${cat}${kr ? ` <span class="cat-kr">${kr}</span>` : ''}</span>
         </div>
-        <div class="icon-grid ${isIllustration ? 'illustration' : ''}">
-          ${icons.map((i) => `
-            <span class="icon-pick ${i === current ? 'sel' : ''}" data-icon="${i}" title="${i}">${i}</span>
-          `).join('')}
-        </div>
+        <div class="${gridClass}">${tilesHTML}</div>
       </div>
     `;
   }).join('');

@@ -747,6 +747,40 @@ body.style-panel-open #style-panel { transform: translateX(0); }
   .icon-filter { width: 160px; }
 }
 
+/* ── 노드 자산 아이콘 (Lucide / OpenMoji) ── */
+.node-icon-img {
+  width: 1.05em;
+  height: 1.05em;
+  vertical-align: -0.18em;
+  margin-right: 4px;
+  display: inline-block;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* 자산 아이콘 타일 (모달) — <img>를 감싸는 span */
+.icon-pick.asset-pick {
+  padding: 6px;
+}
+.icon-pick.asset-pick img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+/* Sticker (Lucide) 타일 — 작은 박스, 단색 아이콘 */
+.icon-grid.sticker {
+  grid-template-columns: repeat(6, 1fr);
+}
+.icon-grid.sticker .icon-pick.asset-pick {
+  background: var(--bg-input);
+  padding: 8px;
+}
+.icon-grid.sticker .icon-pick.asset-pick:hover {
+  background: var(--bg-hover);
+}
+
 /* ── 노드 임베드 이미지 ── */
 .node-image {
   display: block;

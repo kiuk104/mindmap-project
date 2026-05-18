@@ -18,6 +18,7 @@ npm install      # 최초 1회
 npm run dev      # 개발 서버 (http://localhost:5173)
 npm run build    # 배포용 빌드 → dist/
 npm run preview  # 빌드 결과물 미리보기
+npm run icons    # 아이콘 자산 재다운로드 (scripts/icon-manifest.mjs 수정 후 실행)
 ```
 
 배포: `main` 브랜치 푸시 시 GitHub Actions가 자동으로 GitHub Pages에 배포.
@@ -48,6 +49,7 @@ mindmap-project/
     ├── settings.js     # 전역 사용자 설정 (앱 테마·기본 폰트·관계선 기본값)
     ├── clipboard.js    # 내부 클립보드 (Ctrl+C/X/V — 노드 서브트리 복제)
     ├── export.js       # PNG/SVG 이미지 내보내기 (의존성 0)
+    ├── icon-assets.js  # ⚠️ 자동 생성 (scripts/fetch-icons.mjs) — Sticker·Illustration 카탈로그
     ├── drive.js        # 구글 드라이브 OAuth + 파일 API
     ├── config.js       # GOOGLE_CLIENT_ID 설정
     ├── preview.js      # 유튜브/이미지 호버 미리보기
@@ -199,6 +201,7 @@ main.js
 - [x] 키보드 트리 네비게이션 (↑↓ 형제, ← 부모, → 첫 자식)
 - [x] PNG/SVG 이미지 내보내기 (저장 모달 → 형식 선택)
 - [x] 노드 본문 이미지 임베드 (URL 또는 파일 업로드 → data URL)
+- [x] 외부 자산 아이콘 — Sticker (Lucide ISC) / Illustration (OpenMoji CC BY-SA 4.0)
 
 ## 다중 노드 일괄 작업
 - 셀렉트박스(좌클릭 드래그) 또는 Shift+클릭으로 다중 선택
