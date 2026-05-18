@@ -241,12 +241,17 @@ export function defaultStyle() {
 
 /** 링크 타입별 이모지 아이콘 */
 export function linkIcon(type) {
-  return { drive: '📄', youtube: '▶️', image: '🖼️', notion: 'N', url: '🔗' }[type] ?? '🔗';
+  return {
+    drive: '📁', gdocs: '📄', youtube: '▶️', image: '🖼️', notion: 'N', url: '🔗',
+  }[type] ?? '🔗';
 }
 
 /** 링크 타입별 기본 라벨 */
 export function linkDefault(type) {
-  return { drive: 'Drive', youtube: 'YouTube', image: '이미지', notion: 'Notion', url: '링크' }[type] ?? '링크';
+  return {
+    drive: 'Drive', gdocs: 'Google Docs', youtube: 'YouTube',
+    image: '이미지', notion: 'Notion', url: '링크',
+  }[type] ?? '링크';
 }
 
 /** URL 문자열에서 어떤 link type인지 자동 감지 */
@@ -254,10 +259,29 @@ export function detectLinkType(url) {
   if (!url) return 'url';
   const u = url.toLowerCase();
   if (/^https?:\/\/(www\.)?(notion\.so|notion\.site)/.test(u)) return 'notion';
-  if (/^https?:\/\/(www\.)?(drive\.google\.com|docs\.google\.com|sheets\.google\.com|slides\.google\.com)/.test(u)) return 'drive';
+  // Google Workspace 문서 — Docs/Sheets/Slides는 모두 docs.google.com 도메인
+  if (/^https?:\/\/docs\.google\.com\/(document|spreadsheets|presentation)\//.test(u)) return 'gdocs';
+  // 일반 Drive (파일·폴더 공유 등)
+  if (/^https?:\/\/(www\.)?drive\.google\.com/.test(u)) return 'drive';
   if (/^https?:\/\/(www\.)?(youtube\.com|youtu\.be)/.test(u)) return 'youtube';
   if (/\.(png|jpe?g|gif|webp|svg|bmp)(\?|$)/.test(u)) return 'image';
   return 'url';
+}
+
+/**
+ * Google Docs/Sheets/Slides URL을 iframe 임베드 가능한 /preview URL로 변환.
+ * 예: .../document/d/{ID}/edit → .../document/d/{ID}/preview
+ *     .../spreadsheets/d/{ID}/edit → .../spreadsheets/d/{ID}/preview
+ *     .../presentation/d/{ID}/edit → .../presentation/d/{ID}/preview
+ *
+ * Google이 /preview 엔드포인트에 iframe 임베드를 허용 (편집 불가, 읽기 전용).
+ * @returns {string|null} 변환된 URL, 또는 매칭 실패 시 null
+ */
+export function googleDocsPreviewUrl(url) {
+  if (!url) return null;
+  const m = url.match(/^(https?:\/\/docs\.google\.com\/(?:document|spreadsheets|presentation)\/d\/[a-zA-Z0-9_-]+)(?:\/(?:edit|view|preview|pub|htmlview))?(?:[?#].*)?$/);
+  if (!m) return null;
+  return m[1] + '/preview';
 }
 
 /**

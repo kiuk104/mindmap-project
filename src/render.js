@@ -22,6 +22,7 @@ const H = {
   onRelationHandleDown: () => {},
   onBranchHandleDown:   () => {},
   onToggleCollapse:     () => {},
+  onGDocsClick:         null,
 };
 
 // 렌더 후에 호출되는 훅 (예: 자동 저장)
@@ -363,7 +364,16 @@ export function render() {
         badge.target     = '_blank';
         badge.rel        = 'noopener noreferrer';
         badge.textContent = linkIcon(link.type) + ' ' + (link.label || linkDefault(link.type));
-        badge.onclick = (e) => e.stopPropagation();
+        badge.onclick = (e) => {
+          // gdocs 타입은 새 탭 대신 iframe 미리보기 모달로
+          if (link.type === 'gdocs' && H.onGDocsClick) {
+            e.preventDefault();
+            e.stopPropagation();
+            H.onGDocsClick(link.url);
+            return;
+          }
+          e.stopPropagation();
+        };
 
         // 이미지/유튜브 호버 미리보기
         if (link.type === 'image' || link.type === 'youtube') {

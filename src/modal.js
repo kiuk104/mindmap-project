@@ -6,7 +6,7 @@
 
 import { state } from './state.js';
 import { render } from './render.js';
-import { $, FONT_FAMILIES, FONT_NAMES, currentPalette, linkIcon, linkDefault, resolvePalette, COLOR_THEMES, composeFontFamily, ENGLISH_FONTS, ENGLISH_FONT_NAMES, KOREAN_FONTS, KOREAN_FONT_NAMES, DASH_NAMES, detectLinkType } from './utils.js';
+import { $, FONT_FAMILIES, FONT_NAMES, currentPalette, linkIcon, linkDefault, resolvePalette, COLOR_THEMES, composeFontFamily, ENGLISH_FONTS, ENGLISH_FONT_NAMES, KOREAN_FONTS, KOREAN_FONT_NAMES, DASH_NAMES, detectLinkType, googleDocsPreviewUrl } from './utils.js';
 import { removeLink } from './nodes.js';
 import { doDownload, copyJsonToClipboard, defaultFilename, serialize, loadFromString } from './io.js';
 import { exportSvgFile, exportPngFile } from './export.js';
@@ -72,7 +72,8 @@ export function openLinkModal(nodeId) {
     <div class="fg">
       <label class="fl">링크 종류</label>
       <select class="fi" id="lk-type">
-        <option value="drive">📄 구글 드라이브 문서</option>
+        <option value="gdocs">📄 Google Docs / Sheets / Slides</option>
+        <option value="drive">📁 구글 드라이브 (파일·폴더)</option>
         <option value="youtube">▶️ 유튜브 영상</option>
         <option value="notion">📝 노션 페이지</option>
         <option value="image">🖼️ 이미지 URL</option>
@@ -117,7 +118,8 @@ export function openLinkModal(nodeId) {
 
 function updateLinkPlaceholder() {
   const placeholders = {
-    drive:   'https://drive.google.com/file/d/...',
+    gdocs:   'https://docs.google.com/document|spreadsheets|presentation/d/...',
+    drive:   'https://drive.google.com/file/d/... 또는 /folders/...',
     youtube: 'https://www.youtube.com/watch?v=...',
     notion:  'https://www.notion.so/... 또는 https://...notion.site/...',
     image:   'https://example.com/photo.jpg',
@@ -264,6 +266,38 @@ function formatTime(iso) {
 // 아이콘 선택 UI는 icon-panel.js로 이전됨 — 여기는 비워둠
 
 
+
+/**
+ * Google Docs/Sheets/Slides iframe 미리보기 모달.
+ * /preview URL을 임베드 — 읽기 전용이지만 본문이 그대로 보임.
+ * "새 탭에서 열기" 버튼으로 원본 URL을 새 창에서 띄울 수 있음.
+ */
+export function openGDocsPreviewModal(url) {
+  const previewUrl = googleDocsPreviewUrl(url);
+  if (!previewUrl) {
+    // 폴백 — 그냥 새 탭으로
+    window.open(url, '_blank', 'noopener,noreferrer');
+    return;
+  }
+  state.modalKind = 'gdocs-preview';
+  $('modal-title').textContent = '📄 Google Docs 미리보기';
+  $('modal-body').innerHTML = `
+    <div class="fg" style="display:flex; align-items:center; gap:8px; font-size:11px; color:#8b949e;">
+      <span>읽기 전용 임베드</span>
+      <a href="${escapeHTML(url)}" target="_blank" rel="noopener"
+        style="margin-left:auto; color:var(--accent); font-size:11px;">
+        ↗ 새 탭에서 열기
+      </a>
+    </div>
+    <iframe src="${escapeHTML(previewUrl)}"
+      class="gdocs-iframe"
+      title="Google Docs preview"
+      loading="lazy"
+      referrerpolicy="no-referrer"
+      sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>
+  `;
+  showModal();
+}
 
 // 이미지 모달 상태 — 모달 인스턴스 단위로 관리
 let imageDraft = { url: null, sourceTab: 'url' };
