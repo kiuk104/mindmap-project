@@ -93,13 +93,13 @@ function buildBody() {
     </section>
 
     <section class="sp-section">
-      <div class="sp-section-title">✨ 노드 드롭 섀도우</div>
+      <div class="sp-section-title">✨ 드롭 섀도우</div>
       <label class="sp-check" style="display:flex; align-items:center; gap:8px; cursor:pointer;">
         <input type="checkbox" id="stp-shadow" ${s.nodeShadow !== false ? 'checked' : ''} />
-        <span>노드에 그림자 표시</span>
+        <span>노드·말풍선에 그림자 표시</span>
       </label>
       <div style="font-size:11px; color:#8b949e; margin-top:6px;">
-        모든 노드에 즉시 적용됩니다. 끄면 미니멀한 플랫 룩.
+        모든 노드와 콜아웃(말풍선)에 즉시 적용됩니다. 끄면 미니멀한 플랫 룩.
       </div>
     </section>
 
