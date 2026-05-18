@@ -1147,31 +1147,81 @@ body.settings-panel-open #settings-panel { transform: translateX(0); }
   pointer-events: all;
 }
 
-/* ── 콜아웃 (노드 옆 별도 메모 박스) ── */
+/* ── 콜아웃 — 말풍선 (Speech Bubble) ──
+   - .callout 본체: 둥근 사각형 + drop-shadow (테두리 X — 꼬리와 매끈한 연결)
+   - ::before: 부모 향한 꼬리 (CSS border 트릭 삼각형, --co-bg를 채움 색으로) */
 .callout {
   position: absolute;
   transform: translate(-50%, -50%);
   min-width: 80px;
   max-width: 220px;
-  padding: 8px 12px;
+  padding: 9px 13px;
   font-size: 12px;
   line-height: 1.4;
   color: #1f2937;
   background: #fde68a;
-  border: 1.5px solid rgba(0, 0, 0, 0.15);
-  border-radius: 8px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+  border-radius: 12px;
+  box-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.08),
+    0 4px 12px rgba(0, 0, 0, 0.22);
   cursor: move;
   user-select: none;
   word-break: break-word;
   z-index: 5;
 }
 .callout:hover {
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25);
+  box-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.08),
+    0 6px 16px rgba(0, 0, 0, 0.3);
 }
 .callout.selected {
   outline: 2px solid var(--accent, #1f6feb);
-  outline-offset: 2px;
+  outline-offset: 3px;
+}
+
+/* 꼬리(triangle) — 부모 방향으로 한 변이 박스 모서리에 붙어 있도록 */
+.callout::before {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 0;
+  border: 10px solid transparent;
+}
+.callout[data-tail="left"]::before {
+  left: -18px;
+  top: 50%;
+  margin-top: -10px;
+  border-right-color: var(--co-bg, #fde68a);
+  border-right-width: 14px;
+  border-left: 0;
+  filter: drop-shadow(-2px 0 1px rgba(0,0,0,0.05));
+}
+.callout[data-tail="right"]::before {
+  right: -18px;
+  top: 50%;
+  margin-top: -10px;
+  border-left-color: var(--co-bg, #fde68a);
+  border-left-width: 14px;
+  border-right: 0;
+  filter: drop-shadow(2px 0 1px rgba(0,0,0,0.05));
+}
+.callout[data-tail="top"]::before {
+  top: -18px;
+  left: 50%;
+  margin-left: -10px;
+  border-bottom-color: var(--co-bg, #fde68a);
+  border-bottom-width: 14px;
+  border-top: 0;
+  filter: drop-shadow(0 -2px 1px rgba(0,0,0,0.05));
+}
+.callout[data-tail="bottom"]::before {
+  bottom: -18px;
+  left: 50%;
+  margin-left: -10px;
+  border-top-color: var(--co-bg, #fde68a);
+  border-top-width: 14px;
+  border-bottom: 0;
+  filter: drop-shadow(0 2px 1px rgba(0,0,0,0.05));
 }
 
 /* ── 노드 임베드 이미지 ── */

@@ -249,23 +249,7 @@ function buildSvgMarkup(hiddenIds) {
     }
   });
 
-  // ── 콜아웃 연결선 (부모 노드 → 콜아웃 박스) ──
-  // 콜아웃 본체 DOM은 캔버스 div에서, 연결선만 SVG로
-  if (Array.isArray(state.callouts)) {
-    state.callouts.forEach((co) => {
-      const p = state.nodes[co.parentId];
-      if (!p || hiddenIds.has(co.parentId)) return;
-      const tx = p.x + co.dx;
-      const ty = p.y + co.dy;
-      const sel = state.selectedCalloutId === co.id;
-      const strokeColor = sel ? 'var(--accent)' : 'var(--text-dim, #8b949e)';
-      const strokeWidth = sel ? 2 : 1.5;
-      h += `<path class="callout-link" data-co="${co.id}"
-        d="M ${p.x} ${p.y} Q ${(p.x + tx) / 2} ${p.y} ${tx} ${ty}"
-        fill="none" stroke="${strokeColor}" stroke-width="${strokeWidth}"
-        stroke-dasharray="2 5" stroke-linecap="round"/>`;
-    });
-  }
+  // 콜아웃은 CSS ::before로 말풍선 꼬리를 그리므로 SVG 연결선을 별도로 그리지 않음
 
   // ── 단일 선택 노드의 부모-자식 곡선 핸들 (curved 스타일 + 부모 있음) ──
   if (state.lineStyle === 'curved' && state.selectedId) {
@@ -535,17 +519,30 @@ export function render() {
     canvas.appendChild(el);
   });
 
-  // ── 콜아웃 div 렌더 ──
+  // ── 콜아웃 div 렌더 (말풍선 모양) ──
   if (Array.isArray(state.callouts)) {
     state.callouts.forEach((co) => {
       const p = state.nodes[co.parentId];
       if (!p || hiddenIds.has(co.parentId)) return;
+
+      // 꼬리 방향 — 부모와의 dx/dy 우세 축에 따라 4방향
+      let tail;
+      if (Math.abs(co.dx) >= Math.abs(co.dy)) {
+        tail = co.dx > 0 ? 'left' : 'right';   // 콜아웃이 부모 우측이면 꼬리는 왼쪽으로 (부모 향함)
+      } else {
+        tail = co.dy > 0 ? 'top' : 'bottom';
+      }
+
       const box = document.createElement('div');
       box.id = 'co-' + co.id;
       box.className = 'callout' + (state.selectedCalloutId === co.id ? ' selected' : '');
+      box.dataset.tail = tail;
       box.style.left = (p.x + co.dx) + 'px';
       box.style.top  = (p.y + co.dy) + 'px';
-      box.style.background = co.color || '#fde68a';
+      // 배경색을 CSS 변수로 전달 — ::before(꼬리)가 같은 색을 가져감
+      const bgColor = co.color || '#fde68a';
+      box.style.background = bgColor;
+      box.style.setProperty('--co-bg', bgColor);
       box.textContent = co.text || '';
 
       // 이벤트 — 드래그/선택/편집은 H 핸들러로
