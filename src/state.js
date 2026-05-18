@@ -57,6 +57,7 @@ export const state = {
     font: 'default',
     fontEn: null,         // null = font 프리셋 사용, 값이 있으면 영문 전용 글리프 폰트
     fontKr: null,         // null = font 프리셋 사용, 값이 있으면 한글 전용 글리프 폰트
+    curveStrength: 0.5,   // 'curved' lineStyle일 때 곡률 (0=직선에 가까움, 0.5=기본, 1=강한 S)
   },
 };
 

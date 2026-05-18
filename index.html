@@ -306,6 +306,14 @@
           <option value="curved">⌒ 곡선</option>
           <option value="stepped">⌐ 직각</option>
         </select>
+        <div id="sp-curve-row" hidden style="margin-top:10px;">
+          <div class="sp-mini-label" style="display:flex; justify-content:space-between;">
+            <span>커브 강도</span>
+            <span id="sp-curve-val" style="color:var(--text-bright); font-weight:600;">0.50</span>
+          </div>
+          <input type="range" id="sp-curve-strength" class="fi"
+            min="0" max="1" step="0.05" value="0.5" style="padding:0;" />
+        </div>
       </section>
 
       <section class="sp-section">

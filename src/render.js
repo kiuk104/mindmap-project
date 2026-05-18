@@ -81,8 +81,13 @@ function renderParentLine(p, n, style) {
   const styleAttr = `style="${css}"`;
 
   if (style === 'curved') {
-    const midX = (p.x + n.x) / 2;
-    return `<path class="parent-line" ${styleAttr} d="M ${p.x} ${p.y} C ${midX} ${p.y} ${midX} ${n.y} ${n.x} ${n.y}"/>`;
+    // 곡률 strength: 0=직선에 가까움, 0.5=기본 S-curve, 1=강한 S
+    // 두 control point의 X 위치를 endpoint→반대편 방향으로 strength만큼 이동
+    const strength = Math.max(0, Math.min(1, state.style?.curveStrength ?? 0.5));
+    const dx  = n.x - p.x;
+    const c1x = p.x + dx * strength;
+    const c2x = n.x - dx * strength;
+    return `<path class="parent-line" ${styleAttr} d="M ${p.x} ${p.y} C ${c1x} ${p.y} ${c2x} ${n.y} ${n.x} ${n.y}"/>`;
   }
   if (style === 'stepped') {
     const midX = (p.x + n.x) / 2;

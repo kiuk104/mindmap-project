@@ -81,6 +81,13 @@ function syncControlsFromState() {
   $('sp-linewidth').value   = s.lineWidth;
   $('sp-colored').checked   = !!s.coloredBranch;
 
+  // 커브 강도 — lineStyle === 'curved'일 때만 행 노출
+  const isCurved = state.lineStyle === 'curved';
+  if ($('sp-curve-row')) $('sp-curve-row').hidden = !isCurved;
+  const cs = s.curveStrength ?? 0.5;
+  if ($('sp-curve-strength')) $('sp-curve-strength').value = String(cs);
+  if ($('sp-curve-val'))      $('sp-curve-val').textContent = Number(cs).toFixed(2);
+
   syncSelectedNodeSection();
 }
 
@@ -417,9 +424,25 @@ export function initStylePanel() {
   $('sp-linestyle').addEventListener('change', (e) => {
     pushHistory();
     state.lineStyle = e.target.value;
+    // 커브 강도 행은 'curved'일 때만 표시
+    if ($('sp-curve-row')) $('sp-curve-row').hidden = state.lineStyle !== 'curved';
     persist();
     render();
     _onStyleApplied?.();
+  });
+
+  // ── 커브 강도 (curved일 때만 의미) ──
+  // 드래그 중에는 미리보기, change에서 history push (style-panel의 다른 컬러 슬라이더와 동일 패턴)
+  $('sp-curve-strength')?.addEventListener('input', (e) => {
+    const v = Number(e.target.value);
+    state.style.curveStrength = v;
+    if ($('sp-curve-val')) $('sp-curve-val').textContent = v.toFixed(2);
+    render();
+  });
+  $('sp-curve-strength')?.addEventListener('change', (e) => {
+    pushHistory();
+    state.style.curveStrength = Number(e.target.value);
+    persist();
   });
 
   // ── 라인 두께 ──
