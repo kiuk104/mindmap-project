@@ -241,12 +241,23 @@ export function defaultStyle() {
 
 /** 링크 타입별 이모지 아이콘 */
 export function linkIcon(type) {
-  return { drive: '📄', youtube: '▶️', image: '🖼️', url: '🔗' }[type] ?? '🔗';
+  return { drive: '📄', youtube: '▶️', image: '🖼️', notion: 'N', url: '🔗' }[type] ?? '🔗';
 }
 
 /** 링크 타입별 기본 라벨 */
 export function linkDefault(type) {
-  return { drive: 'Drive', youtube: 'YouTube', image: '이미지', url: '링크' }[type] ?? '링크';
+  return { drive: 'Drive', youtube: 'YouTube', image: '이미지', notion: 'Notion', url: '링크' }[type] ?? '링크';
+}
+
+/** URL 문자열에서 어떤 link type인지 자동 감지 */
+export function detectLinkType(url) {
+  if (!url) return 'url';
+  const u = url.toLowerCase();
+  if (/^https?:\/\/(www\.)?(notion\.so|notion\.site)/.test(u)) return 'notion';
+  if (/^https?:\/\/(www\.)?(drive\.google\.com|docs\.google\.com|sheets\.google\.com|slides\.google\.com)/.test(u)) return 'drive';
+  if (/^https?:\/\/(www\.)?(youtube\.com|youtu\.be)/.test(u)) return 'youtube';
+  if (/\.(png|jpe?g|gif|webp|svg|bmp)(\?|$)/.test(u)) return 'image';
+  return 'url';
 }
 
 /**

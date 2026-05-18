@@ -237,6 +237,7 @@ body.style-panel-open #canvas-wrap { right: 320px; }
 .lbadge:hover    { filter: brightness(1.2); }
 .lbadge.drive    { background: #1a73e8; color: #fff; }
 .lbadge.youtube  { background: #ff0000; color: #fff; }
+.lbadge.notion   { background: #2f3437; color: #fff; }
 .lbadge.image    { background: #188038; color: #fff; }
 .lbadge.url      { background: #444c56; color: #e6edf3; }
 .lbadge-del {

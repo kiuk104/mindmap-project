@@ -6,7 +6,7 @@
 
 import { state } from './state.js';
 import { render } from './render.js';
-import { $, FONT_FAMILIES, FONT_NAMES, currentPalette, linkIcon, linkDefault, resolvePalette, COLOR_THEMES, composeFontFamily, ENGLISH_FONTS, ENGLISH_FONT_NAMES, KOREAN_FONTS, KOREAN_FONT_NAMES, DASH_NAMES } from './utils.js';
+import { $, FONT_FAMILIES, FONT_NAMES, currentPalette, linkIcon, linkDefault, resolvePalette, COLOR_THEMES, composeFontFamily, ENGLISH_FONTS, ENGLISH_FONT_NAMES, KOREAN_FONTS, KOREAN_FONT_NAMES, DASH_NAMES, detectLinkType } from './utils.js';
 import { removeLink } from './nodes.js';
 import { doDownload, copyJsonToClipboard, defaultFilename, serialize, loadFromString } from './io.js';
 import { exportSvgFile, exportPngFile } from './export.js';
@@ -74,6 +74,7 @@ export function openLinkModal(nodeId) {
       <select class="fi" id="lk-type">
         <option value="drive">📄 구글 드라이브 문서</option>
         <option value="youtube">▶️ 유튜브 영상</option>
+        <option value="notion">📝 노션 페이지</option>
         <option value="image">🖼️ 이미지 URL</option>
         <option value="url">🔗 일반 URL</option>
       </select>
@@ -91,6 +92,18 @@ export function openLinkModal(nodeId) {
   // 링크 종류 변경 시 placeholder 업데이트
   $('lk-type').addEventListener('change', updateLinkPlaceholder);
 
+  // URL 입력 시 — 패턴이 명확히 매칭되면 종류 자동 선택 (사용자가 이미 직접 선택했으면 존중)
+  let typeManuallySet = false;
+  $('lk-type').addEventListener('change', () => { typeManuallySet = true; });
+  $('lk-url').addEventListener('input', (e) => {
+    if (typeManuallySet) return;
+    const detected = detectLinkType(e.target.value.trim());
+    if (detected && detected !== 'url' && $('lk-type').value !== detected) {
+      $('lk-type').value = detected;
+      updateLinkPlaceholder();
+    }
+  });
+
   // 기존 링크 삭제 버튼
   $('modal-body').querySelectorAll('[data-node]').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -106,6 +119,7 @@ function updateLinkPlaceholder() {
   const placeholders = {
     drive:   'https://drive.google.com/file/d/...',
     youtube: 'https://www.youtube.com/watch?v=...',
+    notion:  'https://www.notion.so/... 또는 https://...notion.site/...',
     image:   'https://example.com/photo.jpg',
     url:     'https://example.com',
   };
