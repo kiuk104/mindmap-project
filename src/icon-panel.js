@@ -215,15 +215,24 @@ function renderBody() {
     render();
   });
 
-  // 아이콘 색 — input은 미리보기, change에서만 history push (style-panel 패턴)
+  // 아이콘 색 — input은 픽커가 열린 동안 빈번하게 발사됨.
+  //   render() → postRender → renderBody가 innerHTML을 통째로 갈아치우면
+  //   <input type="color"> 엘리먼트가 파괴되고 OS 네이티브 픽커 다이얼로그가
+  //   참조를 잃어 즉시 닫혀버린다.
+  //   해결: input 도중에는 캔버스 sticker span만 직접 업데이트하고 render() 회피.
+  //         change 시점(픽커 닫힘 후)에 한 번만 history push + 전체 render.
   $('ip-icon-color')?.addEventListener('input', (e) => {
     const ids2 = targetNodeIds();
     if (!ids2.length) return;
+    const color = e.target.value;
     ids2.forEach((id) => {
-      if (state.nodes[id]) state.nodes[id].iconColor = e.target.value;
+      const node = state.nodes[id];
+      if (!node) return;
+      node.iconColor = color;
+      const span = document.querySelector(`#nd-${id} .node-icon-sticker`);
+      if (span) span.style.color = color;
     });
     delete e.target.dataset.reset;
-    render();
   });
   $('ip-icon-color')?.addEventListener('change', (e) => {
     const ids2 = targetNodeIds();
@@ -232,6 +241,7 @@ function renderBody() {
     ids2.forEach((id) => {
       if (state.nodes[id]) state.nodes[id].iconColor = e.target.value;
     });
+    render();
   });
   $('ip-icon-color-reset')?.addEventListener('click', () => {
     const ids2 = targetNodeIds();
