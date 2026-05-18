@@ -110,6 +110,7 @@ export function makeNode(id, text, x, y, parentId, color) {
     icon: '',
     collapsed: false,    // true면 하위 트리 숨김
     image: null,         // {url, fit, height} 또는 null. url은 http(s) 또는 data:image/* 가능
+    iconColor: null,     // Sticker(단색 SVG) 아이콘 색 오버라이드. null = 노드 텍스트 색 사용
     textStyle: {
       bold: false, italic: false, underline: false, strikethrough: false,
       size: 'medium',   // 'small' | 'medium' | 'large'

@@ -284,17 +284,28 @@ export function render() {
       el.appendChild(wrap);
     }
 
-    // 텍스트 + 아이콘 — 자산이면 <img>, 이모지면 <span>(둘 다 1.4em으로 키움)
+    // 텍스트 + 아이콘 — Sticker는 mask span(컬러 변경 가능), Illustration은 <img>, 이모지는 <span>
     const textDiv = document.createElement('div');
     textDiv.className = 'node-text';
     if (isAssetIcon(n.icon)) {
-      const iconImg = document.createElement('img');
-      iconImg.className = 'node-icon-img';
-      iconImg.src       = assetIdToUrl(n.icon);
-      iconImg.alt       = '';
-      iconImg.draggable = false;
-      iconImg.addEventListener('error', () => { iconImg.style.display = 'none'; });
-      textDiv.appendChild(iconImg);
+      const url = assetIdToUrl(n.icon);
+      if (n.icon.startsWith('asset:sticker/')) {
+        // 단색 Lucide — mask로 색을 자유롭게
+        const span = document.createElement('span');
+        span.className = 'node-icon-sticker';
+        span.style.setProperty('--mask-url', `url("${url}")`);
+        if (n.iconColor) span.style.color = n.iconColor;
+        textDiv.appendChild(span);
+      } else {
+        // Illustration — 풀컬러 <img>
+        const iconImg = document.createElement('img');
+        iconImg.className = 'node-icon-img';
+        iconImg.src       = url;
+        iconImg.alt       = '';
+        iconImg.draggable = false;
+        iconImg.addEventListener('error', () => { iconImg.style.display = 'none'; });
+        textDiv.appendChild(iconImg);
+      }
       textDiv.appendChild(document.createTextNode((n.text ?? '')));
     } else if (n.icon) {
       const iconSpan = document.createElement('span');

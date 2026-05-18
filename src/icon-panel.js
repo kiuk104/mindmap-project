@@ -87,6 +87,19 @@ function renderBody() {
 
   const currentChip = renderCurrentChip(current);
 
+  // 아이콘이 Sticker(단색 SVG)일 때만 컬러 픽커 노출
+  const isStickerNow = isAssetIcon(current) && current.startsWith('asset:sticker/');
+  const currentColor = primary?.iconColor ?? '#8b949e';
+  const colorRow = isStickerNow ? `
+    <div class="ip-color-row">
+      <span class="sp-mini-label">아이콘 색</span>
+      <input type="color" id="ip-icon-color" class="sp-color-input"
+        value="${currentColor}" ${primary?.iconColor ? '' : 'data-reset="1"'} />
+      <button type="button" class="btn btn-ghost ip-clear" id="ip-icon-color-reset"
+        title="노드 텍스트 색을 따름">자동</button>
+    </div>
+  ` : '';
+
   // 카테고리 섹션들
   const isIllustration = activeTab === 'illustration';
   const isSticker      = activeTab === 'sticker';
@@ -135,6 +148,7 @@ function renderBody() {
         <button type="button" class="btn btn-ghost ip-clear" id="ip-clear-btn"
           ${current ? '' : 'disabled'}>아이콘 제거</button>
       </div>
+      ${colorRow}
     </div>
 
     <div class="icon-tabs">${tabsHTML}</div>
@@ -197,6 +211,34 @@ function renderBody() {
     pushHistory();
     ids2.forEach((id) => {
       if (state.nodes[id]) state.nodes[id].icon = '';
+    });
+    render();
+  });
+
+  // 아이콘 색 — input은 미리보기, change에서만 history push (style-panel 패턴)
+  $('ip-icon-color')?.addEventListener('input', (e) => {
+    const ids2 = targetNodeIds();
+    if (!ids2.length) return;
+    ids2.forEach((id) => {
+      if (state.nodes[id]) state.nodes[id].iconColor = e.target.value;
+    });
+    delete e.target.dataset.reset;
+    render();
+  });
+  $('ip-icon-color')?.addEventListener('change', (e) => {
+    const ids2 = targetNodeIds();
+    if (!ids2.length) return;
+    pushHistory();
+    ids2.forEach((id) => {
+      if (state.nodes[id]) state.nodes[id].iconColor = e.target.value;
+    });
+  });
+  $('ip-icon-color-reset')?.addEventListener('click', () => {
+    const ids2 = targetNodeIds();
+    if (!ids2.length) return;
+    pushHistory();
+    ids2.forEach((id) => {
+      if (state.nodes[id]) state.nodes[id].iconColor = null;
     });
     render();
   });
