@@ -244,15 +244,16 @@ export function defaultStyle() {
 /** 링크 타입별 이모지 아이콘 */
 export function linkIcon(type) {
   return {
-    drive: '📁', gdocs: '📄', youtube: '▶️', image: '🖼️', notion: 'N', url: '🔗',
+    drive: '📁', gdocs: '📄', gphotos: '📷', youtube: '▶️',
+    image: '🖼️', notion: 'N', url: '🔗',
   }[type] ?? '🔗';
 }
 
 /** 링크 타입별 기본 라벨 */
 export function linkDefault(type) {
   return {
-    drive: 'Drive', gdocs: 'Google Docs', youtube: 'YouTube',
-    image: '이미지', notion: 'Notion', url: '링크',
+    drive: 'Drive', gdocs: 'Google Docs', gphotos: 'Google Photos',
+    youtube: 'YouTube', image: '이미지', notion: 'Notion', url: '링크',
   }[type] ?? '링크';
 }
 
@@ -273,6 +274,9 @@ export function detectLinkType(url) {
   if (/^https?:\/\/(www\.)?(notion\.so|notion\.site)/.test(u)) return 'notion';
   // Google Workspace 문서 — Docs/Sheets/Slides는 모두 docs.google.com 도메인
   if (/^https?:\/\/docs\.google\.com\/(document|spreadsheets|presentation)\//.test(u)) return 'gdocs';
+  // Google Photos — 일반 공유 페이지 + 단축 URL
+  if (/^https?:\/\/photos\.google\.com\//.test(u)) return 'gphotos';
+  if (/^https?:\/\/photos\.app\.goo\.gl\//.test(u)) return 'gphotos';
   // 일반 Drive (파일·폴더 공유 등)
   if (/^https?:\/\/(www\.)?drive\.google\.com/.test(u)) return 'drive';
   if (/^https?:\/\/(www\.)?(youtube\.com|youtu\.be)/.test(u)) return 'youtube';

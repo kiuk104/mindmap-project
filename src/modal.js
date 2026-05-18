@@ -98,6 +98,7 @@ export function openLinkModal(nodeId) {
       <select class="fi" id="lk-type">
         <option value="gdocs"  ${initial.type === 'gdocs'   ? 'selected' : ''}>📄 Google Docs / Sheets / Slides</option>
         <option value="drive"  ${initial.type === 'drive'   ? 'selected' : ''}>📁 구글 드라이브 (파일·폴더)</option>
+        <option value="gphotos"${initial.type === 'gphotos' ? 'selected' : ''}>📷 Google Photos</option>
         <option value="youtube"${initial.type === 'youtube' ? 'selected' : ''}>▶️ 유튜브 영상</option>
         <option value="notion" ${initial.type === 'notion'  ? 'selected' : ''}>📝 노션 페이지</option>
         <option value="image"  ${initial.type === 'image'   ? 'selected' : ''}>🖼️ 이미지 URL</option>
@@ -194,6 +195,7 @@ function updateLinkPlaceholder() {
   const placeholders = {
     gdocs:   'https://docs.google.com/document|spreadsheets|presentation/d/...',
     drive:   'https://drive.google.com/file/d/... 또는 /folders/...',
+    gphotos: 'https://photos.google.com/... 또는 https://photos.app.goo.gl/...',
     youtube: 'https://www.youtube.com/watch?v=...',
     notion:  'https://www.notion.so/... 또는 https://...notion.site/...',
     image:   'https://example.com/photo.jpg',

@@ -247,6 +247,7 @@ body.no-node-shadow .callout:hover {
 .lbadge:hover    { filter: brightness(1.2); }
 .lbadge.gdocs    { background: #4285f4; color: #fff; }
 .lbadge.drive    { background: #1a73e8; color: #fff; }
+.lbadge.gphotos  { background: #ea4335; color: #fff; }
 .lbadge.youtube  { background: #ff0000; color: #fff; }
 .lbadge.notion   { background: #2f3437; color: #fff; }
 .lbadge.image    { background: #188038; color: #fff; }
