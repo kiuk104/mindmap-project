@@ -261,19 +261,23 @@ export function render() {
     el.style.borderWidth = bw;
     if (n.borderWidth === 'none') el.style.borderColor = 'transparent';
 
-    // 임베드 이미지 (있으면 텍스트 위)
+    // 임베드 이미지 — 노드 가장자리까지 확장, 상단 둥근 코너에 맞춰 클립
     if (n.image?.url) {
+      const wrap = document.createElement('div');
+      wrap.className = 'node-image-wrap';
+
       const img = document.createElement('img');
       img.className = 'node-image';
       img.src       = n.image.url;
       img.alt       = '';
       img.draggable = false;
-      // 로드 실패 시 자리를 차지하지 않도록 숨김
-      img.addEventListener('error', () => { img.style.display = 'none'; });
-      el.appendChild(img);
+      img.addEventListener('error', () => { wrap.style.display = 'none'; });
+
+      wrap.appendChild(img);
+      el.appendChild(wrap);
     }
 
-    // 텍스트 + 아이콘 — 자산 아이콘이면 <img>, 이모지면 텍스트 prefix
+    // 텍스트 + 아이콘 — 자산이면 <img>, 이모지면 <span>(둘 다 1.4em으로 키움)
     const textDiv = document.createElement('div');
     textDiv.className = 'node-text';
     if (isAssetIcon(n.icon)) {
@@ -285,8 +289,14 @@ export function render() {
       iconImg.addEventListener('error', () => { iconImg.style.display = 'none'; });
       textDiv.appendChild(iconImg);
       textDiv.appendChild(document.createTextNode((n.text ?? '')));
+    } else if (n.icon) {
+      const iconSpan = document.createElement('span');
+      iconSpan.className   = 'node-icon-emoji';
+      iconSpan.textContent = n.icon;
+      textDiv.appendChild(iconSpan);
+      textDiv.appendChild(document.createTextNode(' ' + (n.text ?? '')));
     } else {
-      textDiv.textContent = (n.icon ? n.icon + ' ' : '') + (n.text ?? '');
+      textDiv.textContent = (n.text ?? '');
     }
     el.appendChild(textDiv);
 
