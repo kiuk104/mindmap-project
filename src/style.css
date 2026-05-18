@@ -1494,6 +1494,56 @@ body.settings-panel-open #settings-panel { transform: translateX(0); }
   .settings-grid { grid-template-columns: 1fr; }
 }
 
+/* ── 링크 관리 모달 — 기존 링크 행 ── */
+.link-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  margin-bottom: 4px;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.link-row:hover { background: var(--bg-hover, rgba(255,255,255,0.04)); }
+.link-row.active {
+  border-color: var(--accent, #1f6feb);
+  background: rgba(31, 111, 235, 0.10);
+}
+.link-row-url {
+  font-size: 11px;
+  color: var(--text-dim, #8b949e);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.link-row-del {
+  background: transparent;
+  border: none;
+  color: var(--text-dim, #8b949e);
+  width: 24px; height: 24px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.link-row-del:hover { color: #f85149; background: var(--bg-hover); }
+
+.link-mode-note {
+  background: rgba(31, 111, 235, 0.12);
+  border-left: 3px solid var(--accent, #1f6feb);
+  padding: 7px 10px;
+  border-radius: 5px;
+  font-size: 11px;
+  color: var(--text-bright, #e6edf3);
+  margin-bottom: 12px;
+}
+.link-mode-note.add-mode {
+  background: rgba(63, 185, 80, 0.12);
+  border-left-color: #3fb950;
+}
+
 /* ── 공유 모달 옵션 버튼 ── */
 .share-opt {
   display: flex !important;

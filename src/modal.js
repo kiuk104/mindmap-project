@@ -44,8 +44,15 @@ export function closeModal() {
   if (cancel) cancel.style.display = '';
 }
 
+/** 링크 모달 — 편집 중인 기존 링크의 인덱스 (-1이면 새 항목 추가 모드) */
+let editLinkIdx = -1;
+
 /**
- * 링크 추가 모달 열기
+ * 링크 추가/관리 모달 열기
+ *   - 기존 링크가 있으면 그 첫 항목을 입력란에 미리 채워 편집 모드로 시작
+ *   - 목록의 각 행을 클릭하면 해당 링크가 입력란으로 불러와짐 (편집 대상 변경)
+ *   - "✨ 새로 추가" 버튼으로 입력란을 비우고 추가 모드로 전환
+ *   - 확인 = 편집 중이면 그 링크를 update, 아니면 새 push
  * @param {string} nodeId
  */
 export function openLinkModal(nodeId) {
@@ -53,59 +60,69 @@ export function openLinkModal(nodeId) {
 
   state.ctxTargetId = nodeId;
   state.modalKind   = 'link';
-  $('modal-title').textContent = '🔗 링크 추가';
 
-  // 기존 링크 목록
   const existingLinks = state.nodes[nodeId].links ?? [];
-  let existHTML = '';
+  editLinkIdx = existingLinks.length > 0 ? 0 : -1;
+  $('modal-title').textContent = existingLinks.length > 0 ? '🔗 링크 관리' : '🔗 링크 추가';
 
+  let existHTML = '';
   if (existingLinks.length > 0) {
-    existHTML = `<div class="fg"><label class="fl">등록된 링크</label>`;
+    existHTML = `<div class="fg">
+      <label class="fl">등록된 링크 (행 클릭 = 편집 대상으로)</label>`;
     existingLinks.forEach((lk, i) => {
-      const shortUrl = lk.url.length > 40 ? lk.url.slice(0, 40) + '…' : lk.url;
+      const shortUrl = lk.url.length > 50 ? lk.url.slice(0, 50) + '…' : lk.url;
       existHTML += `
-        <div style="display:flex; align-items:center; gap:8px; margin-bottom:5px;">
+        <div class="link-row ${i === editLinkIdx ? 'active' : ''}" data-idx="${i}">
           <span class="lbadge ${lk.type}" style="pointer-events:none;">
-            ${linkIcon(lk.type)} ${lk.label || linkDefault(lk.type)}
+            ${linkIcon(lk.type)} ${escapeHTML(lk.label || linkDefault(lk.type))}
           </span>
-          <span style="font-size:11px; color:#8b949e; flex:1; overflow:hidden; text-overflow:ellipsis;">
-            ${shortUrl}
-          </span>
-          <button class="btn btn-ghost" style="padding:2px 8px; font-size:11px;"
-            data-node="${nodeId}" data-idx="${i}">삭제</button>
+          <span class="link-row-url">${escapeHTML(shortUrl)}</span>
+          <button type="button" class="link-row-del" data-del-idx="${i}" title="삭제">✕</button>
         </div>`;
     });
-    existHTML += `</div><div style="height:1px; background:#30363d; margin-bottom:13px;"></div>`;
+    existHTML += `</div>
+      <button type="button" class="btn btn-ghost" id="lk-add-new"
+        style="margin-bottom:12px; width:100%; font-size:11px;">✨ 새 링크로 추가</button>
+      <hr style="border:none; border-top:1px solid var(--border, #30363d); margin:0 0 14px;" />
+      <div id="lk-mode-note" class="link-mode-note">
+        ✏️ <b>편집 모드</b> — 아래 내용으로 위 링크가 갱신됩니다.
+      </div>`;
   }
+
+  // 초기 입력 값 — 첫 항목 또는 빈 값
+  const initial = existingLinks[0] || { type: 'gdocs', url: '', label: '' };
 
   $('modal-body').innerHTML = existHTML + `
     <div class="fg">
       <label class="fl">링크 종류</label>
       <select class="fi" id="lk-type">
-        <option value="gdocs">📄 Google Docs / Sheets / Slides</option>
-        <option value="drive">📁 구글 드라이브 (파일·폴더)</option>
-        <option value="youtube">▶️ 유튜브 영상</option>
-        <option value="notion">📝 노션 페이지</option>
-        <option value="image">🖼️ 이미지 URL</option>
-        <option value="url">🔗 일반 URL</option>
+        <option value="gdocs"  ${initial.type === 'gdocs'   ? 'selected' : ''}>📄 Google Docs / Sheets / Slides</option>
+        <option value="drive"  ${initial.type === 'drive'   ? 'selected' : ''}>📁 구글 드라이브 (파일·폴더)</option>
+        <option value="youtube"${initial.type === 'youtube' ? 'selected' : ''}>▶️ 유튜브 영상</option>
+        <option value="notion" ${initial.type === 'notion'  ? 'selected' : ''}>📝 노션 페이지</option>
+        <option value="image"  ${initial.type === 'image'   ? 'selected' : ''}>🖼️ 이미지 URL</option>
+        <option value="url"    ${initial.type === 'url'     ? 'selected' : ''}>🔗 일반 URL</option>
       </select>
     </div>
     <div class="fg">
       <label class="fl">URL <span style="color:#f85149">*</span></label>
-      <input class="fi" id="lk-url" type="url" placeholder="https://drive.google.com/..." />
+      <input class="fi" id="lk-url" type="url" value="${escapeHTML(initial.url)}" />
     </div>
     <div class="fg">
       <label class="fl">버튼 라벨 (선택)</label>
-      <input class="fi" id="lk-label" type="text" placeholder="예: 기획서 v2, 소개 영상 …" />
+      <input class="fi" id="lk-label" type="text" value="${escapeHTML(initial.label || '')}"
+        placeholder="예: 기획서 v2, 소개 영상 …" />
     </div>
   `;
+  updateLinkPlaceholder();
 
-  // 링크 종류 변경 시 placeholder 업데이트
-  $('lk-type').addEventListener('change', updateLinkPlaceholder);
-
-  // URL 입력 시 — 패턴이 명확히 매칭되면 종류 자동 선택 (사용자가 이미 직접 선택했으면 존중)
+  // 링크 종류 수동 변경 추적
   let typeManuallySet = false;
-  $('lk-type').addEventListener('change', () => { typeManuallySet = true; });
+  $('lk-type').addEventListener('change', () => {
+    typeManuallySet = true;
+    updateLinkPlaceholder();
+  });
+  // URL 입력 자동 감지 (사용자가 type을 직접 안 바꿨을 때만)
   $('lk-url').addEventListener('input', (e) => {
     if (typeManuallySet) return;
     const detected = detectLinkType(e.target.value.trim());
@@ -115,16 +132,63 @@ export function openLinkModal(nodeId) {
     }
   });
 
-  // 기존 링크 삭제 버튼
-  $('modal-body').querySelectorAll('[data-node]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      removeLink(btn.dataset.node, Number(btn.dataset.idx));
-      closeModal();
+  // 행 클릭 → 그 링크를 편집 대상으로 (입력란 채움)
+  $('modal-body').querySelectorAll('.link-row').forEach((row) => {
+    row.addEventListener('click', (e) => {
+      if (e.target.closest('.link-row-del')) return;   // 삭제 버튼이면 무시
+      const idx = Number(row.dataset.idx);
+      const lk  = existingLinks[idx];
+      if (!lk) return;
+      editLinkIdx = idx;
+      typeManuallySet = true;                          // 사용자 의도 — 자동 감지 끔
+      $('lk-type').value  = lk.type;
+      $('lk-url').value   = lk.url;
+      $('lk-label').value = lk.label || '';
+      updateLinkPlaceholder();
+      // 활성 행 표시
+      $('modal-body').querySelectorAll('.link-row').forEach((r) => {
+        r.classList.toggle('active', Number(r.dataset.idx) === idx);
+      });
+      const note = $('lk-mode-note');
+      if (note) {
+        note.innerHTML = '✏️ <b>편집 모드</b> — 아래 내용으로 위 링크가 갱신됩니다.';
+        note.classList.remove('add-mode');
+      }
     });
+  });
+
+  // 삭제 버튼
+  $('modal-body').querySelectorAll('.link-row-del').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      removeLink(nodeId, Number(btn.dataset.delIdx));
+      // 모달 다시 열어 목록 갱신 (편집 인덱스 초기화)
+      openLinkModal(nodeId);
+    });
+  });
+
+  // "✨ 새 링크로 추가" — 입력란 비우고 추가 모드로
+  $('lk-add-new')?.addEventListener('click', () => {
+    editLinkIdx = -1;
+    typeManuallySet = false;
+    $('lk-type').value = 'gdocs';
+    $('lk-url').value  = '';
+    $('lk-label').value = '';
+    updateLinkPlaceholder();
+    $('modal-body').querySelectorAll('.link-row').forEach((r) => r.classList.remove('active'));
+    const note = $('lk-mode-note');
+    if (note) {
+      note.innerHTML = '✨ <b>추가 모드</b> — 새 링크가 목록에 추가됩니다.';
+      note.classList.add('add-mode');
+    }
+    $('lk-url').focus();
   });
 
   showModal();
 }
+
+/** 현재 편집 중인 링크 인덱스 (-1이면 새로 추가) — handleModalOK에서 참조 */
+export function getEditLinkIdx() { return editLinkIdx; }
 
 function updateLinkPlaceholder() {
   const placeholders = {
@@ -955,7 +1019,14 @@ export function handleModalOK() {
     pushHistory();
     const node = state.nodes[state.ctxTargetId];
     if (!node.links) node.links = [];
-    node.links.push({ type, url, label });
+    const idx = getEditLinkIdx();
+    if (idx >= 0 && node.links[idx]) {
+      // 편집 — 기존 항목 갱신
+      node.links[idx] = { type, url, label };
+    } else {
+      // 새로 추가
+      node.links.push({ type, url, label });
+    }
 
     closeModal();
     render();
