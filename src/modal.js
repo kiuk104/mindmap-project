@@ -32,6 +32,14 @@ function showModal() {
 export function closeModal() {
   $('modal-bg').classList.remove('on');
   state.modalKind = null;
+  // 미리보기 모달이 바꿔둔 OK/취소 버튼 상태 복구
+  const okBtn  = $('modal-ok');
+  const cancel = $('modal-cancel');
+  if (okBtn && okBtn.dataset.previewClose) {
+    okBtn.textContent = '확인';
+    delete okBtn.dataset.previewClose;
+  }
+  if (cancel) cancel.style.display = '';
 }
 
 /**
@@ -296,6 +304,13 @@ export function openGDocsPreviewModal(url) {
       referrerpolicy="no-referrer"
       sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>
   `;
+
+  // 미리보기 모달엔 OK 액션이 없음 — 확인 버튼을 "닫기"로 바꾸고 취소 버튼은 숨김
+  const okBtn  = $('modal-ok');
+  const cancel = $('modal-cancel');
+  if (okBtn) { okBtn.textContent = '닫기'; okBtn.dataset.previewClose = '1'; }
+  if (cancel) cancel.style.display = 'none';
+
   showModal();
 }
 
@@ -563,6 +578,12 @@ export function openColorModal(nodeId) {
 
 /** 모달 확인 버튼 처리 */
 export function handleModalOK() {
+  // 미리보기 모달엔 OK 액션이 없음 — 그냥 닫기
+  if (state.modalKind === 'gdocs-preview') {
+    closeModal();
+    return;
+  }
+
   if (state.modalKind === 'link') {
     const type  = $('lk-type').value;
     const url   = $('lk-url').value.trim();
