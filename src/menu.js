@@ -6,13 +6,15 @@ import { state } from './state.js';
 import { render } from './render.js';
 import { addChild, deleteNode, startEdit, toggleCollapse } from './nodes.js';
 import { openLinkModal, openColorModal, openImageModal, openSaveModal, openNoteModal, openTasksModal } from './modal.js';
-import { addCallout } from './callouts.js';
-import { createZoneFromSelection } from './zones.js';
+import { addCallout, deleteCallout, selectCallout } from './callouts.js';
+import { createZoneFromSelection, deleteZone, renameZone, selectZone } from './zones.js';
+import { openPanel as openStylePanel, isPanelOpen as isStylePanelOpen } from './style-panel.js';
+import { closeIconPanel, isIconPanelOpen } from './icon-panel.js';
 import { openIconPanel } from './icon-panel.js';
 import { resetView } from './canvas.js';
 import { clearLocal } from './io.js';
 import { $, uid, makeNode, setNodeSelection, clearNodeSelection, clearRelationSelection } from './utils.js';
-import { pushHistory, resetHistory } from './history.js';
+import { pushHistory, resetHistory, beginPending, commitPending, cancelPending } from './history.js';
 import { getSettings } from './settings.js';
 import { applyStyle } from './modal.js';
 
@@ -88,10 +90,54 @@ export function hideBgMenu() {
   if (m) m.style.display = 'none';
 }
 
+/** 존 우클릭 메뉴 숨기기 */
+export function hideZoneMenu() {
+  const m = $('ctx-zone-menu');
+  if (m) m.style.display = 'none';
+}
+
+/** 콜아웃 우클릭 메뉴 숨기기 */
+export function hideCalloutMenu() {
+  const m = $('ctx-callout-menu');
+  if (m) m.style.display = 'none';
+}
+
 /** 모든 컨텍스트 메뉴 숨기기 */
 export function hideAllMenus() {
   hideContextMenu();
   hideBgMenu();
+  hideZoneMenu();
+  hideCalloutMenu();
+}
+
+/**
+ * 존 우클릭 메뉴 표시 — main.js의 onZoneContextMenu에서 호출
+ * @param {MouseEvent} e
+ * @param {string} zoneId
+ */
+export function showZoneMenu(e, zoneId) {
+  e.preventDefault();
+  e.stopPropagation();
+  selectZone(zoneId);    // 우클릭 대상은 자동 선택
+  hideContextMenu();
+  hideBgMenu();
+  hideCalloutMenu();
+  positionMenu($('ctx-zone-menu'), e.clientX, e.clientY);
+}
+
+/**
+ * 콜아웃 우클릭 메뉴 표시
+ * @param {MouseEvent} e
+ * @param {string} coId
+ */
+export function showCalloutMenu(e, coId) {
+  e.preventDefault();
+  e.stopPropagation();
+  selectCallout(coId);
+  hideContextMenu();
+  hideBgMenu();
+  hideZoneMenu();
+  positionMenu($('ctx-callout-menu'), e.clientX, e.clientY);
 }
 
 /** 메뉴 버튼 이벤트 등록 */
@@ -181,6 +227,42 @@ export function initContextMenu() {
   $('ctxbg-make-zone').addEventListener('click', () => {
     hideBgMenu();
     createZoneFromSelection();
+  });
+
+  // ── 존 메뉴 ──
+  $('ctxz-rename').addEventListener('click', () => {
+    hideZoneMenu();
+    if (state.selectedZoneId) renameZone(state.selectedZoneId);
+  });
+  $('ctxz-style').addEventListener('click', () => {
+    hideZoneMenu();
+    if (isIconPanelOpen()) closeIconPanel();
+    if (!isStylePanelOpen()) openStylePanel();
+  });
+  $('ctxz-delete').addEventListener('click', () => {
+    hideZoneMenu();
+    if (state.selectedZoneId) deleteZone(state.selectedZoneId);
+  });
+
+  // ── 콜아웃 메뉴 ──
+  $('ctxc-edit').addEventListener('click', () => {
+    hideCalloutMenu();
+    const co = state.callouts?.find((c) => c.id === state.selectedCalloutId);
+    if (!co) return;
+    const next = prompt('콜아웃 내용:', co.text ?? '');
+    if (next === null || next === co.text) return;
+    pushHistory();
+    co.text = next;
+    render();
+  });
+  $('ctxc-style').addEventListener('click', () => {
+    hideCalloutMenu();
+    if (isIconPanelOpen()) closeIconPanel();
+    if (!isStylePanelOpen()) openStylePanel();
+  });
+  $('ctxc-delete').addEventListener('click', () => {
+    hideCalloutMenu();
+    if (state.selectedCalloutId) deleteCallout(state.selectedCalloutId);
   });
   $('ctxbg-export').addEventListener('click', () => {
     hideBgMenu();

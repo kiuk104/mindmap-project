@@ -481,8 +481,25 @@ export function getRelationControls(r, a, b) {
   };
 }
 
-/** 노드 텍스트 크기 매핑 (px) */
-export const NODE_SIZES = { small: '11px', medium: '13px', large: '17px' };
+/** 노드 텍스트 크기 매핑 (px) — 6단계 */
+export const NODE_SIZES = {
+  xsmall: '9px',
+  small:  '11px',
+  medium: '13px',   // 기본
+  large:  '17px',
+  xlarge: '22px',
+  huge:   '28px',
+};
+
+/** UI 라벨 */
+export const NODE_SIZE_NAMES = {
+  xsmall: '아주 작게 (9px)',
+  small:  '작게 (11px)',
+  medium: '보통 (13px)',
+  large:  '크게 (17px)',
+  xlarge: '아주 크게 (22px)',
+  huge:   '거대 (28px)',
+};
 /** 노드 모양 → border-radius */
 export const NODE_SHAPES = { rounded: '14px', sharp: '3px', pill: '50px' };
 /** 노드 테두리 두께 */

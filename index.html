@@ -103,6 +103,22 @@
     <div class="ctx-item danger" id="ctxbg-clear">🗑️ 모두 지우고 처음 상태로</div>
   </div>
 
+  <!-- ── 존 우클릭 메뉴 ── -->
+  <div id="ctx-zone-menu">
+    <div class="ctx-item" id="ctxz-rename">✏️ 라벨 편집</div>
+    <div class="ctx-item" id="ctxz-style">🎨 스타일 패널 열기</div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-item danger" id="ctxz-delete">🗑️ 존 삭제 (Del)</div>
+  </div>
+
+  <!-- ── 콜아웃(말풍선) 우클릭 메뉴 ── -->
+  <div id="ctx-callout-menu">
+    <div class="ctx-item" id="ctxc-edit">✏️ 텍스트 편집</div>
+    <div class="ctx-item" id="ctxc-style">🎨 스타일 패널 열기</div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-item danger" id="ctxc-delete">🗑️ 콜아웃 삭제 (Del)</div>
+  </div>
+
   <!-- ── 모달 ── -->
   <div id="modal-bg">
     <div id="modal">
@@ -141,12 +157,9 @@
         </div>
 
         <div class="sp-sub">
-          <div class="sp-mini-label">크기</div>
-          <select class="fi" id="nd-size">
-            <option value="small">작게</option>
-            <option value="medium">보통</option>
-            <option value="large">크게</option>
-          </select>
+          <div class="sp-mini-label">텍스트 크기</div>
+          <!-- 옵션은 style-panel.js가 NODE_SIZE_NAMES로 동적 빌드 -->
+          <select class="fi" id="nd-size"></select>
         </div>
 
         <div class="sp-sub">

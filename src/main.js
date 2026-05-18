@@ -23,7 +23,7 @@ import { openLinkModal, openColorModal, openSaveModal, openDriveLoadModal, openG
 import { initSettingsPanel, toggleSettingsPanel, openSettingsPanel, closeSettingsPanel, isSettingsPanelOpen } from './settings-panel.js';
 import { registerShortcuts, dispatchKey } from './shortcuts.js';
 import * as drive                            from './drive.js';
-import { showContextMenu, hideContextMenu, hideAllMenus, showBgMenu, initContextMenu } from './menu.js';
+import { showContextMenu, hideContextMenu, hideAllMenus, showBgMenu, initContextMenu, showZoneMenu, showCalloutMenu } from './menu.js';
 import { doImport, schedulePersist, restoreLocal, onSaveStateChange, quickSave, getLastSave } from './io.js';
 import { runSearch, gotoHit, clearSearch }    from './search.js';
 import { initStylePanel, togglePanel, closePanel, isPanelOpen, setOnStyleApplied, syncSelectedNodeSection } from './style-panel.js';
@@ -72,17 +72,10 @@ registerHandlers({
   },
   onCalloutPointerDown: (e, coId) => onCalloutPointerDown(e, coId, canvasCoord),
   onCalloutEdit:        editCalloutInline,
-  onCalloutContextMenu: (e, coId) => {
-    // 간단히 confirm 기반 삭제. 추후 정식 메뉴로 확장 가능.
-    if (confirm('이 콜아웃을 삭제할까요?')) deleteCallout(coId);
-  },
+  onCalloutContextMenu: showCalloutMenu,
   onZoneClick:          selectZone,
   onZoneRename:         renameZone,
-  onZoneContextMenu:    (e, zoneId) => {
-    const choice = prompt('존 동작: (1) 이름 바꾸기  (2) 삭제\n번호 입력:', '1');
-    if (choice === '1') renameZone(zoneId);
-    else if (choice === '2') deleteZone(zoneId);
-  },
+  onZoneContextMenu:    showZoneMenu,
 });
 
 /** 콜아웃 텍스트를 인라인으로 편집 */
@@ -444,7 +437,12 @@ $('modal-bg').addEventListener('click', (e) => {
 
 // ── 전역 클릭 → 메뉴 닫기 ──
 document.addEventListener('click', (e) => {
-  if (!e.target.closest('#ctx-menu') && !e.target.closest('#ctx-bg-menu')) hideAllMenus();
+  if (!e.target.closest('#ctx-menu') &&
+      !e.target.closest('#ctx-bg-menu') &&
+      !e.target.closest('#ctx-zone-menu') &&
+      !e.target.closest('#ctx-callout-menu')) {
+    hideAllMenus();
+  }
 });
 
 // ── 배경 우클릭 → 커스텀 메뉴 (단, 우클릭 드래그 후엔 메뉴 띄우지 않음) ──

@@ -260,7 +260,7 @@ body.no-node-shadow .callout:hover {
 .lbadge-del:hover { background: var(--accent); color: #fff; }
 
 /* ── 우클릭 메뉴 (노드 + 배경 공통) ── */
-#ctx-menu, #ctx-bg-menu {
+#ctx-menu, #ctx-bg-menu, #ctx-zone-menu, #ctx-callout-menu {
   position: fixed; background: var(--bg-elev); border: 1px solid var(--border);
   border-radius: 10px; padding: 5px 0; min-width: 195px;
   z-index: 1000; box-shadow: var(--shadow-menu); display: none;

@@ -13,7 +13,7 @@ import { render } from './render.js';
 import {
   $, COLOR_THEMES, THEME_NAMES, THEME_CATEGORIES, FONT_FAMILIES, FONT_NAMES, resolvePalette,
   ENGLISH_FONTS, ENGLISH_FONT_NAMES, KOREAN_FONTS, KOREAN_FONT_NAMES, composeFontFamily,
-  DASH_NAMES,
+  DASH_NAMES, NODE_SIZES, NODE_SIZE_NAMES,
 } from './utils.js';
 import { pushHistory, beginPending, commitPending, cancelPending } from './history.js';
 import { getSettings, updateSettings, onSettingsChange } from './settings.js';
@@ -388,6 +388,12 @@ export function initStylePanel() {
     $('zone-border-dash').innerHTML = Object.entries(DASH_NAMES).map(([k, name]) =>
       `<option value="${k}">${name}${k === 'dashed' ? ' (기본)' : ''}</option>`).join('');
     enhanceDashPicker($('zone-border-dash'));
+  }
+
+  // 노드 텍스트 크기 select 빌드 (6단계)
+  if ($('nd-size')) {
+    $('nd-size').innerHTML = Object.entries(NODE_SIZE_NAMES).map(([k, name]) =>
+      `<option value="${k}" style="font-size:${NODE_SIZES[k]}">${name}</option>`).join('');
   }
 
   // 노드 배치 select + 적용 버튼
