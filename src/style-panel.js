@@ -13,6 +13,7 @@ import { render } from './render.js';
 import {
   $, COLOR_THEMES, THEME_NAMES, THEME_CATEGORIES, FONT_FAMILIES, FONT_NAMES, resolvePalette,
   ENGLISH_FONTS, ENGLISH_FONT_NAMES, KOREAN_FONTS, KOREAN_FONT_NAMES, composeFontFamily,
+  DASH_NAMES,
 } from './utils.js';
 import { pushHistory, beginPending, commitPending, cancelPending } from './history.js';
 import { getSettings, onSettingsChange } from './settings.js';
@@ -318,6 +319,20 @@ export function initStylePanel() {
     $('sp-font-kr').innerHTML = Object.entries(KOREAN_FONT_NAMES).map(([key, name]) => `
       <option value="${key}" style="font-family: ${KOREAN_FONTS[key]}, sans-serif">${name} — 가나다 한글</option>
     `).join('');
+  }
+
+  // ── Dash 패턴 select 빌드 — 부모 연결선 + 관계선 공통 사용 ──
+  // 부모 연결선은 첫 옵션이 "기본 (실선 따라감)" — value=''
+  if ($('nd-branch-dash')) {
+    $('nd-branch-dash').innerHTML =
+      `<option value="">기본 (실선)</option>` +
+      Object.entries(DASH_NAMES).map(([key, name]) =>
+        `<option value="${key}">${name}</option>`).join('');
+  }
+  // 관계선은 dashed가 기본
+  if ($('rel-dash')) {
+    $('rel-dash').innerHTML = Object.entries(DASH_NAMES).map(([key, name]) =>
+      `<option value="${key}">${name}${key === 'dashed' ? ' (기본)' : ''}</option>`).join('');
   }
 
   // 초기 상태 동기화

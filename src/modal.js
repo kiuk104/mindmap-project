@@ -6,7 +6,7 @@
 
 import { state } from './state.js';
 import { render } from './render.js';
-import { $, FONT_FAMILIES, FONT_NAMES, currentPalette, linkIcon, linkDefault, resolvePalette, COLOR_THEMES, composeFontFamily, ENGLISH_FONTS, ENGLISH_FONT_NAMES, KOREAN_FONTS, KOREAN_FONT_NAMES } from './utils.js';
+import { $, FONT_FAMILIES, FONT_NAMES, currentPalette, linkIcon, linkDefault, resolvePalette, COLOR_THEMES, composeFontFamily, ENGLISH_FONTS, ENGLISH_FONT_NAMES, KOREAN_FONTS, KOREAN_FONT_NAMES, DASH_NAMES } from './utils.js';
 import { removeLink } from './nodes.js';
 import { doDownload, copyJsonToClipboard, defaultFilename, serialize, loadFromString } from './io.js';
 import { exportSvgFile, exportPngFile } from './export.js';
@@ -541,9 +541,9 @@ export function openSettingsModal() {
         <div>
           <div class="settings-mini">선 모양</div>
           <select class="fi" id="st-rel-dash">
-            <option value="dashed" ${dr.dash === 'dashed' ? 'selected' : ''}>점선 (기본)</option>
-            <option value="solid"  ${dr.dash === 'solid'  ? 'selected' : ''}>실선</option>
-            <option value="dotted" ${dr.dash === 'dotted' ? 'selected' : ''}>점</option>
+            ${Object.entries(DASH_NAMES).map(([k, name]) => `
+              <option value="${k}" ${dr.dash === k ? 'selected' : ''}>${name}${k === 'dashed' ? ' (기본)' : ''}</option>
+            `).join('')}
           </select>
         </div>
 

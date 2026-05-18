@@ -75,34 +75,43 @@ function renderParentLine(p, n, style) {
   const themeStroke  = state.style?.coloredBranch && n.color ? n.color : null;
   const finalStroke  = bs.color || themeStroke || 'var(--line)';
 
-  const dashPattern  = DASH_PATTERNS[bs.dash] ?? '';
+  // dash 처리 — 'wavy'는 필터로, 나머지는 dasharray로
+  const dashKey      = bs.dash;
+  const isWavy       = dashKey === 'wavy';
+  const dashPattern  = (!isWavy && DASH_PATTERNS[dashKey]) ? DASH_PATTERNS[dashKey] : '';
 
   let css = `stroke:${finalStroke};stroke-width:${finalWidth};`;
   css += `stroke-dasharray:${dashPattern || 'none'};`;
   const styleAttr = `style="${css}"`;
+  const filterAttr = isWavy ? `filter="url(#wavy-line)"` : '';
 
   if (style === 'curved') {
     // 노드별 수동 핸들이 있으면 그 값을, 아니면 전역 curveStrength 기반 기본값 사용
     const strength = state.style?.curveStrength ?? 0.5;
     const { c1, c2 } = getBranchControls(p, n, strength);
-    return `<path class="parent-line" data-branch="${n.id}" ${styleAttr} d="M ${p.x} ${p.y} C ${c1.x} ${c1.y} ${c2.x} ${c2.y} ${n.x} ${n.y}"/>`;
+    return `<path class="parent-line" data-branch="${n.id}" ${styleAttr} ${filterAttr} d="M ${p.x} ${p.y} C ${c1.x} ${c1.y} ${c2.x} ${c2.y} ${n.x} ${n.y}"/>`;
   }
   if (style === 'stepped') {
     const midX = (p.x + n.x) / 2;
-    return `<path class="parent-line" ${styleAttr} d="M ${p.x} ${p.y} L ${midX} ${p.y} L ${midX} ${n.y} L ${n.x} ${n.y}"/>`;
+    return `<path class="parent-line" ${styleAttr} ${filterAttr} d="M ${p.x} ${p.y} L ${midX} ${p.y} L ${midX} ${n.y} L ${n.x} ${n.y}"/>`;
   }
-  return `<line class="parent-line" ${styleAttr} x1="${p.x}" y1="${p.y}" x2="${n.x}" y2="${n.y}"/>`;
+  return `<line class="parent-line" ${styleAttr} ${filterAttr} x1="${p.x}" y1="${p.y}" x2="${n.x}" y2="${n.y}"/>`;
 }
 
 // ── SVG 화살표 마커 + 부모-자식 선 + 관계선 path 빌드 ──
 // 색상은 모두 CSS 변수로 처리 — 테마 전환 시 자동 반영됨
 function buildSvgMarkup(hiddenIds) {
-  // 화살표 marker — fill="context-stroke"로 path의 stroke 색을 자동 추종
+  // 화살표 marker + 물결(wavy) 필터
+  // feTurbulence + feDisplacementMap으로 직선 path를 부드럽게 왜곡 → 물결 효과
   let h = `<defs>
     <marker id="rel-arrow" viewBox="0 0 10 10" refX="9" refY="5"
       markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M 0 0 L 10 5 L 0 10 z" fill="context-stroke"/>
     </marker>
+    <filter id="wavy-line" x="-5%" y="-50%" width="110%" height="200%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.015 0.04" numOctaves="2" seed="3"/>
+      <feDisplacementMap in="SourceGraphic" scale="5"/>
+    </filter>
   </defs>`;
 
   // 부모-자식 연결선 (스타일에 따라 분기) — 숨겨진 노드 연결선은 스킵
@@ -139,9 +148,11 @@ function buildSvgMarkup(hiddenIds) {
     const markerEnd   = (arrow === 'end'   || arrow === 'both') ? 'url(#rel-arrow)' : 'none';
     const markerStart = (arrow === 'start' || arrow === 'both') ? 'url(#rel-arrow)' : 'none';
 
-    // 점선 패턴 (기본은 dashed)
+    // 점선 패턴 (기본은 dashed) — 'wavy'는 dasharray가 아닌 filter로 처리
     const dashKey  = rs.dash ?? 'dashed';
-    const dashAttr = DASH_PATTERNS[dashKey] ?? DASH_PATTERNS.dashed;
+    const isWavyRel = dashKey === 'wavy';
+    const dashAttr = isWavyRel ? '' : (DASH_PATTERNS[dashKey] ?? DASH_PATTERNS.dashed);
+    const filterAttrRel = isWavyRel ? `filter="url(#wavy-line)"` : '';
 
     // 최종 stroke/width 결정 (인라인 style — CSS 규칙보다 우선)
     // 선택된 관계선은 파란색 강조 (노드 선택은 빨강 유지)
@@ -169,6 +180,7 @@ function buildSvgMarkup(hiddenIds) {
     h += `<path class="rel-path${sel ? ' selected' : ''}" data-rid="${r.id}"
       d="${pathD}"
       style="${css}"
+      ${filterAttrRel}
       marker-start="${markerStart}" marker-end="${markerEnd}"/>`;
 
     // 라벨 (cubic Bezier의 t=0.5 위치: (a + 3c1 + 3c2 + b) / 8)

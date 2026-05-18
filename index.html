@@ -195,12 +195,8 @@
             <input type="color" id="nd-branch-color" class="sp-color-input" />
             <button class="btn btn-ghost sp-row-btn" id="nd-branch-color-reset">기본</button>
           </div>
-          <select class="fi" id="nd-branch-dash" style="margin-bottom:6px;">
-            <option value="">기본 (실선)</option>
-            <option value="solid">실선</option>
-            <option value="dashed">점선</option>
-            <option value="dotted">점</option>
-          </select>
+          <!-- 옵션은 style-panel.js가 DASH_NAMES로 동적 빌드 -->
+          <select class="fi" id="nd-branch-dash" style="margin-bottom:6px;"></select>
           <select class="fi" id="nd-branch-width">
             <option value="">기본 두께</option>
             <option value="1">1 (가늘게)</option>
@@ -229,11 +225,8 @@
 
         <div class="sp-sub">
           <div class="sp-mini-label">선 모양</div>
-          <select class="fi" id="rel-dash">
-            <option value="dashed">점선 (기본)</option>
-            <option value="solid">실선</option>
-            <option value="dotted">점</option>
-          </select>
+          <!-- 옵션은 style-panel.js가 DASH_NAMES로 동적 빌드 -->
+          <select class="fi" id="rel-dash"></select>
         </div>
 
         <div class="sp-sub">

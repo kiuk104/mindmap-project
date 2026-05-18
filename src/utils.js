@@ -345,13 +345,31 @@ export function parentIdsSet(nodes) {
   return s;
 }
 
-/** 점선 패턴 (stroke-dasharray) — dash gap 형식.
+/** 점선 패턴 (stroke-dasharray) — dash gap [dash gap ...] 형식.
  *  stroke-linecap이 butt(직각)이라 dash가 정확히 표기된 길이만큼 보임.
+ *  'wavy'는 dasharray가 아닌 SVG filter로 처리 (render.js에서 분기).
  */
 export const DASH_PATTERNS = {
-  solid:  '',
-  dashed: '12 8',     // 12px 직각 dash + 8px 간격 — 시원한 점선
-  dotted: '2 6',      // 작은 점 + 넓은 간격
+  solid:      '',                  // ─────────
+  longDash:   '24 10',             // ────  ────  ────
+  dashed:     '12 8',              // ──  ──  ──   (기본 점선)
+  denseDash:  '6 4',               // - - - - - -
+  dashDot:    '14 6 2 6',          // ──  ·  ──  ·
+  dashDotDot: '14 5 2 5 2 5',      // ──  ·  ·  ──  ·  ·
+  dotted:     '2 7',               // ·   ·   ·   ·
+  wavy:       'wavy',              // ~~~~~~~~ (filter 기반)
+};
+
+/** 점선 패턴 한국어 라벨 — UI 옵션 */
+export const DASH_NAMES = {
+  solid:      '실선',
+  longDash:   '긴 점선',
+  dashed:     '점선',
+  denseDash:  '촘촘한 점선',
+  dashDot:    '점-쇄선',
+  dashDotDot: '두점-쇄선',
+  dotted:     '점',
+  wavy:       '물결 (~)',
 };
 
 /**
