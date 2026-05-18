@@ -23,6 +23,8 @@ const H = {
   onBranchHandleDown:   () => {},
   onToggleCollapse:     () => {},
   onGDocsClick:         null,
+  onNoteClick:          null,
+  onTaskToggle:         null,
 };
 
 // 렌더 후에 호출되는 훅 (예: 자동 저장)
@@ -351,6 +353,56 @@ export function render() {
       textDiv.textContent = (n.text ?? '');
     }
     el.appendChild(textDiv);
+
+    // 태스크 체크리스트 (있으면)
+    if (Array.isArray(n.tasks) && n.tasks.length > 0) {
+      const list = document.createElement('div');
+      list.className = 'node-tasks';
+      n.tasks.forEach((t, i) => {
+        const row = document.createElement('label');
+        row.className = 'node-task' + (t.done ? ' done' : '');
+        row.addEventListener('click', (e) => e.stopPropagation());
+
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.className = 'node-task-cb';
+        cb.checked = !!t.done;
+        cb.addEventListener('click', (e) => e.stopPropagation());
+        cb.addEventListener('change', (e) => {
+          if (H.onTaskToggle) H.onTaskToggle(n.id, i, e.target.checked);
+        });
+
+        const txt = document.createElement('span');
+        txt.className = 'node-task-text';
+        txt.textContent = t.text || '(빈 항목)';
+
+        row.appendChild(cb);
+        row.appendChild(txt);
+        list.appendChild(row);
+      });
+      // 진행도 표시 (X / Y)
+      const done = n.tasks.filter((t) => t.done).length;
+      const summary = document.createElement('div');
+      summary.className = 'node-tasks-summary';
+      summary.textContent = `${done} / ${n.tasks.length}`;
+      list.prepend(summary);
+      el.appendChild(list);
+    }
+
+    // 노트 인디케이터 (있으면)
+    if (n.note && n.note.trim()) {
+      const noteBtn = document.createElement('button');
+      noteBtn.type = 'button';
+      noteBtn.className = 'node-note-icon';
+      noteBtn.title = '노트 보기/편집';
+      noteBtn.textContent = '📝';
+      noteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (H.onNoteClick) H.onNoteClick(n.id);
+      });
+      noteBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
+      el.appendChild(noteBtn);
+    }
 
     // 링크 배지
     if (n.links && n.links.length > 0) {

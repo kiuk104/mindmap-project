@@ -5,7 +5,7 @@
 import { state } from './state.js';
 import { render } from './render.js';
 import { addChild, deleteNode, startEdit, toggleCollapse } from './nodes.js';
-import { openLinkModal, openColorModal, openImageModal, openSaveModal } from './modal.js';
+import { openLinkModal, openColorModal, openImageModal, openSaveModal, openNoteModal, openTasksModal } from './modal.js';
 import { openIconPanel } from './icon-panel.js';
 import { resetView } from './canvas.js';
 import { clearLocal } from './io.js';
@@ -124,6 +124,26 @@ export function initContextMenu() {
   $('ctx-image').addEventListener('click', () => {
     hideContextMenu();
     openImageModal(state.ctxTargetId);
+  });
+
+  $('ctx-note').addEventListener('click', () => {
+    hideContextMenu();
+    openNoteModal(state.ctxTargetId);
+  });
+
+  $('ctx-tasks').addEventListener('click', () => {
+    hideContextMenu();
+    openTasksModal(state.ctxTargetId);
+  });
+
+  // 콜아웃은 Phase 3에서 구현 — 일단 placeholder
+  $('ctx-callout').addEventListener('click', () => {
+    hideContextMenu();
+    if (typeof window.__addCallout === 'function') {
+      window.__addCallout(state.ctxTargetId);
+    } else {
+      alert('콜아웃 기능 준비 중입니다.');
+    }
   });
 
   $('ctx-relation').addEventListener('click', () => {

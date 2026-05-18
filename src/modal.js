@@ -321,6 +321,97 @@ export function openGDocsPreviewModal(url) {
   showModal();
 }
 
+/** 노트 편집 모달 — 노드에 연결된 긴 텍스트 */
+export function openNoteModal(nodeId) {
+  if (!nodeId) { alert('노드를 먼저 선택하세요.'); return; }
+  state.ctxTargetId = nodeId;
+  state.modalKind   = 'note';
+  $('modal-title').textContent = '📝 노트';
+
+  const node = state.nodes[nodeId];
+  $('modal-body').innerHTML = `
+    <div class="fg">
+      <label class="fl">노트 내용 (마크다운 X, 일반 텍스트)</label>
+      <textarea class="fi" id="note-text" rows="10"
+        placeholder="이 노드에 대한 상세 메모를 자유롭게 적으세요."
+        style="resize:vertical; min-height:160px; font-family:inherit;">${escapeHTML(node?.note ?? '')}</textarea>
+    </div>
+    <div class="fg" style="font-size:11px; color:#8b949e;">
+      💡 노트가 있는 노드에는 📝 아이콘이 표시됩니다. 클릭하면 다시 열립니다.
+    </div>
+  `;
+  setTimeout(() => { $('note-text')?.focus(); }, 30);
+  showModal();
+}
+
+// 태스크 모달 — 취소 시 변경 무효화를 위해 draft 사본을 두고, OK 시점에 노드에 반영
+let tasksDraft = [];
+
+/** 할 일 목록 편집 모달 */
+export function openTasksModal(nodeId) {
+  if (!nodeId) { alert('노드를 먼저 선택하세요.'); return; }
+  state.ctxTargetId = nodeId;
+  state.modalKind   = 'tasks';
+  $('modal-title').textContent = '✅ 할 일 목록';
+
+  const node = state.nodes[nodeId];
+  tasksDraft = (node?.tasks ?? []).map((t) => ({ ...t }));  // 얕은 복사
+  renderTasksBody();
+  showModal();
+}
+
+function renderTasksBody() {
+  $('modal-body').innerHTML = `
+    <div class="fg">
+      <label class="fl">할 일 ${tasksDraft.length}개</label>
+      <div class="tasks-edit-list">
+        ${tasksDraft.map((t, i) => `
+          <div class="task-edit-row" data-idx="${i}">
+            <input type="checkbox" class="task-edit-done" data-idx="${i}" ${t.done ? 'checked' : ''} />
+            <input type="text" class="fi task-edit-text" data-idx="${i}"
+              value="${escapeHTML(t.text ?? '')}" placeholder="할 일 내용" />
+            <button type="button" class="btn btn-ghost task-edit-del" data-idx="${i}" title="삭제">✕</button>
+          </div>
+        `).join('')}
+      </div>
+      <button type="button" class="btn btn-ghost" id="task-add" style="margin-top:8px; width:100%;">
+        ➕ 새 항목 추가
+      </button>
+    </div>
+  `;
+
+  $('modal-body').querySelectorAll('.task-edit-done').forEach((cb) => {
+    cb.addEventListener('change', (e) => {
+      tasksDraft[Number(e.target.dataset.idx)].done = e.target.checked;
+    });
+  });
+  $('modal-body').querySelectorAll('.task-edit-text').forEach((inp) => {
+    inp.addEventListener('input', (e) => {
+      tasksDraft[Number(e.target.dataset.idx)].text = e.target.value;
+    });
+  });
+  $('modal-body').querySelectorAll('.task-edit-del').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      tasksDraft.splice(Number(btn.dataset.idx), 1);
+      renderTasksBody();
+    });
+  });
+  $('task-add').addEventListener('click', () => {
+    tasksDraft.push({
+      id: 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
+      text: '',
+      done: false,
+    });
+    renderTasksBody();
+    setTimeout(() => {
+      const inputs = $('modal-body').querySelectorAll('.task-edit-text');
+      inputs[inputs.length - 1]?.focus();
+    }, 30);
+  });
+}
+
+export function getTasksDraft() { return tasksDraft; }
+
 // 이미지 모달 상태 — 모달 인스턴스 단위로 관리
 let imageDraft = { url: null, sourceTab: 'url' };
 
@@ -588,6 +679,31 @@ export function handleModalOK() {
   // 미리보기 모달엔 OK 액션이 없음 — 그냥 닫기
   if (state.modalKind === 'gdocs-preview') {
     closeModal();
+    return;
+  }
+
+  if (state.modalKind === 'note') {
+    const text = $('note-text').value;
+    const node = state.nodes[state.ctxTargetId];
+    if (node && (node.note ?? '') !== text) {
+      pushHistory();
+      node.note = text;
+    }
+    closeModal();
+    render();
+    return;
+  }
+  if (state.modalKind === 'tasks') {
+    const node = state.nodes[state.ctxTargetId];
+    if (!node) { closeModal(); return; }
+    const before = JSON.stringify(node.tasks ?? []);
+    const after  = JSON.stringify(tasksDraft);
+    if (before !== after) {
+      pushHistory();
+      node.tasks = tasksDraft.map((t) => ({ ...t }));
+    }
+    closeModal();
+    render();
     return;
   }
 

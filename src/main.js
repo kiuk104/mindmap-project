@@ -15,7 +15,7 @@ import { showPreview, hidePreview }        from './preview.js';
 import { addChild, deleteNode, startEdit, removeLink, toggleCollapse, expandAncestors } from './nodes.js';
 import { initCanvas, view, applyTransform, resetView } from './canvas.js';
 import { onNodeMouseDown, onRelationHandleDown, onBranchHandleDown, consumePanDragFlag } from './canvas.js';
-import { openLinkModal, openColorModal, openSaveModal, openDriveLoadModal, openGDocsPreviewModal, closeModal, handleModalOK, applyStyle } from './modal.js';
+import { openLinkModal, openColorModal, openSaveModal, openDriveLoadModal, openGDocsPreviewModal, openNoteModal, closeModal, handleModalOK, applyStyle } from './modal.js';
 import { initSettingsPanel, toggleSettingsPanel, openSettingsPanel, closeSettingsPanel, isSettingsPanelOpen } from './settings-panel.js';
 import { registerShortcuts, dispatchKey } from './shortcuts.js';
 import * as drive                            from './drive.js';
@@ -58,6 +58,14 @@ registerHandlers({
   onBranchHandleDown,
   onToggleCollapse: toggleCollapse,
   onGDocsClick:     openGDocsPreviewModal,
+  onNoteClick:      openNoteModal,
+  onTaskToggle:     (nodeId, idx, checked) => {
+    const n = state.nodes[nodeId];
+    if (!n || !Array.isArray(n.tasks) || !n.tasks[idx]) return;
+    pushHistory();
+    n.tasks[idx].done = checked;
+    render();
+  },
 });
 
 // ── 매 render() 끝에: 자동 저장 + 패널 동기화 ──

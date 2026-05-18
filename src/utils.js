@@ -319,6 +319,8 @@ export function makeNode(id, text, x, y, parentId, color) {
     collapsed: false,    // true면 하위 트리 숨김
     image: null,         // {url, fit, height} 또는 null. url은 http(s) 또는 data:image/* 가능
     iconColor: null,     // Sticker(단색 SVG) 아이콘 색 오버라이드. null = 노드 텍스트 색 사용
+    note: '',            // 노드에 연결된 긴 노트 (모달에서 편집). 빈 문자열이면 없음.
+    tasks: [],           // [{id, text, done}] — 노드 내부 체크박스 할 일 목록
     textStyle: {
       bold: false, italic: false, underline: false, strikethrough: false,
       size: 'medium',   // 'small' | 'medium' | 'large'
