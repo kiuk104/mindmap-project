@@ -668,6 +668,53 @@ body.style-panel-open #style-panel { transform: translateX(0); }
   .icon-cats { max-height: 60vh; }
 }
 
+/* ── 노드 임베드 이미지 ── */
+.node-image {
+  display: block;
+  max-width: 220px;
+  max-height: 160px;
+  width: auto;
+  height: auto;
+  margin: -3px 0 6px;
+  border-radius: 6px;
+  user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;       /* 노드 드래그 방해 X */
+  object-fit: contain;
+}
+
+/* ── 이미지 모달 ── */
+.img-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--border, #30363d);
+}
+.img-preview-wrap {
+  margin-top: 12px;
+}
+.img-preview {
+  border: 1px dashed var(--border, #30363d);
+  border-radius: 8px;
+  background: var(--bg-hover, rgba(255,255,255,0.04));
+  padding: 10px;
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.img-preview img {
+  max-width: 100%;
+  max-height: 220px;
+  border-radius: 6px;
+  object-fit: contain;
+}
+.img-preview-empty {
+  color: #8b949e;
+  font-size: 12px;
+}
+
 /* ── 접기/펴기 토글 ── */
 .node-collapse {
   position: absolute;

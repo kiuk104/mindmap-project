@@ -5,7 +5,7 @@
 import { state } from './state.js';
 import { render } from './render.js';
 import { addChild, deleteNode, startEdit, toggleCollapse } from './nodes.js';
-import { openLinkModal, openColorModal, openIconModal, openSaveModal } from './modal.js';
+import { openLinkModal, openColorModal, openIconModal, openImageModal, openSaveModal } from './modal.js';
 import { resetView } from './canvas.js';
 import { clearLocal } from './io.js';
 import { $, uid, makeNode, setNodeSelection, clearNodeSelection, clearRelationSelection } from './utils.js';
@@ -117,6 +117,11 @@ export function initContextMenu() {
   $('ctx-icon').addEventListener('click', () => {
     hideContextMenu();
     openIconModal(state.ctxTargetId);
+  });
+
+  $('ctx-image').addEventListener('click', () => {
+    hideContextMenu();
+    openImageModal(state.ctxTargetId);
   });
 
   $('ctx-relation').addEventListener('click', () => {

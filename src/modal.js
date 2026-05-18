@@ -318,6 +318,130 @@ function renderIconBody() {
   });
 }
 
+// 이미지 모달 상태 — 모달 인스턴스 단위로 관리
+let imageDraft = { url: null, sourceTab: 'url' };
+
+/**
+ * 이미지 임베드 모달 열기
+ *   - URL 입력 또는 파일 업로드(데이터 URL로 변환)
+ *   - 다중 선택 시 선택된 모든 노드에 동일 이미지 적용
+ *   - "이미지 제거" 버튼으로 기존 이미지 비우기
+ * @param {string} nodeId
+ */
+export function openImageModal(nodeId) {
+  if (!nodeId) { alert('노드를 먼저 선택하세요.'); return; }
+  state.ctxTargetId = nodeId;
+  state.modalKind   = 'image';
+  $('modal-title').textContent = '🖼️ 노드 이미지';
+
+  const node = state.nodes[nodeId];
+  const currentUrl = node?.image?.url ?? '';
+  imageDraft = { url: currentUrl || null, sourceTab: 'url' };
+
+  $('modal-body').innerHTML = `
+    <div class="img-tabs">
+      <button type="button" class="icon-tab active" data-tab="url">🌐 URL</button>
+      <button type="button" class="icon-tab" data-tab="file">📁 파일 업로드</button>
+    </div>
+
+    <div class="fg" id="img-tab-url">
+      <label class="fl">이미지 URL</label>
+      <input class="fi" id="img-url" type="url"
+        placeholder="https://example.com/photo.jpg"
+        value="${escapeHTML(currentUrl)}" />
+    </div>
+
+    <div class="fg" id="img-tab-file" hidden>
+      <label class="fl">파일 선택 (jpg / png / gif / webp / svg)</label>
+      <input class="fi" id="img-file" type="file" accept="image/*" />
+      <div style="font-size:11px; color:#8b949e; margin-top:6px;">
+        💡 파일은 base64로 JSON 안에 저장됩니다. 큰 이미지는 파일 크기를 키우니
+        500KB 이내를 권장합니다.
+      </div>
+    </div>
+
+    <div class="img-preview-wrap">
+      <div class="sp-mini-label">미리보기</div>
+      <div class="img-preview" id="img-preview">
+        ${currentUrl
+          ? `<img src="${escapeHTML(currentUrl)}" alt="preview" draggable="false" />`
+          : `<span class="img-preview-empty">아직 이미지가 없습니다</span>`}
+      </div>
+    </div>
+
+    ${currentUrl
+      ? `<button type="button" class="btn btn-ghost" id="img-clear"
+           style="margin-top:8px;">🗑️ 이미지 제거</button>`
+      : ''}
+  `;
+
+  // 탭 전환
+  $('modal-body').querySelectorAll('.icon-tab').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const tab = btn.dataset.tab;
+      imageDraft.sourceTab = tab;
+      $('modal-body').querySelectorAll('.icon-tab').forEach((b) => {
+        b.classList.toggle('active', b === btn);
+      });
+      $('img-tab-url').hidden  = tab !== 'url';
+      $('img-tab-file').hidden = tab !== 'file';
+    });
+  });
+
+  // URL 입력 → 미리보기 즉시 갱신
+  $('img-url').addEventListener('input', (e) => {
+    const v = e.target.value.trim();
+    imageDraft.url = v || null;
+    updateImagePreview(v);
+  });
+
+  // 파일 선택 → FileReader로 data URL 변환 → 미리보기
+  $('img-file').addEventListener('change', (e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    if (!f.type.startsWith('image/')) {
+      alert('이미지 파일만 선택할 수 있습니다.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result;
+      imageDraft.url = dataUrl;
+      updateImagePreview(dataUrl);
+      // URL 탭으로도 값 동기화 (사용자가 다시 탭 전환 시 일관성)
+      const urlInput = $('img-url');
+      if (urlInput) urlInput.value = '';
+    };
+    reader.onerror = () => alert('파일 읽기에 실패했습니다.');
+    reader.readAsDataURL(f);
+  });
+
+  // 이미지 제거
+  const clearBtn = $('img-clear');
+  if (clearBtn) {
+    clearBtn.addEventListener('click', () => {
+      imageDraft.url = null;
+      $('img-url').value = '';
+      $('img-file').value = '';
+      updateImagePreview(null);
+      clearBtn.style.display = 'none';
+    });
+  }
+
+  showModal();
+}
+
+function updateImagePreview(url) {
+  const box = $('img-preview');
+  if (!box) return;
+  if (!url) {
+    box.innerHTML = `<span class="img-preview-empty">아직 이미지가 없습니다</span>`;
+    return;
+  }
+  box.innerHTML = `<img src="${escapeHTML(url)}" alt="preview" draggable="false"
+    onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'❌ 이미지 로드 실패', className:'img-preview-empty'}))" />`;
+}
+
 /** 설정 모달 열기 — 앱 테마·기본 폰트·관계선 기본값 */
 export function openSettingsModal() {
   state.modalKind = 'settings';
@@ -477,6 +601,18 @@ export function handleModalOK() {
           if (state.nodes[id]) state.nodes[id].color = selected.dataset.c;
         });
       }
+    }
+    closeModal();
+    render();
+
+  } else if (state.modalKind === 'image') {
+    const ids = targetNodeIds(state.ctxTargetId);
+    if (ids.length) {
+      pushHistory();
+      const newImage = imageDraft.url ? { url: imageDraft.url } : null;
+      ids.forEach((id) => {
+        if (state.nodes[id]) state.nodes[id].image = newImage;
+      });
     }
     closeModal();
     render();

@@ -67,6 +67,8 @@ state = {
       parentId: string | null,
       color: string,           // hex
       icon: string,            // 이모지 1개 또는 ''
+      collapsed: boolean,      // 자식 트리 접기/펴기
+      image: { url: string } | null,  // 임베드 이미지 (http(s) 또는 data:image/*)
       links: [
         { type: "drive"|"youtube"|"image"|"url", url, label }
       ]
@@ -196,6 +198,7 @@ main.js
 - [x] 노드 클립보드 (Ctrl+C/X/V — 서브트리 단위, 새 ID로 재발급)
 - [x] 키보드 트리 네비게이션 (↑↓ 형제, ← 부모, → 첫 자식)
 - [x] PNG/SVG 이미지 내보내기 (저장 모달 → 형식 선택)
+- [x] 노드 본문 이미지 임베드 (URL 또는 파일 업로드 → data URL)
 
 ## 다중 노드 일괄 작업
 - 셀렉트박스(좌클릭 드래그) 또는 Shift+클릭으로 다중 선택
@@ -230,4 +233,3 @@ main.js
 - [ ] 실시간 협업 (WebSocket / Firebase / CRDT)
 - [ ] PWA (오프라인 / 홈 화면 설치)
 - [ ] 외부 폰트 (Google Fonts)
-- [ ] 노드 본문 이미지 임베드

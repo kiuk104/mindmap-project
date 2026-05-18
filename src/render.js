@@ -260,6 +260,18 @@ export function render() {
     el.style.borderWidth = bw;
     if (n.borderWidth === 'none') el.style.borderColor = 'transparent';
 
+    // 임베드 이미지 (있으면 텍스트 위)
+    if (n.image?.url) {
+      const img = document.createElement('img');
+      img.className = 'node-image';
+      img.src       = n.image.url;
+      img.alt       = '';
+      img.draggable = false;
+      // 로드 실패 시 자리를 차지하지 않도록 숨김
+      img.addEventListener('error', () => { img.style.display = 'none'; });
+      el.appendChild(img);
+    }
+
     // 텍스트 (아이콘이 있으면 앞에 표시)
     const textDiv = document.createElement('div');
     textDiv.className   = 'node-text';

@@ -35,14 +35,16 @@ function estimateNodeWidth(n, fontSize) {
 
 /** 출력 대상 노드들의 캔버스 좌표 bounding box (숨김 노드 제외) */
 function getBoundingBox(hiddenIds) {
+  const IMG_W = 180, IMG_H = 100;
   let xMin = Infinity, yMin = Infinity, xMax = -Infinity, yMax = -Infinity;
   let count = 0;
 
   Object.values(state.nodes).forEach((n) => {
     if (hiddenIds.has(n.id)) return;
     const fontSize = parseInt(NODE_SIZES[n.textStyle?.size] ?? NODE_SIZES.medium, 10);
-    const w = estimateNodeWidth(n, fontSize);
-    const h = fontSize + 20;
+    const hasImage = !!n.image?.url;
+    const w = Math.max(estimateNodeWidth(n, fontSize), hasImage ? IMG_W + 16 : 0);
+    const h = fontSize + 20 + (hasImage ? IMG_H + 10 : 0);
     xMin = Math.min(xMin, n.x - w / 2);
     xMax = Math.max(xMax, n.x + w / 2);
     yMin = Math.min(yMin, n.y - h / 2);
@@ -132,13 +134,16 @@ export function buildExportSvg() {
     }
   });
 
-  // 노드
+  // 노드 — 이미지가 있으면 텍스트 위에 표시. 이미지 영역만큼 노드 높이 확장.
+  const IMG_W = 180, IMG_H = 100;
+
   Object.values(state.nodes).forEach((n) => {
     if (hiddenIds.has(n.id)) return;
     const ts = n.textStyle ?? {};
     const fontSize = parseInt(NODE_SIZES[ts.size] ?? NODE_SIZES.medium, 10);
-    const nodeW = estimateNodeWidth(n, fontSize);
-    const nodeH = fontSize + 20;
+    const hasImage = !!n.image?.url;
+    const nodeW = Math.max(estimateNodeWidth(n, fontSize), hasImage ? IMG_W + 16 : 0);
+    const nodeH = fontSize + 20 + (hasImage ? IMG_H + 10 : 0);
     const nx = n.x - nodeW / 2;
     const ny = n.y - nodeH / 2;
     const radius = n.shape === 'sharp' ? 3 : n.shape === 'pill' ? nodeH / 2 : 10;
@@ -152,6 +157,15 @@ export function buildExportSvg() {
       rx="${radius}" ry="${radius}"
       fill="${n.color}" stroke="${stroke}" stroke-width="${sw}"/>`;
 
+    // 이미지 — 노드 상단에 가운데 정렬
+    if (hasImage) {
+      const ix = n.x - IMG_W / 2;
+      const iy = ny + 8;
+      svg += `<image x="${ix}" y="${iy}" width="${IMG_W}" height="${IMG_H}"
+        href="${escapeXml(n.image.url)}"
+        preserveAspectRatio="xMidYMid meet"/>`;
+    }
+
     const text = (n.icon ? n.icon + ' ' : '') + (n.text ?? '');
     const weight = ts.bold ? '700' : '400';
     const style  = ts.italic ? 'italic' : 'normal';
@@ -159,7 +173,11 @@ export function buildExportSvg() {
     if (ts.underline)     decoParts.push('underline');
     if (ts.strikethrough) decoParts.push('line-through');
     const deco = decoParts.length ? `text-decoration="${decoParts.join(' ')}"` : '';
-    svg += `<text x="${n.x}" y="${n.y + fontSize / 3}" text-anchor="middle"
+    // 이미지가 있으면 텍스트는 노드 하단에, 없으면 가운데
+    const textY = hasImage
+      ? ny + 8 + IMG_H + 10 + fontSize
+      : n.y + fontSize / 3;
+    svg += `<text x="${n.x}" y="${textY}" text-anchor="middle"
       fill="#ffffff" font-size="${fontSize}" font-weight="${weight}"
       font-style="${style}" font-family="sans-serif" ${deco}>${escapeXml(text)}</text>`;
   });
