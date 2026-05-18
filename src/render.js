@@ -519,30 +519,19 @@ export function render() {
     canvas.appendChild(el);
   });
 
-  // ── 콜아웃 div 렌더 (말풍선 모양) ──
+  // ── 콜아웃 div 렌더 (말풍선 박스 — 꼬리는 box 추가 후 SVG로) ──
   if (Array.isArray(state.callouts)) {
     state.callouts.forEach((co) => {
       const p = state.nodes[co.parentId];
       if (!p || hiddenIds.has(co.parentId)) return;
 
-      // 꼬리 방향 — 부모와의 dx/dy 우세 축에 따라 4방향
-      let tail;
-      if (Math.abs(co.dx) >= Math.abs(co.dy)) {
-        tail = co.dx > 0 ? 'left' : 'right';   // 콜아웃이 부모 우측이면 꼬리는 왼쪽으로 (부모 향함)
-      } else {
-        tail = co.dy > 0 ? 'top' : 'bottom';
-      }
-
       const box = document.createElement('div');
       box.id = 'co-' + co.id;
       box.className = 'callout' + (state.selectedCalloutId === co.id ? ' selected' : '');
-      box.dataset.tail = tail;
       box.style.left = (p.x + co.dx) + 'px';
       box.style.top  = (p.y + co.dy) + 'px';
-      // 배경색을 CSS 변수로 전달 — ::before(꼬리)가 같은 색을 가져감
       const bgColor = co.color || '#fde68a';
       box.style.background = bgColor;
-      box.style.setProperty('--co-bg', bgColor);
       box.textContent = co.text || '';
 
       // 이벤트 — 드래그/선택/편집은 H 핸들러로
@@ -560,9 +549,72 @@ export function render() {
       });
       canvas.appendChild(box);
     });
+    // 콜아웃 box들이 DOM에 추가된 후, 실제 크기로 꼬리 polygon을 SVG에 prepend
+    renderCalloutTails(hiddenIds);
   }
 
   postRenderHook();
+}
+
+/**
+ * 콜아웃 꼬리(말풍선 tail) 렌더 — 각 콜아웃 박스의 실제 크기를 측정해
+ * 부모를 향한 코너에서 부모 중심까지 길게 뻗는 삼각형 polygon을 SVG에 그림.
+ * 박스보다 먼저 그려져야(폴리곤의 base 부분이 박스에 가려져) 박스 안쪽 코너에서
+ * 자연스럽게 솟아나는 모양이 됨 → svg.prepend로 SVG 맨 앞에 삽입.
+ */
+function renderCalloutTails(hiddenIds) {
+  const svg = $('svg-layer');
+  if (!svg || !Array.isArray(state.callouts)) return;
+
+  state.callouts.forEach((co) => {
+    const p = state.nodes[co.parentId];
+    if (!p || hiddenIds.has(co.parentId)) return;
+    const el = document.getElementById('co-' + co.id);
+    if (!el) return;
+
+    const w = el.offsetWidth;
+    const h = el.offsetHeight;
+    const cx = p.x + co.dx;       // 콜아웃 중심
+    const cy = p.y + co.dy;
+    const halfW = w / 2;
+    const halfH = h / 2;
+
+    // 부모와의 상대 위치 — 부모를 향한 코너 결정
+    //   dx > 0: 콜아웃이 부모 우측 → 박스 LEFT 변이 부모 향함
+    //   dx < 0: 콜아웃이 부모 좌측 → 박스 RIGHT 변
+    const cornerXSide = co.dx >= 0 ? 'left'  : 'right';
+    const cornerYSide = co.dy >= 0 ? 'top'   : 'bottom';
+    const cornerPt = {
+      x: cx + (cornerXSide === 'right' ? +halfW : -halfW),
+      y: cy + (cornerYSide === 'bottom' ? +halfH : -halfH),
+    };
+
+    // 박스 중심을 향한 방향 (이 방향으로 base 점을 박스 안쪽에 살짝 들임)
+    const inDx = cornerXSide === 'left' ? +1 : -1;
+    const inDy = cornerYSide === 'top'  ? +1 : -1;
+
+    // base 두 점 — 코너에서 각 변을 따라 안쪽으로 들어간 곳에 위치
+    // INSET이 border-radius(12px)보다 커야 박스 코너에 가려지지 않고 매끄럽게 솟음
+    const TAIL_BASE = 22;   // base 두 점 사이 거리(코너 길이)
+    const INSET     = 8;    // 반대 축으로 약간 박스 안쪽
+    const base1 = {
+      x: cornerPt.x + inDx * TAIL_BASE,
+      y: cornerPt.y + inDy * INSET,
+    };
+    const base2 = {
+      x: cornerPt.x + inDx * INSET,
+      y: cornerPt.y + inDy * TAIL_BASE,
+    };
+    const tip = { x: p.x, y: p.y };
+
+    const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+    poly.setAttribute('class', 'callout-tail');
+    poly.setAttribute('data-co', co.id);
+    poly.setAttribute('points',
+      `${base1.x},${base1.y} ${base2.x},${base2.y} ${tip.x},${tip.y}`);
+    poly.setAttribute('fill', co.color || '#fde68a');
+    svg.appendChild(poly);
+  });
 }
 
 /** SVG 안의 관계선·라벨·핸들에 이벤트 핸들러를 다시 붙임 */

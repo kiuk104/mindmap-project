@@ -14,6 +14,7 @@ import * as drive from './drive.js';
 import { pushHistory } from './history.js';
 import { getSettings, updateSettings } from './settings.js';
 import { enhanceDashPicker } from './dash-picker.js';
+import { toastSuccess, toastError } from './toast.js';
 
 /** 현재 다중 선택을 포함한 대상 노드 ID 목록을 반환 (없으면 단일 ctx 대상) */
 function targetNodeIds(fallback) {
@@ -756,7 +757,8 @@ export function handleModalOK() {
     const format = $('sv-format').value;
     if (format === 'clipboard') {
       copyJsonToClipboard().then((ok) => {
-        alert(ok ? 'JSON이 클립보드에 복사되었습니다.' : '클립보드 복사에 실패했습니다.');
+        if (ok) toastSuccess('📋 JSON이 클립보드에 복사되었습니다');
+        else    toastError('클립보드 복사 실패');
       });
       closeModal();
     } else if (format === 'png') {
@@ -764,11 +766,15 @@ export function handleModalOK() {
       okBtn.disabled = true;
       okBtn.textContent = '변환 중…';
       exportPngFile(name)
-        .then(() => closeModal())
-        .catch((e) => alert('PNG 내보내기 실패: ' + e.message))
+        .then(() => {
+          toastSuccess(`🖼️ "${name}.png" 내보내기 완료`);
+          closeModal();
+        })
+        .catch((e) => toastError('PNG 내보내기 실패: ' + e.message))
         .finally(() => { okBtn.disabled = false; okBtn.textContent = '확인'; });
     } else if (format === 'svg') {
       exportSvgFile(name);
+      toastSuccess(`📐 "${name}.svg" 내보내기 완료`);
       closeModal();
     } else if (format === 'drive') {
       // 드라이브 업로드
@@ -777,21 +783,18 @@ export function handleModalOK() {
       okBtn.textContent = '저장 중…';
       drive.saveToDrive(name, serialize())
         .then((file) => {
-          alert(`드라이브에 저장되었습니다.\n파일명: ${file.name}`);
-          // 다음 Ctrl+S 시 같은 Drive 파일로 빠른 저장
+          toastSuccess(`☁️ Drive에 "${file.name}" 저장 완료`);
           setLastSave({ kind: 'drive', name });
           closeModal();
         })
-        .catch((e) => {
-          alert('드라이브 저장 실패: ' + e.message);
-        })
+        .catch((e) => toastError('Drive 저장 실패: ' + e.message))
         .finally(() => {
           okBtn.disabled = false;
           okBtn.textContent = '확인';
         });
     } else {
       doDownload(name);
-      // 다음 Ctrl+S 시 같은 파일명으로 빠른 다운로드
+      toastSuccess(`💾 "${name}.json" 다운로드됨`);
       setLastSave({ kind: 'download', name });
       closeModal();
     }

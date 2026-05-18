@@ -1135,6 +1135,44 @@ body.settings-panel-open #settings-panel { transform: translateX(0); }
 }
 .task-edit-row .task-edit-del:hover { color: #f85149; }
 
+/* ── 토스트 알림 (저장 완료 등 즉시 피드백) ── */
+.toast-stack {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  flex-direction: column-reverse;  /* 새 토스트가 위에 쌓이도록 */
+  gap: 8px;
+  z-index: 1000;
+  pointer-events: none;
+  max-width: calc(100vw - 40px);
+}
+.toast {
+  background: var(--bg-toolbar, #161b22);
+  color: var(--text-bright, #e6edf3);
+  border: 1px solid var(--border, #30363d);
+  border-left: 4px solid var(--accent, #1f6feb);
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  transform: translateX(20px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  pointer-events: auto;
+  cursor: pointer;
+  min-width: 200px;
+  max-width: 380px;
+  word-break: break-word;
+  user-select: none;
+}
+.toast.toast-show { opacity: 1; transform: translateX(0); }
+.toast.toast-hide { opacity: 0; transform: translateX(20px); }
+.toast.toast-success { border-left-color: #3fb950; }
+.toast.toast-error   { border-left-color: #f85149; }
+.toast.toast-info    { border-left-color: var(--accent, #1f6feb); }
+
 /* ── 존(Zone) 박스 + 라벨 (SVG 요소) ── */
 #svg-layer .zone-box {
   cursor: pointer;
@@ -1179,49 +1217,10 @@ body.settings-panel-open #settings-panel { transform: translateX(0); }
   outline-offset: 3px;
 }
 
-/* 꼬리(triangle) — 부모 방향으로 한 변이 박스 모서리에 붙어 있도록 */
-.callout::before {
-  content: '';
-  position: absolute;
-  width: 0;
-  height: 0;
-  border: 10px solid transparent;
-}
-.callout[data-tail="left"]::before {
-  left: -18px;
-  top: 50%;
-  margin-top: -10px;
-  border-right-color: var(--co-bg, #fde68a);
-  border-right-width: 14px;
-  border-left: 0;
-  filter: drop-shadow(-2px 0 1px rgba(0,0,0,0.05));
-}
-.callout[data-tail="right"]::before {
-  right: -18px;
-  top: 50%;
-  margin-top: -10px;
-  border-left-color: var(--co-bg, #fde68a);
-  border-left-width: 14px;
-  border-right: 0;
-  filter: drop-shadow(2px 0 1px rgba(0,0,0,0.05));
-}
-.callout[data-tail="top"]::before {
-  top: -18px;
-  left: 50%;
-  margin-left: -10px;
-  border-bottom-color: var(--co-bg, #fde68a);
-  border-bottom-width: 14px;
-  border-top: 0;
-  filter: drop-shadow(0 -2px 1px rgba(0,0,0,0.05));
-}
-.callout[data-tail="bottom"]::before {
-  bottom: -18px;
-  left: 50%;
-  margin-left: -10px;
-  border-top-color: var(--co-bg, #fde68a);
-  border-top-width: 14px;
-  border-bottom: 0;
-  filter: drop-shadow(0 2px 1px rgba(0,0,0,0.05));
+/* 꼬리는 SVG polygon으로 그려져 박스 모서리에서 부모 노드까지 길게 뻗음.
+   .callout-tail 클래스 — fill은 인라인으로 callout.color, pointer-events 없음 */
+#svg-layer .callout-tail {
+  pointer-events: none;
 }
 
 /* ── 노드 임베드 이미지 ── */

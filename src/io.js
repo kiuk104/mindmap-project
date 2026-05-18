@@ -10,6 +10,7 @@ import { state } from './state.js';
 import { render } from './render.js';
 import { resetView } from './canvas.js';
 import { resetHistory } from './history.js';
+import { toastSuccess, toastError } from './toast.js';
 
 const STORAGE_KEY    = 'mindmap.v3';
 const LAST_SAVE_KEY  = 'mindmap.lastSave';
@@ -230,15 +231,17 @@ export async function quickSave(driveApi) {
 
   if (info.kind === 'download') {
     doDownload(info.name);
+    toastSuccess(`💾 "${info.name}.json" 다운로드됨`);
     return true;
   }
   if (info.kind === 'drive') {
     if (!driveApi || !driveApi.isSignedIn?.()) return false;
     try {
       await driveApi.saveToDrive(info.name, serialize());
+      toastSuccess(`☁️ Drive "${info.name}" 저장 완료`);
       return true;
     } catch (e) {
-      alert('Drive 저장 실패: ' + e.message);
+      toastError('Drive 저장 실패: ' + e.message);
       return true;   // 시도는 했으니 fallback 호출하지 않음
     }
   }
