@@ -99,9 +99,68 @@ function layoutTimeline(rootId, ax, ay) {
   });
 }
 
+// ── Tree Chart (수직 들여쓰기, 파일 탐색기 스타일) ─────
+function subtreeNodeCount(id) {
+  const cs = childrenOf(id);
+  return 1 + cs.reduce((s, c) => s + subtreeNodeCount(c.id), 0);
+}
+function layoutTree(rootId, ax, ay, indent = 60, vSpace = 60) {
+  const root = state.nodes[rootId];
+  root.x = ax;
+  root.y = ay;
+  const children = childrenOf(rootId);
+  let curY = ay + vSpace;
+  children.forEach((c) => {
+    layoutTree(c.id, ax + indent, curY, indent, vSpace);
+    curY += subtreeNodeCount(c.id) * vSpace;
+  });
+}
+
+// ── Fishbone (이시카와) ─────────────────────────────────
+// 루트가 좌측, 자식들은 수평 spine 위/아래 교대 배치
+function layoutFishbone(rootId, ax, ay) {
+  const root = state.nodes[rootId];
+  root.x = ax;
+  root.y = ay;
+  const children = childrenOf(rootId);
+  const step = 200;
+  const spread = 110;
+  children.forEach((c, i) => {
+    const cx = ax + (i + 1) * step;
+    const cy = ay + ((i % 2 === 0) ? -spread : +spread);
+    state.nodes[c.id].x = cx;
+    state.nodes[c.id].y = cy;
+    // 손자: 그 자식 노드에서 spine 방향 따라 옆/아래(또는 위)로 펼침
+    const grand = childrenOf(c.id);
+    const grandDir = (i % 2 === 0) ? -1 : +1;
+    grand.forEach((g, j) => {
+      state.nodes[g.id].x = cx + 70 + j * 30;
+      state.nodes[g.id].y = cy + grandDir * (40 + j * 35);
+    });
+  });
+}
+
+// ── Matrix (격자 — 모든 노드를 sqrt 행렬로) ─────────────
+function layoutMatrix(rootId, ax, ay) {
+  const ids = Object.keys(state.nodes);
+  const N = ids.length;
+  if (N === 0) return;
+  const cols = Math.ceil(Math.sqrt(N));
+  const stepX = 200;
+  const stepY = 80;
+  // 루트가 (0,0)에 오도록
+  ids.unshift(...ids.splice(ids.indexOf(rootId), 1));
+  ids.forEach((id, i) => {
+    const r = Math.floor(i / cols);
+    const c = i % cols;
+    state.nodes[id].x = ax + c * stepX;
+    state.nodes[id].y = ay + r * stepY;
+  });
+}
+
 /**
  * 트리 전체 재배치. 루트 노드의 현재 위치를 앵커로 그대로 유지.
- * @param {'logic-right'|'logic-left'|'org-down'|'org-up'|'timeline'} type
+ * @param {string} type — LAYOUT_LABELS의 키
  */
 export function applyLayout(type) {
   const rootId = findRootId();
@@ -114,9 +173,14 @@ export function applyLayout(type) {
   switch (type) {
     case 'logic-right': layoutLogic(rootId, ax, ay, true);  break;
     case 'logic-left':  layoutLogic(rootId, ax, ay, false); break;
+    case 'brace':       layoutLogic(rootId, ax, ay, true);  break;  // 동일 위치, 시각만 다르게(향후 brace 곡선 적용 여지)
     case 'org-down':    layoutOrg  (rootId, ax, ay, true);  break;
     case 'org-up':      layoutOrg  (rootId, ax, ay, false); break;
-    case 'timeline':    layoutTimeline(rootId, ax, ay);     break;
+    case 'tree':        layoutTree (rootId, ax, ay);         break;
+    case 'tree-table':  layoutTree (rootId, ax, ay, 80, 56); break;  // 더 넓은 들여쓰기
+    case 'timeline':    layoutTimeline(rootId, ax, ay);      break;
+    case 'fishbone':    layoutFishbone(rootId, ax, ay);      break;
+    case 'matrix':      layoutMatrix(rootId, ax, ay);        break;
     default: return;
   }
 
@@ -129,11 +193,16 @@ export function applyLayout(type) {
   render();
 }
 
-/** 사람이 읽을 수 있는 라벨 (UI에 사용) */
+/** 사람이 읽을 수 있는 라벨 — 스크린샷의 9종 구조에 대응 */
 export const LAYOUT_LABELS = {
-  'logic-right': '⊢ 로직 (오른쪽 펼침)',
-  'logic-left':  '⊣ 로직 (왼쪽 펼침)',
-  'org-down':    '┬ 조직도 (위→아래)',
-  'org-up':      '┴ 조직도 (아래→위)',
-  'timeline':    '━ 타임라인 (수평)',
+  'logic-right': 'Logic Chart',
+  'logic-left':  'Logic Chart (왼쪽)',
+  'brace':       'Brace Map',
+  'org-down':    'Org Chart',
+  'org-up':      'Org Chart (역방향)',
+  'tree':        'Tree Chart',
+  'timeline':    'Timeline',
+  'fishbone':    'Fishbone',
+  'tree-table':  'Tree Table',
+  'matrix':      'Matrix',
 };
