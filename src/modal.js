@@ -13,6 +13,7 @@ import { exportSvgFile, exportPngFile } from './export.js';
 import * as drive from './drive.js';
 import { pushHistory } from './history.js';
 import { getSettings, updateSettings } from './settings.js';
+import { enhanceDashPicker } from './dash-picker.js';
 
 /** 현재 다중 선택을 포함한 대상 노드 ID 목록을 반환 (없으면 단일 ctx 대상) */
 function targetNodeIds(fallback) {
@@ -585,6 +586,9 @@ export function openSettingsModal() {
   $('st-rel-color').addEventListener('input', (e) => {
     delete e.target.dataset.reset;
   });
+
+  // dash select를 SVG 미리보기 dropdown으로 강화
+  enhanceDashPicker($('st-rel-dash'));
 
   showModal();
 }

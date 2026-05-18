@@ -76,12 +76,15 @@ function renderParentLine(p, n, style) {
   const finalStroke  = bs.color || themeStroke || 'var(--line)';
 
   // dash 처리 — 'wavy'는 필터로, 나머지는 dasharray로
+  // linecap: dotted는 round(둥근 점), 그 외는 butt(직각 dash)
   const dashKey      = bs.dash;
   const isWavy       = dashKey === 'wavy';
   const dashPattern  = (!isWavy && DASH_PATTERNS[dashKey]) ? DASH_PATTERNS[dashKey] : '';
+  const linecap      = dashKey === 'dotted' ? 'round' : 'butt';
 
   let css = `stroke:${finalStroke};stroke-width:${finalWidth};`;
   css += `stroke-dasharray:${dashPattern || 'none'};`;
+  css += `stroke-linecap:${linecap};`;
   const styleAttr = `style="${css}"`;
   const filterAttr = isWavy ? `filter="url(#wavy-line)"` : '';
 
@@ -148,11 +151,12 @@ function buildSvgMarkup(hiddenIds) {
     const markerEnd   = (arrow === 'end'   || arrow === 'both') ? 'url(#rel-arrow)' : 'none';
     const markerStart = (arrow === 'start' || arrow === 'both') ? 'url(#rel-arrow)' : 'none';
 
-    // 점선 패턴 (기본은 dashed) — 'wavy'는 dasharray가 아닌 filter로 처리
+    // 점선 패턴 (기본은 dashed) — 'wavy'는 dasharray가 아닌 filter로, dotted는 round 캡
     const dashKey  = rs.dash ?? 'dashed';
     const isWavyRel = dashKey === 'wavy';
     const dashAttr = isWavyRel ? '' : (DASH_PATTERNS[dashKey] ?? DASH_PATTERNS.dashed);
     const filterAttrRel = isWavyRel ? `filter="url(#wavy-line)"` : '';
+    const linecapRel = dashKey === 'dotted' ? 'round' : 'butt';
 
     // 최종 stroke/width 결정 (인라인 style — CSS 규칙보다 우선)
     // 선택된 관계선은 파란색 강조 (노드 선택은 빨강 유지)
@@ -166,7 +170,7 @@ function buildSvgMarkup(hiddenIds) {
     else if (sel)        strokeWidth = 3;
     else                 strokeWidth = 2;
 
-    const css = `stroke:${strokeColor};stroke-width:${strokeWidth};stroke-dasharray:${dashAttr || 'none'};`;
+    const css = `stroke:${strokeColor};stroke-width:${strokeWidth};stroke-dasharray:${dashAttr || 'none'};stroke-linecap:${linecapRel};`;
 
     // ── 선택 시 halo (본선 뒤에 두꺼운 반투명 파란 path) ──
     if (sel) {

@@ -1116,6 +1116,86 @@ body.icon-panel-open #icon-panel { transform: translateX(0); }
   min-width: 22px;
 }
 
+/* ── Dash 패턴 커스텀 dropdown ── */
+.dash-picker {
+  position: relative;
+  width: 100%;
+}
+.dash-picker-native {
+  display: none !important;
+}
+.dash-picker-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border: 1px solid var(--border, #30363d);
+  border-radius: 6px;
+  background: var(--bg-input, rgba(255,255,255,0.04));
+  color: var(--text-bright, #e6edf3);
+  cursor: pointer;
+  font-size: 12px;
+  text-align: left;
+  transition: border-color 0.12s;
+}
+.dash-picker-trigger:hover { border-color: var(--accent, #1f6feb); }
+
+.dp-line {
+  width: 70px;
+  height: 12px;
+  flex: 0 0 70px;
+  color: currentColor;
+  display: block;
+}
+.dp-label {
+  flex: 1;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dp-caret {
+  font-size: 10px;
+  color: var(--text-dim, #8b949e);
+  margin-left: auto;
+}
+
+.dash-picker-panel {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 220;
+  background: var(--bg-toolbar, #161b22);
+  border: 1px solid var(--border, #30363d);
+  border-radius: 8px;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45);
+  padding: 4px;
+  max-height: 340px;
+  overflow-y: auto;
+}
+.dash-picker-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 8px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--text-bright, #e6edf3);
+  cursor: pointer;
+  font-size: 12px;
+  text-align: left;
+  transition: background 0.1s;
+}
+.dash-picker-item:hover { background: var(--bg-hover, rgba(255,255,255,0.06)); }
+.dash-picker-item.sel {
+  background: rgba(31, 111, 235, 0.18);
+  color: var(--accent, #1f6feb);
+}
+
 /* ── 설정 모달 ── */
 .settings-radio-row {
   display: flex;

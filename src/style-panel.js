@@ -18,6 +18,7 @@ import {
 import { pushHistory, beginPending, commitPending, cancelPending } from './history.js';
 import { getSettings, onSettingsChange } from './settings.js';
 import { openCustomThemeModal } from './modal.js';
+import { enhanceDashPicker } from './dash-picker.js';
 
 const STORAGE_KEY    = 'mindmap.style';
 const LINESTYLE_KEY  = 'mindmap.lineStyle';
@@ -334,6 +335,10 @@ export function initStylePanel() {
     $('rel-dash').innerHTML = Object.entries(DASH_NAMES).map(([key, name]) =>
       `<option value="${key}">${name}${key === 'dashed' ? ' (기본)' : ''}</option>`).join('');
   }
+
+  // 두 select를 SVG 미리보기 dropdown으로 강화
+  enhanceDashPicker($('nd-branch-dash'));
+  enhanceDashPicker($('rel-dash'));
 
   // 초기 상태 동기화
   syncControlsFromState();
