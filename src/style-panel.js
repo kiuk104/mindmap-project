@@ -11,14 +11,23 @@
 import { state } from './state.js';
 import { render } from './render.js';
 import {
-  $, COLOR_THEMES, THEME_NAMES, FONT_FAMILIES, FONT_NAMES, resolvePalette,
+  $, COLOR_THEMES, THEME_NAMES, THEME_CATEGORIES, FONT_FAMILIES, FONT_NAMES, resolvePalette,
 } from './utils.js';
 import { pushHistory, beginPending, commitPending, cancelPending } from './history.js';
 import { getSettings, onSettingsChange } from './settings.js';
 import { openCustomThemeModal } from './modal.js';
 
-const STORAGE_KEY  = 'mindmap.style';
-const LINESTYLE_KEY = 'mindmap.lineStyle';
+const STORAGE_KEY    = 'mindmap.style';
+const LINESTYLE_KEY  = 'mindmap.lineStyle';
+const THEMES_TAB_KEY = 'mindmap.themes.tab';
+
+/** 현재 활성 테마 카테고리 탭 ('Colorful' | 'Classic'). 세션 간 유지 */
+let activeThemeTab = (() => {
+  try {
+    const saved = localStorage.getItem(THEMES_TAB_KEY);
+    return saved && THEME_CATEGORIES[saved] ? saved : 'Colorful';
+  } catch { return 'Colorful'; }
+})();
 
 let _onStyleApplied = null;
 let _initialized = false;
@@ -192,20 +201,34 @@ function recolorAllNodes(themeKey) {
   });
 }
 
-/** 테마 그리드 HTML 빌드 — 빌트인 + 커스텀 + "새 테마" 추가 타일 */
+/** 테마 카테고리 탭 HTML — 그리드 상단에 표시 */
+function buildThemeTabs() {
+  return Object.keys(THEME_CATEGORIES).map((cat) => `
+    <button type="button" class="theme-tab ${cat === activeThemeTab ? 'active' : ''}" data-theme-tab="${cat}">${cat}</button>
+  `).join('');
+}
+
+/** 테마 그리드 HTML 빌드 — 현재 탭 빌트인 + (항상) 커스텀 + "새 테마" 추가 타일 */
 function buildThemeGrid() {
   const customThemes = getSettings().customThemes ?? [];
   const currentKey   = state.style?.theme;
 
-  const builtInHTML = Object.entries(COLOR_THEMES).map(([key, palette]) => `
-    <div class="theme-pick ${key === currentKey ? 'sel' : ''}" data-theme="${key}">
-      <div class="theme-swatches">
-        ${palette.slice(0, 6).map((c) => `<span class="theme-swatch" style="background:${c}"></span>`).join('')}
+  // 현재 탭에 속하는 빌트인만 노출
+  const tabKeys = THEME_CATEGORIES[activeThemeTab] ?? [];
+  const builtInHTML = tabKeys.map((key) => {
+    const palette = COLOR_THEMES[key];
+    if (!palette) return '';
+    return `
+      <div class="theme-pick ${key === currentKey ? 'sel' : ''}" data-theme="${key}">
+        <div class="theme-swatches">
+          ${palette.slice(0, 6).map((c) => `<span class="theme-swatch" style="background:${c}"></span>`).join('')}
+        </div>
+        <div class="theme-name">${THEME_NAMES[key] ?? key}</div>
       </div>
-      <div class="theme-name">${THEME_NAMES[key] ?? key}</div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 
+  // 커스텀 테마는 탭과 무관하게 항상 노출 (사용자 자산이므로)
   const customHTML = customThemes.map((t) => `
     <div class="theme-pick custom ${t.id === currentKey ? 'sel' : ''}" data-theme="${t.id}">
       <div class="theme-swatches">
@@ -236,6 +259,26 @@ function escapeHTML(s) {
 export function initStylePanel() {
   if (_initialized) return;
   _initialized = true;
+
+  // 그리드 위에 카테고리 탭 삽입
+  const grid = $('sp-themes');
+  if (grid && !grid.previousElementSibling?.classList.contains('theme-tabs')) {
+    const tabs = document.createElement('div');
+    tabs.className = 'theme-tabs';
+    tabs.innerHTML = buildThemeTabs();
+    grid.parentNode.insertBefore(tabs, grid);
+
+    tabs.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-theme-tab]');
+      if (!btn) return;
+      activeThemeTab = btn.dataset.themeTab;
+      try { localStorage.setItem(THEMES_TAB_KEY, activeThemeTab); } catch {}
+      tabs.querySelectorAll('.theme-tab').forEach((b) => {
+        b.classList.toggle('active', b === btn);
+      });
+      grid.innerHTML = buildThemeGrid();
+    });
+  }
 
   // 테마 그리드 빌드 (빌트인 + 커스텀 + 새 테마 타일)
   $('sp-themes').innerHTML = buildThemeGrid();

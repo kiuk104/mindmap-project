@@ -10,14 +10,36 @@ export const $ = (id) => document.getElementById(id);
 export const uid = () =>
   'n' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
 
-/** 컬러 테마 프리셋 — 노드 색상 팔레트 */
+/** 컬러 테마 프리셋 — 노드 색상 팔레트 (각 8색) */
 export const COLOR_THEMES = {
+  // ── Colorful ──────────────────────────────────────────
   default: ['#f85149', '#1f6feb', '#8957e5', '#3fb950', '#e3b341', '#39c5cf', '#ff7b72', '#d2a8ff'],
   dawn:    ['#ff7eb6', '#ffa07a', '#ffb86c', '#f1c40f', '#74c0fc', '#b197fc', '#ff8cc8', '#e599f7'],
   ocean:   ['#4dabf7', '#74c0fc', '#3bc9db', '#66d9e8', '#20c997', '#51cf66', '#22b8cf', '#15aabf'],
   forest:  ['#51cf66', '#94d82d', '#a9e34b', '#fcc419', '#ff922b', '#74c0fc', '#82c91e', '#37b24d'],
   sunset:  ['#ff6b6b', '#ff8787', '#ffa94d', '#ffd43b', '#ff8cc8', '#e599f7', '#fa5252', '#f76707'],
+  roses:        ['#fce8ec', '#f8b7c5', '#f088a3', '#e94e7c', '#d62c5f', '#a01a48', '#7a1338', '#5c0e2a'],
+  mint:         ['#e8f8f1', '#a7e8d4', '#5dd4b1', '#1fb898', '#0e9b7e', '#0a7c66', '#08604f', '#06463a'],
+  greenTea:     ['#d4d9a3', '#a8b270', '#7f9152', '#5b7438', '#3e5524', '#857c33', '#5a4d1e', '#2a3b18'],
+  space:        ['#bcd4e8', '#8eb3d6', '#5e8fc2', '#3a6bab', '#1d4a8b', '#10336a', '#082248', '#031529'],
+  sophisticated:['#92400e', '#f5e6d3', '#a8a29e', '#dc2626', '#5c3a1e', '#2d1810', '#1f2937', '#0c0a09'],
+  innocence:    ['#f4a4bc', '#f9c4d4', '#fce7f3', '#b8d4f0', '#7fa7d4', '#3b5b85', '#6b7280', '#374151'],
+  macaron:      ['#f8c2b8', '#e8d5b5', '#fef3c7', '#d4e8d4', '#c2e0e0', '#d4c5e6', '#e8d5e8', '#7c7470'],
+  woodland:     ['#d4cd5a', '#a8b260', '#7d8c4d', '#4d6837', '#3a4a25', '#857c33', '#bdb76b', '#2c2616'],
+  cream:        ['#f7e0c2', '#f0c896', '#e0a566', '#b87a3d', '#8c5524', '#5a3416', '#3a200d', '#1e1006'],
+  hawaii:       ['#ffd166', '#f8961e', '#f3722c', '#f94144', '#06d6a0', '#0a9396', '#0096c7', '#90e0ef'],
+
+  // ── Classic ───────────────────────────────────────────
   mono:    ['#495057', '#6c757d', '#adb5bd', '#868e96', '#343a40', '#71717a', '#52525b', '#9ca3af'],
+  constancy:    ['#3b66c4', '#dc2f3e', '#e8c632', '#2d8e54', '#3680c4', '#7a3ba8', '#e07a3a', '#ad2e58'],
+  classicCream: ['#3680c4', '#dc2f3e', '#f0b132', '#e87a2c', '#3a9a91', '#5ab5a0', '#d6dca3', '#874e1e'],
+  flowers:      ['#c92a2a', '#e88a18', '#bd2c34', '#3b66c4', '#1f7a7a', '#2d7a3a', '#1f3f8a', '#5e2e8a'],
+  coral:        ['#f4a4a8', '#88c0d0', '#e88a82', '#e0c6a0', '#a8d4c0', '#7fadb8', '#3a5a78', '#c46060'],
+  gorgeous:     ['#6e3416', '#a02828', '#d49a32', '#cc4a40', '#2d6a3e', '#2d5a9a', '#1f3a6e', '#0e1f3e'],
+  champagne:    ['#e8d4a8', '#d4b890', '#c4a378', '#a89060', '#807050', '#605040', '#454040', '#2a2a2a'],
+  perfume:      ['#a8a058', '#e08038', '#c43838', '#a07a40', '#6a5028', '#4a3818', '#382a1e', '#1f1814'],
+  zen:          ['#f3f4f6', '#d1d5db', '#9ca3af', '#6b7280', '#4b5563', '#374151', '#1f2937', '#000000'],
+  groove:       ['#e93b2d', '#f57c00', '#fbc02d', '#7cb342', '#039be5', '#3949ab', '#8e24aa', '#d81b60'],
 };
 
 export const THEME_NAMES = {
@@ -27,6 +49,38 @@ export const THEME_NAMES = {
   forest:  'Forest',
   sunset:  'Sunset',
   mono:    'Mono',
+  roses:         'Roses',
+  mint:          'Mint',
+  greenTea:      'Green Tea',
+  space:         'Space',
+  sophisticated: 'Sophisticated',
+  innocence:     'Innocence',
+  macaron:       'Macaron',
+  woodland:      'Woodland',
+  cream:         'Cream',
+  hawaii:        'Hawaii',
+  constancy:     'Constancy',
+  classicCream:  'Cream Classic',
+  flowers:       'Flowers',
+  coral:         'Coral',
+  gorgeous:      'Gorgeous',
+  champagne:     'Champagne',
+  perfume:       'Perfume',
+  zen:           'Zen',
+  groove:        'Groove',
+};
+
+/** 스타일 패널의 테마 그리드 탭 구조 */
+export const THEME_CATEGORIES = {
+  Colorful: [
+    'default', 'dawn', 'ocean', 'forest', 'sunset',
+    'roses', 'mint', 'greenTea', 'space', 'sophisticated',
+    'innocence', 'macaron', 'woodland', 'cream', 'hawaii',
+  ],
+  Classic: [
+    'mono', 'constancy', 'classicCream', 'flowers', 'coral',
+    'gorgeous', 'champagne', 'perfume', 'zen', 'groove',
+  ],
 };
 
 /** 기본 노드 색상 팔레트 (하위 호환) */
