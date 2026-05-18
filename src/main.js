@@ -15,7 +15,9 @@ import { showPreview, hidePreview }        from './preview.js';
 import { addChild, deleteNode, startEdit, removeLink, toggleCollapse, expandAncestors } from './nodes.js';
 import { initCanvas, view, applyTransform, resetView } from './canvas.js';
 import { onNodeMouseDown, onRelationHandleDown, onBranchHandleDown, consumePanDragFlag } from './canvas.js';
-import { openLinkModal, openColorModal, openSaveModal, openDriveLoadModal, openSettingsModal, closeModal, handleModalOK, applyStyle } from './modal.js';
+import { openLinkModal, openColorModal, openSaveModal, openDriveLoadModal, closeModal, handleModalOK, applyStyle } from './modal.js';
+import { initSettingsPanel, toggleSettingsPanel, openSettingsPanel, closeSettingsPanel, isSettingsPanelOpen } from './settings-panel.js';
+import { registerShortcuts, dispatchKey } from './shortcuts.js';
 import * as drive                            from './drive.js';
 import { showContextMenu, hideContextMenu, hideAllMenus, showBgMenu, initContextMenu } from './menu.js';
 import { doImport, schedulePersist, restoreLocal, onSaveStateChange } from './io.js';
@@ -264,8 +266,9 @@ $('btn-icon').addEventListener('click', () => {
   toggleIconPanel();
 });
 
-// ── ⚙️ 설정 모달 ──
-$('btn-settings').addEventListener('click', openSettingsModal);
+// ── ⚙️ 설정 패널 (좌측) ──
+initSettingsPanel();
+$('btn-settings').addEventListener('click', toggleSettingsPanel);
 
 // ── 테마 토글 (settings.theme: 'dark' | 'light' | 'system') ──
 const THEME_KEY = 'mindmap.theme';   // 하위호환: 옛 키도 읽음
@@ -406,160 +409,80 @@ $('canvas-wrap').addEventListener('contextmenu', (e) => {
   }
 });
 
-// ── 키보드 단축키 ──
+// ── 단축키 액션 핸들러들 ──
+function actionDeleteSelected() {
+  const selRels  = [...(state.selectedRelationIds ?? [])];
+  const selNodes = [...state.selectedIds];
+  const total = selRels.length + selNodes.length;
+  if (total === 0) return;
+  if (total > 1 && !confirm(`선택된 ${total}개 항목을 모두 삭제할까요?`)) return;
+
+  pushHistory();
+  if (selRels.length) {
+    const toDel = new Set(selRels);
+    state.relations = state.relations.filter((r) => !toDel.has(r.id));
+    clearRelationSelection(state);
+  }
+  if (selNodes.length) {
+    const rootId = Object.keys(state.nodes).find((k) => !state.nodes[k].parentId);
+    const removed = new Set();
+    function rm(nodeId) {
+      if (nodeId === rootId) return;
+      Object.keys(state.nodes)
+        .filter((k) => state.nodes[k].parentId === nodeId)
+        .forEach(rm);
+      removed.add(nodeId);
+      delete state.nodes[nodeId];
+    }
+    selNodes.forEach(rm);
+    state.relations = state.relations.filter(
+      (r) => !removed.has(r.fromId) && !removed.has(r.toId),
+    );
+    state.selectedIds = (state.selectedIds ?? []).filter((sid) => !removed.has(sid));
+    state.selectedId  = state.selectedIds.length === 1 ? state.selectedIds[0] : null;
+  }
+  render();
+}
+
+function actionEscape() {
+  closeModal();
+  hideAllMenus();
+  if (isPanelOpen())          closePanel();
+  if (isIconPanelOpen())      closeIconPanel();
+  if (isSettingsPanelOpen())  closeSettingsPanel();
+  if (state.relationDraft) {
+    state.relationDraft = null;
+    document.body.classList.remove('relation-drafting');
+  }
+  clearNodeSelection(state);
+  clearRelationSelection(state);
+  render();
+}
+
+// 액션 → 핸들러 등록 (shortcuts.js의 dispatchKey가 이 맵으로 라우팅)
+registerShortcuts({
+  'add-child':       () => addChild(),
+  'delete':          actionDeleteSelected,
+  'delete-alt':      actionDeleteSelected,
+  'toggle-collapse': () => { if (state.selectedId) toggleCollapse(state.selectedId); },
+  'undo':            () => undo(),
+  'redo':            () => redo(),
+  'redo-alt':        () => redo(),
+  'copy':            () => { if (state.selectedIds.length) copyClipboard(); },
+  'cut':             () => { if (state.selectedIds.length) cutClipboard(); },
+  'paste':           () => { if (hasClipboard()) pasteClipboard(); },
+  'save':            () => openSaveModal(),
+  'search':          () => { const si = $('search-input'); si.focus(); si.select(); },
+  'nav-up':          () => navigateSibling(-1),
+  'nav-down':        () => navigateSibling(1),
+  'nav-left':        () => navigateToParent(),
+  'nav-right':       () => navigateToChild(),
+  'escape':          actionEscape,
+});
+
+// 단일 keydown 리스너 — shortcuts.js의 dispatcher가 액션을 찾아 호출
 document.addEventListener('keydown', (e) => {
-  // Ctrl+S / Cmd+S → 저장 모달 (입력 필드에서도 동작)
-  if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
-    e.preventDefault();
-    openSaveModal();
-    return;
-  }
-
-  // Ctrl+F / Cmd+F → 검색 input 포커스 (입력 필드에서도 동작)
-  if ((e.ctrlKey || e.metaKey) && (e.key === 'f' || e.key === 'F')) {
-    e.preventDefault();
-    const si = $('search-input');
-    si.focus();
-    si.select();
-    return;
-  }
-
-  // Ctrl+Z / Cmd+Z → Undo. Shift 동반은 Redo.
-  if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) {
-    // 입력 필드에서는 브라우저 기본 동작 유지
-    const tag = document.activeElement.tagName;
-    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
-    e.preventDefault();
-    if (e.shiftKey) redo();
-    else            undo();
-    return;
-  }
-  // Ctrl+Y / Cmd+Y → Redo
-  if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || e.key === 'Y')) {
-    const tag = document.activeElement.tagName;
-    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
-    e.preventDefault();
-    redo();
-    return;
-  }
-
-  // Ctrl+C / Cmd+C → 선택 노드 복사 (선택 없으면 브라우저 기본)
-  if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'C')) {
-    const tag = document.activeElement.tagName;
-    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
-    if (!state.selectedIds.length) return;
-    e.preventDefault();
-    copyClipboard();
-    return;
-  }
-  // Ctrl+X / Cmd+X → 잘라내기
-  if ((e.ctrlKey || e.metaKey) && (e.key === 'x' || e.key === 'X')) {
-    const tag = document.activeElement.tagName;
-    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
-    if (!state.selectedIds.length) return;
-    e.preventDefault();
-    cutClipboard();
-    return;
-  }
-  // Ctrl+V / Cmd+V → 붙여넣기 (클립보드에 내용 있을 때만)
-  if ((e.ctrlKey || e.metaKey) && (e.key === 'v' || e.key === 'V')) {
-    const tag = document.activeElement.tagName;
-    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
-    if (!hasClipboard()) return;
-    e.preventDefault();
-    pasteClipboard();
-    return;
-  }
-
-  // 입력 필드에서는 단축키 무시
-  const tag = document.activeElement.tagName;
-  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
-
-  switch (e.key) {
-    case 'Tab':
-      e.preventDefault();
-      addChild();
-      break;
-    case ' ':
-    case 'Spacebar': {
-      // 단일 선택 노드 접기/펴기 (자식 있을 때만 의미)
-      if (state.selectedId) {
-        e.preventDefault();
-        toggleCollapse(state.selectedId);
-      }
-      break;
-    }
-    case 'ArrowUp':
-    case 'ArrowDown': {
-      e.preventDefault();
-      navigateSibling(e.key === 'ArrowDown' ? 1 : -1);
-      break;
-    }
-    case 'ArrowLeft': {
-      e.preventDefault();
-      navigateToParent();
-      break;
-    }
-    case 'ArrowRight': {
-      e.preventDefault();
-      navigateToChild();
-      break;
-    }
-    case 'Delete':
-    case 'Backspace': {
-      const selRels  = [...(state.selectedRelationIds ?? [])];
-      const selNodes = [...state.selectedIds];
-      const total = selRels.length + selNodes.length;
-      if (total === 0) break;
-      if (total > 1 && !confirm(`선택된 ${total}개 항목을 모두 삭제할까요?`)) break;
-
-      // 일괄 삭제는 한 번의 history 엔트리로 묶음
-      pushHistory();
-
-      // 관계선 먼저 삭제
-      if (selRels.length) {
-        const toDel = new Set(selRels);
-        state.relations = state.relations.filter((r) => !toDel.has(r.id));
-        clearRelationSelection(state);
-      }
-      // 노드 삭제 (deleteNode가 각각 pushHistory를 하지 않도록 별도 helper로)
-      if (selNodes.length) {
-        // deleteNode를 직접 부르면 매 호출마다 pushHistory가 일어남.
-        // 여기서는 위에서 한 번만 push하고, 삭제 로직을 인라인으로 수행.
-        const rootId = Object.keys(state.nodes).find((k) => !state.nodes[k].parentId);
-        const removed = new Set();
-        function rm(nodeId) {
-          if (nodeId === rootId) return; // 루트 보호
-          Object.keys(state.nodes)
-            .filter((k) => state.nodes[k].parentId === nodeId)
-            .forEach(rm);
-          removed.add(nodeId);
-          delete state.nodes[nodeId];
-        }
-        selNodes.forEach(rm);
-        state.relations = state.relations.filter(
-          (r) => !removed.has(r.fromId) && !removed.has(r.toId),
-        );
-        state.selectedIds = (state.selectedIds ?? []).filter((sid) => !removed.has(sid));
-        state.selectedId  = state.selectedIds.length === 1 ? state.selectedIds[0] : null;
-      }
-      render();
-      break;
-    }
-    case 'Escape':
-      closeModal();
-      hideAllMenus();
-      if (isPanelOpen())     closePanel();
-      if (isIconPanelOpen()) closeIconPanel();
-      if (state.relationDraft) {
-        state.relationDraft = null;
-        document.body.classList.remove('relation-drafting');
-      }
-      clearNodeSelection(state);
-      clearRelationSelection(state);
-      render();
-      break;
-  }
+  dispatchKey(e);
 });
 
 // ── Undo/Redo 적용 후 후크: 전역 시각 요소 재동기화 ──

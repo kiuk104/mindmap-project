@@ -16,7 +16,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="마인드맵" />
 
-  <title>🗺️ 마인드맵</title>
+  <title>마인드맵</title>
   <script>
     // 테마 초기 적용 (CSS 로딩 전에 깜빡임 방지)
     (function() {
@@ -341,6 +341,17 @@
     </header>
     <div class="sp-body" id="ip-body">
       <!-- 내용은 icon-panel.js가 동적으로 채움 -->
+    </div>
+  </aside>
+
+  <!-- ── 설정 패널 (좌측 슬라이드) ── -->
+  <aside id="settings-panel" aria-hidden="true">
+    <header class="sp-header">
+      <span class="sp-title">⚙️ 설정</span>
+      <button class="sp-close" id="stp-close" title="닫기 (Esc)">✕</button>
+    </header>
+    <div class="sp-body" id="stp-body">
+      <!-- 내용은 settings-panel.js가 동적으로 채움 -->
     </div>
   </aside>
 

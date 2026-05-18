@@ -478,120 +478,8 @@ function handleCustomThemeOK() {
   render();
 }
 
-/** 설정 모달 열기 — 앱 테마·기본 폰트·관계선 기본값 */
-export function openSettingsModal() {
-  state.modalKind = 'settings';
-  $('modal-title').textContent = '⚙️ 설정';
+// 설정 UI는 src/settings-panel.js의 좌측 패널로 이전됨 (이 모달 구현은 제거)
 
-  const s = getSettings();
-  const dr = s.defaultRelation ?? {};
-
-  const fontOptions = Object.entries(FONT_NAMES).map(([key, name]) =>
-    `<option value="${key}" ${key === s.defaultFont ? 'selected' : ''}
-      style="font-family:${FONT_FAMILIES[key]}">${name} — 가나다 ABC</option>`
-  ).join('');
-
-  $('modal-body').innerHTML = `
-    <div class="fg">
-      <label class="fl">앱 테마</label>
-      <div class="settings-radio-row">
-        <label class="radio-chip">
-          <input type="radio" name="st-theme" value="dark"   ${s.theme === 'dark'   ? 'checked' : ''} />
-          <span>🌙 다크</span>
-        </label>
-        <label class="radio-chip">
-          <input type="radio" name="st-theme" value="light"  ${s.theme === 'light'  ? 'checked' : ''} />
-          <span>☀️ 라이트</span>
-        </label>
-        <label class="radio-chip">
-          <input type="radio" name="st-theme" value="system" ${s.theme === 'system' ? 'checked' : ''} />
-          <span>🖥️ 시스템 따름</span>
-        </label>
-      </div>
-    </div>
-
-    <div class="fg">
-      <label class="fl">기본 노드 폰트 <span style="color:#8b949e; font-weight:400;">(새 마인드맵에 적용)</span></label>
-      <select class="fi" id="st-font">${fontOptions}</select>
-    </div>
-
-    <div class="fg">
-      <label class="fl">기본 노드 테두리 두께 <span style="color:#8b949e; font-weight:400;">(새 노드에 적용)</span></label>
-      <select class="fi" id="st-border">
-        <option value="none"   ${s.defaultNodeBorder === 'none'   ? 'selected' : ''}>없음</option>
-        <option value="thin"   ${s.defaultNodeBorder === 'thin'   ? 'selected' : ''}>얇게 (1px)</option>
-        <option value="normal" ${s.defaultNodeBorder === 'normal' ? 'selected' : ''}>보통 (2px)</option>
-        <option value="thick"  ${s.defaultNodeBorder === 'thick'  ? 'selected' : ''}>굵게 (4px)</option>
-        <option value="xthick" ${s.defaultNodeBorder === 'xthick' ? 'selected' : ''}>더 굵게 (6px)</option>
-        <option value="huge"   ${s.defaultNodeBorder === 'huge'   ? 'selected' : ''}>아주 굵게 (10px)</option>
-      </select>
-    </div>
-
-    <div class="fg">
-      <label class="fl">새 관계선 기본값</label>
-      <div class="settings-grid">
-        <div>
-          <div class="settings-mini">색상</div>
-          <div class="sp-row">
-            <input type="color" id="st-rel-color" class="sp-color-input"
-              value="${dr.color ?? '#8b949e'}" ${dr.color ? '' : 'data-reset="1"'} />
-            <button type="button" class="btn btn-ghost sp-row-btn" id="st-rel-color-reset">기본</button>
-          </div>
-        </div>
-
-        <div>
-          <div class="settings-mini">선 모양</div>
-          <select class="fi" id="st-rel-dash">
-            ${Object.entries(DASH_NAMES).map(([k, name]) => `
-              <option value="${k}" ${dr.dash === k ? 'selected' : ''}>${name}${k === 'dashed' ? ' (기본)' : ''}</option>
-            `).join('')}
-          </select>
-        </div>
-
-        <div>
-          <div class="settings-mini">두께</div>
-          <select class="fi" id="st-rel-width">
-            <option value=""  ${!dr.width ? 'selected' : ''}>기본</option>
-            <option value="1" ${dr.width === 1 ? 'selected' : ''}>1</option>
-            <option value="2" ${dr.width === 2 ? 'selected' : ''}>2</option>
-            <option value="3" ${dr.width === 3 ? 'selected' : ''}>3</option>
-            <option value="5" ${dr.width === 5 ? 'selected' : ''}>5</option>
-          </select>
-        </div>
-
-        <div>
-          <div class="settings-mini">화살표</div>
-          <select class="fi" id="st-rel-arrow">
-            <option value="end"   ${dr.arrow === 'end'   ? 'selected' : ''}>→ 끝만 (기본)</option>
-            <option value="start" ${dr.arrow === 'start' ? 'selected' : ''}>← 시작만</option>
-            <option value="both"  ${dr.arrow === 'both'  ? 'selected' : ''}>↔ 양쪽</option>
-            <option value="none"  ${dr.arrow === 'none'  ? 'selected' : ''}>∅ 없음</option>
-          </select>
-        </div>
-      </div>
-    </div>
-
-    <div class="fg" style="font-size:11px; color:#8b949e; line-height:1.6;">
-      💡 폰트는 새 마인드맵을 만들 때 (모두 지우기 등) 적용됩니다.
-      관계선 기본값은 <b>새로 그리는 관계선</b>에 적용됩니다.
-    </div>
-  `;
-
-  // 색상 reset 버튼 — '기본'(=null) 표시
-  $('st-rel-color-reset').addEventListener('click', () => {
-    $('st-rel-color').value = '#8b949e';
-    $('st-rel-color').dataset.reset = '1';
-  });
-  // 색상 변경 시 reset 마커 제거
-  $('st-rel-color').addEventListener('input', (e) => {
-    delete e.target.dataset.reset;
-  });
-
-  // dash select를 SVG 미리보기 dropdown으로 강화
-  enhanceDashPicker($('st-rel-dash'));
-
-  showModal();
-}
 
 /**
  * 색상 변경 모달 열기 — 현재 테마 팔레트 사용
@@ -667,21 +555,6 @@ export function handleModalOK() {
     }
     closeModal();
     render();
-
-  } else if (state.modalKind === 'settings') {
-    const themeInput = $('modal-body').querySelector('input[name="st-theme"]:checked');
-    const theme   = themeInput ? themeInput.value : 'system';
-    const font    = $('st-font').value;
-    const border  = $('st-border').value;
-    const colorEl = $('st-rel-color');
-    const dr = {
-      color: colorEl.dataset.reset ? null : colorEl.value,
-      dash:  $('st-rel-dash').value,
-      width: $('st-rel-width').value ? Number($('st-rel-width').value) : null,
-      arrow: $('st-rel-arrow').value,
-    };
-    updateSettings({ theme, defaultFont: font, defaultNodeBorder: border, defaultRelation: dr });
-    closeModal();
 
   } else if (state.modalKind === 'customTheme') {
     handleCustomThemeOK();

@@ -27,6 +27,8 @@ const DEFAULT = {
   },
   /** 사용자가 만든 커스텀 색상 테마 — [{ id, name, palette: string[] }] */
   customThemes: [],
+  /** 키보드 단축키 오버라이드 — { actionId: 'Ctrl+Z' } (없는 액션은 ACTIONS의 default 사용) */
+  shortcuts: {},
 };
 
 let settings = clone(DEFAULT);
@@ -46,6 +48,7 @@ export function loadSettings() {
         ...saved,
         defaultRelation: { ...DEFAULT.defaultRelation, ...(saved.defaultRelation ?? {}) },
         customThemes: Array.isArray(saved.customThemes) ? saved.customThemes : [],
+        shortcuts: (saved.shortcuts && typeof saved.shortcuts === 'object') ? saved.shortcuts : {},
       };
     }
   } catch {}
@@ -55,7 +58,11 @@ export function loadSettings() {
 /** 현재 설정 객체 */
 export function getSettings() { return settings; }
 
-/** 부분 업데이트 + 저장 + 알림 */
+/**
+ * 부분 업데이트 + 저장 + 알림.
+ *   - defaultRelation은 머지 (필드 단위 부분 업데이트 가능)
+ *   - shortcuts는 patch.shortcuts가 명시되면 통째 교체 (개별 액션 reset이 가능하도록)
+ */
 export function updateSettings(patch) {
   settings = {
     ...settings,
@@ -64,6 +71,7 @@ export function updateSettings(patch) {
       ...settings.defaultRelation,
       ...(patch?.defaultRelation ?? {}),
     },
+    shortcuts: patch?.shortcuts !== undefined ? patch.shortcuts : settings.shortcuts,
   };
   try { localStorage.setItem(KEY, JSON.stringify(settings)); } catch {}
   notify();
