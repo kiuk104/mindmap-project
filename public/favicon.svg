@@ -23,10 +23,6 @@
         fill: #e3b341;
       }
 
-      .st6 {
-        fill: #1f6feb;
-      }
-
       .st3 {
         fill: none;
         stroke-linecap: round;
@@ -36,7 +32,7 @@
         stroke-width: 2px;
       }
 
-      .st7 {
+      .st6 {
         opacity: .85;
       }
 
@@ -49,8 +45,7 @@
       }
     </style>
   </defs>
-  <rect class="st6" width="64" height="64" rx="13" ry="13"/>
-  <g class="st7">
+  <g class="st6">
     <line class="st3" x1="32" y1="32" x2="15" y2="16"/>
     <line class="st3" x1="32" y1="32" x2="49" y2="16"/>
     <line class="st3" x1="32" y1="32" x2="15" y2="48"/>

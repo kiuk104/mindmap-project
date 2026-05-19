@@ -308,3 +308,39 @@ export async function loadFromDrive(fileId) {
   });
   return res.body;
 }
+
+/** 파일 이름 변경 */
+export async function renameFile(fileId, newName) {
+  if (!accessToken) throw new Error('Drive에 로그인되지 않았습니다');
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}`, {
+    method: 'PATCH',
+    headers: {
+      Authorization: 'Bearer ' + accessToken,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ name: newName }),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`이름 변경 실패 (HTTP ${res.status}): ${text.slice(0, 200)}`);
+  }
+  return res.json();
+}
+
+/** 파일 휴지통으로 이동 */
+export async function trashFile(fileId) {
+  if (!accessToken) throw new Error('Drive에 로그인되지 않았습니다');
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}`, {
+    method: 'PATCH',
+    headers: {
+      Authorization: 'Bearer ' + accessToken,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ trashed: true }),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`삭제 실패 (HTTP ${res.status}): ${text.slice(0, 200)}`);
+  }
+  return res.json();
+}

@@ -19,18 +19,23 @@ import { addCallout, deleteCallout, selectCallout, removeCalloutsByParents,
          onCalloutPointerDown, onCalloutPointerMove, onCalloutPointerUp,
          isCalloutDragging } from './callouts.js';
 import { deleteZone, renameZone, selectZone } from './zones.js';
-import { openLinkModal, openColorModal, openSaveModal, openDriveLoadModal, openGDocsPreviewModal, openNoteModal, openShareModal, tryLoadFromHash, closeModal, handleModalOK, applyStyle } from './modal.js';
+import { openLinkModal, openColorModal, openSaveModal, openDriveLoadModal, openDriveManageModal, openGDocsPreviewModal, openNoteModal, openShareModal, tryLoadFromHash, closeModal, handleModalOK, applyStyle } from './modal.js';
 import { initSettingsPanel, toggleSettingsPanel, openSettingsPanel, closeSettingsPanel, isSettingsPanelOpen } from './settings-panel.js';
 import { registerShortcuts, dispatchKey } from './shortcuts.js';
 import * as drive                            from './drive.js';
 import { showContextMenu, hideContextMenu, hideAllMenus, showBgMenu, initContextMenu, showZoneMenu, showCalloutMenu } from './menu.js';
-import { doImport, schedulePersist, restoreLocal, onSaveStateChange, quickSave, getLastSave } from './io.js';
+import { doImport, schedulePersist, restoreLocal, onSaveStateChange, quickSave, getLastSave, setLastSave, serialize, defaultFilename } from './io.js';
+import { toastSuccess, toastError } from './toast.js';
 import { runSearch, gotoHit, clearSearch }    from './search.js';
 import { initStylePanel, togglePanel, closePanel, isPanelOpen, setOnStyleApplied, syncSelectedNodeSection } from './style-panel.js';
 import { initIconPanel, toggleIconPanel, openIconPanel, closeIconPanel, isIconPanelOpen, syncIconPanel } from './icon-panel.js';
 import { undo, redo, pushHistory, beginPending, commitPending, cancelPending, onHistoryChange, setApplyHook, resetHistory } from './history.js';
 import { loadSettings, getSettings, updateSettings, onSettingsChange } from './settings.js';
 import { copyClipboard, cutClipboard, pasteClipboard, hasClipboard } from './clipboard.js';
+import { isFirstVisit, markVisited, showWelcome, initHintBar } from './onboarding.js';
+import { initMinimap, drawMinimap } from './minimap.js';
+import { initCommandPalette, openPalette, registerCommands } from './command-palette.js';
+import { exportPngFile, exportSvgFile } from './export.js';
 
 // ── render.js에 핸들러 주입 ──
 // render.js는 다른 모듈을 직접 import하지 않고
@@ -97,11 +102,12 @@ document.addEventListener('pointermove', (e) => {
 document.addEventListener('pointerup',   () => { onCalloutPointerUp(); });
 document.addEventListener('pointercancel', () => { onCalloutPointerUp(); });
 
-// ── 매 render() 끝에: 자동 저장 + 패널 동기화 ──
+// ── 매 render() 끝에: 자동 저장 + 패널 동기화 + 미니맵 갱신 ──
 setPostRender(() => {
   schedulePersist();
   syncSelectedNodeSection();
   syncIconPanel();
+  drawMinimap();
 });
 
 // ── 마지막 저장 시각 인디케이터 ──
@@ -230,6 +236,33 @@ function init() {
     view.px = wrap.clientWidth  / 2 - 2500;
     view.py = wrap.clientHeight / 2 - 2500;
     applyTransform();
+  }
+
+  // 힌트바 초기화
+  initHintBar();
+
+  // 미니맵 초기화 + 1회 그리기
+  initMinimap();
+  drawMinimap();
+
+  // canvas의 transform 속성 변경(=pan/zoom) 감시 → 미니맵 실시간 갱신
+  const canvasEl = $('canvas');
+  if (canvasEl) {
+    new MutationObserver(() => drawMinimap())
+      .observe(canvasEl, { attributes: true, attributeFilter: ['style'] });
+  }
+  // 테마(data-theme) 변경 감시 → 미니맵 색상 재계산
+  new MutationObserver(() => drawMinimap())
+    .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  // 윈도우 리사이즈 시에도 뷰포트 박스 갱신
+  window.addEventListener('resize', drawMinimap);
+
+  // 첫 방문 웰컴
+  if (isFirstVisit()) {
+    showWelcome(
+      () => { markVisited(); },  // 시작하기
+      null,                       // 템플릿 (Phase 2-B에서 구현)
+    );
   }
 }
 
@@ -385,35 +418,113 @@ onSettingsChange((s) => {
   applyAppTheme(s.theme);
 });
 
-// ── Drive 연결 버튼 ──
-$('btn-drive').addEventListener('click', () => {
-  if (!drive.isAvailable()) {
-    alert('Drive 연동이 설정되지 않았습니다.\nDRIVE_SETUP.md를 참고해 OAuth 클라이언트 ID를 설정해주세요.');
-    return;
-  }
-  if (drive.isSignedIn()) {
-    if (confirm(`현재 ${drive.getEmail()}로 연결됨.\n연결을 해제할까요?`)) drive.signOut();
-  } else {
-    drive.signIn();
-  }
-});
-$('btn-drive-load').addEventListener('click', openDriveLoadModal);
-
-// Drive 인증 상태에 따라 버튼 라벨 갱신
-drive.onAuthChange((s) => {
-  const btn = $('btn-drive');
+// ── Drive 통합 버튼 (상태에 따라 라벨·메뉴가 동적으로 변함) ──
+function initDriveUnifiedButton() {
+  const btn = $('btn-drive-unified');
   if (!btn) return;
-  if (!s.available) {
-    btn.textContent = '☁️ Drive 설정 필요';
-    btn.title = 'DRIVE_SETUP.md 참조';
-  } else if (s.signedIn) {
-    btn.textContent = '✅ ' + (s.email ?? 'Drive 연결됨');
-    btn.title = '클릭하면 연결 해제';
-  } else {
-    btn.textContent = '☁️ Drive 연결';
-    btn.title = '구글 계정으로 로그인';
+
+  // 드롭다운 DOM 동적 생성 (body에 추가)
+  let dd = document.getElementById('drive-dropdown');
+  if (!dd) {
+    dd = document.createElement('div');
+    dd.id = 'drive-dropdown';
+    document.body.appendChild(dd);
   }
-});
+
+  function closeDd() { dd.classList.remove('open'); }
+
+  // 드롭다운 열기/닫기 토글
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const rect = btn.getBoundingClientRect();
+    dd.style.top  = (rect.bottom + 4) + 'px';
+    dd.style.left = rect.left + 'px';
+    dd.classList.toggle('open');
+    renderDdContent();
+  });
+
+  document.addEventListener('click', () => closeDd());
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDd(); });
+
+  function renderDdContent() {
+    const signedIn = drive.isSignedIn();
+    const available = drive.isAvailable();
+    const email = drive.getEmail();
+
+    if (!available) {
+      dd.innerHTML = `
+        <div class="dd-header">Drive OAuth 미설정</div>
+        <div class="dd-item" id="dd-setup">📖 설정 방법 보기</div>`;
+      dd.querySelector('#dd-setup')?.addEventListener('click', () => {
+        window.open('https://github.com/kiuk104/mindmap-project/blob/main/DRIVE_SETUP.md', '_blank');
+        closeDd();
+      });
+      return;
+    }
+
+    if (!signedIn) {
+      dd.innerHTML = `<div class="dd-item" id="dd-signin">🔑 Google 계정으로 연결</div>`;
+      dd.querySelector('#dd-signin')?.addEventListener('click', () => {
+        drive.signIn();
+        closeDd();
+      });
+      return;
+    }
+
+    dd.innerHTML = `
+      <div class="dd-header">${email ?? 'Google Drive'}</div>
+      <div class="dd-item" id="dd-save">💾 현재 맵을 Drive에 저장</div>
+      <div class="dd-item" id="dd-load">📂 Drive에서 불러오기</div>
+      <div class="dd-item" id="dd-manage">🗂️ 파일 관리...</div>
+      <div class="dd-sep"></div>
+      <div class="dd-item danger" id="dd-signout">🚪 연결 해제</div>`;
+
+    dd.querySelector('#dd-save')?.addEventListener('click', () => {
+      const name = defaultFilename();
+      drive.saveToDrive(name, serialize())
+        .then((file) => {
+          setLastSave({ kind: 'drive', name: file.name.replace(/\.json$/, '') });
+          toastSuccess(`☁️ Drive에 "${file.name}" 저장됨`);
+        })
+        .catch((e) => toastError('Drive 저장 실패: ' + e.message));
+      closeDd();
+    });
+
+    dd.querySelector('#dd-load')?.addEventListener('click', () => {
+      openDriveLoadModal();
+      closeDd();
+    });
+
+    dd.querySelector('#dd-manage')?.addEventListener('click', () => {
+      openDriveManageModal();
+      closeDd();
+    });
+
+    dd.querySelector('#dd-signout')?.addEventListener('click', () => {
+      drive.signOut();
+      toastSuccess('Drive 연결 해제됨');
+      closeDd();
+    });
+  }
+
+  // 인증 상태가 바뀌면 버튼 텍스트 갱신
+  drive.onAuthChange(({ signedIn, email, available }) => {
+    if (!btn) return;
+    if (!available) {
+      btn.textContent = '☁️ Drive';
+      btn.title = 'Drive 연동 미설정';
+    } else if (signedIn) {
+      const short = email ? email.split('@')[0] : 'Drive';
+      btn.textContent = `☁️ ${short} ▾`;
+      btn.title = email ?? 'Drive 연결됨';
+    } else {
+      btn.textContent = '☁️ Drive';
+      btn.title = 'Drive 연결';
+    }
+  });
+}
+
+initDriveUnifiedButton();
 
 // Drive 초기화 (스크립트 로드)는 비동기로 진행
 drive.initDrive().catch((e) => console.warn('Drive init 실패:', e));
@@ -532,6 +643,7 @@ registerShortcuts({
   'save':            () => quickSaveOrAsk(),
   'save-as':         () => openSaveModal(),
   'search':          () => { const si = $('search-input'); si.focus(); si.select(); },
+  'open-palette':    () => openPalette(),
   'nav-up':          () => navigateSibling(-1),
   'nav-down':        () => navigateSibling(1),
   'nav-left':        () => navigateToParent(),
@@ -551,6 +663,49 @@ setApplyHook(() => {
   // 스타일 패널이 열려있다면 컨트롤도 갱신
   syncSelectedNodeSection();
 });
+
+// ── 명령 팔레트 (Ctrl+K) ──
+initCommandPalette();
+registerCommands([
+  // 파일
+  { icon: '💾', label: '저장 (모달)', keywords: ['저장','save','파일'], shortcut: 'Ctrl+S', action: () => openSaveModal() },
+  { icon: '🔗', label: '공유', keywords: ['공유','share','링크','url'], action: () => openShareModal() },
+  { icon: '📂', label: '파일 불러오기', keywords: ['열기','불러오기','open','load'], action: () => $('file-in').click() },
+  { icon: '☁️', label: 'Drive에 저장', keywords: ['드라이브','drive','클라우드'], action: () => {
+    if (drive.isSignedIn()) {
+      drive.saveToDrive(defaultFilename(), serialize())
+        .then((f) => toastSuccess(`☁️ "${f.name}" 저장됨`))
+        .catch((e) => toastError('Drive 저장 실패: ' + e.message));
+    } else {
+      toastError('먼저 Drive에 연결하세요');
+    }
+  }},
+  { icon: '🖼️', label: 'PNG로 내보내기', keywords: ['이미지','내보내기','png','export'], action: () => exportPngFile(defaultFilename()) },
+  { icon: '📐', label: 'SVG로 내보내기', keywords: ['벡터','svg','export'], action: () => exportSvgFile(defaultFilename()) },
+  // 편집
+  { icon: '↶', label: '실행 취소', keywords: ['undo','취소','되돌리기'], shortcut: 'Ctrl+Z', action: () => undo() },
+  { icon: '↷', label: '다시 실행', keywords: ['redo','다시'], shortcut: 'Ctrl+Y', action: () => redo() },
+  { icon: '➕', label: '노드 추가 (자식)', keywords: ['추가','add','노드','탭'], shortcut: 'Tab', action: () => {
+    if (state.selectedId) addChild(state.selectedId);
+  }},
+  { icon: '🗑️', label: '선택 노드 삭제', keywords: ['삭제','delete','del'], shortcut: 'Del',
+    disabled: !state.selectedId,
+    action: () => { if (state.selectedId) deleteNode(state.selectedId); }
+  },
+  { icon: '📋', label: '노드 복사', keywords: ['복사','copy','클립보드'], shortcut: 'Ctrl+C', action: () => copyClipboard() },
+  { icon: '✂️', label: '노드 잘라내기', keywords: ['잘라내기','cut'], shortcut: 'Ctrl+X', action: () => cutClipboard() },
+  { icon: '📌', label: '노드 붙여넣기', keywords: ['붙여넣기','paste'], shortcut: 'Ctrl+V', action: () => pasteClipboard() },
+  // 보기
+  { icon: '⌖', label: '화면 맞춤 (리셋)', keywords: ['맞춤','fit','화면','reset'], action: () => resetView() },
+  { icon: '🔍', label: '노드 검색', keywords: ['검색','search','find'], shortcut: 'Ctrl+F', action: () => { $('search-input')?.focus(); } },
+  { icon: '🎨', label: '스타일 패널 열기', keywords: ['스타일','style','색상','테마'], action: () => togglePanel() },
+  { icon: '🙂', label: '아이콘 패널 열기', keywords: ['아이콘','icon','이모지','emoji'], action: () => toggleIconPanel() },
+  { icon: '⚙️', label: '설정', keywords: ['설정','settings','옵션'], action: () => toggleSettingsPanel() },
+  { icon: '🌓', label: '다크/라이트 테마 전환', keywords: ['테마','다크','라이트','dark','light'], action: () => $('btn-theme')?.click() },
+  // Drive
+  { icon: '☁️', label: 'Drive 연결/로그인', keywords: ['드라이브','로그인','google','oauth'], action: () => drive.signIn() },
+  { icon: '🚪', label: 'Drive 연결 해제', keywords: ['로그아웃','연결해제','signout'], action: () => { drive.signOut(); toastSuccess('Drive 연결 해제됨'); } },
+]);
 
 // ── 시작 ──
 init();

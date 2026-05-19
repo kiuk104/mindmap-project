@@ -12,6 +12,7 @@
   <link rel="manifest" href="/manifest.webmanifest" />
 
   <!-- iOS standalone 모드 (홈 화면 추가 시) -->
+  <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="마인드맵" />
@@ -47,8 +48,7 @@
     <button class="btn btn-ghost" id="btn-share" title="공유 — URL/JSON/이미지">🔗 공유</button>
     <button class="btn btn-ghost" id="btn-import">📂 불러오기</button>
     <input type="file" id="file-in" accept=".json" style="display:none" />
-    <button class="btn btn-ghost" id="btn-drive-load">☁️ 드라이브 불러오기</button>
-    <button class="btn btn-ghost" id="btn-drive">☁️ Drive 연결</button>
+    <button class="btn btn-ghost" id="btn-drive-unified">☁️ Drive</button>
     <div class="sep"></div>
     <button class="btn btn-ghost" id="btn-reset">⌖ 화면 맞춤</button>
     <button class="btn btn-ghost" id="btn-line-style" title="연결선 스타일 (직선 → 곡선 → 직각)">━ 직선</button>
@@ -494,11 +494,19 @@
 
   <!-- ── HUD ── -->
   <div id="hud">100%</div>
-  <div id="help-hud">
-    더블클릭: 텍스트 편집 &nbsp;|&nbsp; 우클릭: 메뉴<br />
-    배경 드래그: 셀렉트박스 &nbsp;|&nbsp; 우클릭 드래그: 화면 이동 &nbsp;|&nbsp; 스크롤: 줌<br />
-    Tab: 자식 추가 &nbsp;|&nbsp; Del: 선택 삭제 &nbsp;|&nbsp; Ctrl+Z/Y: 실행취소/재실행
+  <!-- #help-hud 는 #hint-bar 로 대체 -->
+
+  <!-- 미니맵 -->
+  <div id="minimap-wrap">
+    <div class="mm-header">
+      <span class="mm-label">미니맵</span>
+      <button id="minimap-toggle" title="미니맵 숨기기/표시">▾</button>
+    </div>
+    <canvas id="minimap-canvas"></canvas>
   </div>
+
+  <!-- 하단 힌트 상태바 -->
+  <div id="hint-bar"></div>
 
   <script type="module" src="/src/main.js"></script>
 </body>

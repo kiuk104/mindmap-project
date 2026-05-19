@@ -31,6 +31,7 @@ export const ACTIONS = {
   'save':            { label: '저장 (같은 위치)',        defaultBinding: 'Ctrl+S',           scope: 'global', group: '파일' },
   'save-as':         { label: '다른 이름으로 저장',      defaultBinding: 'Ctrl+Shift+S',     scope: 'global', group: '파일' },
   'search':          { label: '검색창 포커스',          defaultBinding: 'Ctrl+F',           scope: 'global', group: '파일' },
+  'open-palette':    { label: '명령 팔레트 열기',        defaultBinding: 'Ctrl+K',           scope: 'global', group: '파일' },
   'nav-up':          { label: '이전 형제로',            defaultBinding: 'ArrowUp',          scope: 'canvas', group: '네비게이션' },
   'nav-down':        { label: '다음 형제로',            defaultBinding: 'ArrowDown',        scope: 'canvas', group: '네비게이션' },
   'nav-left':        { label: '부모 노드로',            defaultBinding: 'ArrowLeft',        scope: 'canvas', group: '네비게이션' },

@@ -350,17 +350,13 @@ select.fi   { cursor: pointer; }
 
 /* ── HUD ── */
 #hud {
-  position: fixed; bottom: 14px; right: 14px;
+  position: fixed; bottom: 36px; right: 14px; /* hint-bar(28px) + 여백 */
   background: var(--bg-elev); border: 1px solid var(--border);
   border-radius: 8px; padding: 5px 12px;
   font-size: 12px; color: var(--text-dim); z-index: 100;
 }
-#help-hud {
-  position: fixed; bottom: 14px; left: 14px;
-  background: var(--bg-elev); border: 1px solid var(--border);
-  border-radius: 8px; padding: 7px 13px;
-  font-size: 11px; color: var(--text-very-faint); z-index: 100; line-height: 1.9;
-}
+/* #help-hud — hint-bar로 대체되어 숨김 */
+#help-hud { display: none; }
 
 /* ── SVG 부모-자식 연결선 — stroke·stroke-width·stroke-dasharray는 인라인 style로 출력 ──
    stroke-linecap은 butt(직각)로 두어 점선 dash가 깔끔하게 끊어지게 한다. */
@@ -1721,3 +1717,179 @@ body.settings-panel-open #settings-panel { transform: translateX(0); }
 }
 .shortcut-reset:hover { color: var(--accent); background: var(--bg-hover); }
 .shortcut-reset-placeholder { display: block; width: 20px; }
+
+/* Drive 드롭다운 */
+#drive-dropdown {
+  position: fixed;
+  background: var(--modal-bg, #161b22);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4px 0;
+  min-width: 220px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  z-index: 9999;
+  display: none;
+}
+#drive-dropdown.open { display: block; }
+#drive-dropdown .dd-item {
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+  white-space: nowrap;
+}
+#drive-dropdown .dd-item:hover { background: var(--hover, rgba(255,255,255,0.06)); }
+#drive-dropdown .dd-sep {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+#drive-dropdown .dd-header {
+  padding: 6px 16px 2px;
+  font-size: 11px;
+  color: var(--text-dim, #8b949e);
+  pointer-events: none;
+}
+#drive-dropdown .dd-item.danger { color: #f85149; }
+
+/* ── 웰컴 오버레이 ── */
+#welcome-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 10000;
+  backdrop-filter: blur(4px);
+}
+#welcome-card {
+  background: var(--modal-bg, #161b22);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 40px 48px;
+  max-width: 480px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+}
+.wc-emoji { font-size: 48px; margin-bottom: 12px; }
+.wc-title { font-size: 22px; font-weight: 700; margin: 0 0 10px; color: var(--text-bright, #e6edf3); }
+.wc-desc  { font-size: 14px; color: var(--text-dim, #8b949e); line-height: 1.6; margin-bottom: 24px; }
+.wc-shortcuts {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 8px; margin-bottom: 28px; text-align: left;
+}
+.wc-sc { font-size: 12px; color: var(--text-dim); display: flex; align-items: center; gap: 6px; }
+.wc-sc kbd {
+  background: var(--hover, rgba(255,255,255,0.08));
+  border: 1px solid var(--border); border-radius: 4px;
+  padding: 1px 6px; font-size: 11px; white-space: nowrap;
+  color: var(--text-bright); font-family: inherit;
+}
+.wc-actions { display: flex; gap: 10px; justify-content: center; margin-bottom: 16px; }
+.wc-nosee  { font-size: 12px; color: var(--text-dim); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
+
+/* ── 하단 힌트바 ── */
+#hint-bar {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: var(--toolbar-bg, rgba(22,27,34,0.95));
+  border-top: 1px solid var(--border);
+  padding: 5px 16px;
+  font-size: 11.5px;
+  color: var(--text-dim, #8b949e);
+  text-align: center;
+  z-index: 100;
+  transition: opacity 0.3s;
+  pointer-events: none;
+  /* 좁은 화면에서 한 줄 넘김 방지 — 잘리면 말줄임 */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* 힌트바 공간만큼 캔버스 하단 여백 */
+#canvas-wrap { padding-bottom: 28px; }
+
+/* ── 미니맵 ── */
+#minimap-wrap {
+  position: fixed;
+  right: 12px;
+  bottom: 36px; /* hint-bar 위 */
+  background: var(--modal-bg, #161b22);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  z-index: 90;
+  user-select: none;
+}
+.mm-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 3px 8px;
+  border-bottom: 1px solid var(--border);
+  font-size: 10px; color: var(--text-dim);
+}
+.mm-header button {
+  background: none; border: none; cursor: pointer;
+  color: var(--text-dim); padding: 0 2px; font-size: 11px;
+}
+#minimap-canvas {
+  display: block; cursor: crosshair;
+  width: 160px; height: 110px;
+}
+#minimap-wrap.hidden-map #minimap-canvas { display: none; }
+#minimap-wrap.hidden-map { bottom: 36px; }
+
+/* ── 명령 팔레트 ── */
+#cmd-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex; align-items: flex-start; justify-content: center;
+  padding-top: 80px;
+  z-index: 10001;
+  display: none;
+  backdrop-filter: blur(2px);
+}
+#cmd-overlay.open { display: flex; }
+#cmd-palette {
+  background: var(--modal-bg, #161b22);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  width: 520px; max-width: 90vw;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+  overflow: hidden;
+}
+#cmd-search-wrap {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+#cmd-icon { font-size: 16px; color: var(--text-dim); }
+#cmd-input {
+  flex: 1; background: none; border: none; outline: none;
+  font-size: 15px; color: var(--text-bright, #e6edf3);
+  font-family: inherit;
+}
+#cmd-esc-hint {
+  background: var(--hover, rgba(255,255,255,0.08));
+  border: 1px solid var(--border);
+  border-radius: 4px; padding: 2px 6px;
+  font-size: 11px; color: var(--text-dim);
+}
+#cmd-list { max-height: 340px; overflow-y: auto; padding: 4px 0; }
+.cmd-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 16px; cursor: pointer; font-size: 13px;
+  color: var(--text);
+}
+.cmd-item.active { background: var(--hover, rgba(255,255,255,0.06)); }
+.cmd-item.cmd-disabled { opacity: 0.4; cursor: default; }
+.cmd-icon { font-size: 15px; width: 20px; text-align: center; flex-shrink: 0; }
+.cmd-label { flex: 1; }
+.cmd-shortcut {
+  background: var(--hover); border: 1px solid var(--border);
+  border-radius: 4px; padding: 1px 6px; font-size: 11px;
+  color: var(--text-dim); white-space: nowrap;
+}
+.cmd-hint { font-size: 11px; color: var(--text-dim); white-space: nowrap; }
+.cmd-empty { padding: 24px; text-align: center; color: var(--text-dim); font-size: 13px; }

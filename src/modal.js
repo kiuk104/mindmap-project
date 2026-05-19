@@ -6,6 +6,7 @@
 
 import { state } from './state.js';
 import { render } from './render.js';
+import { resetView } from './canvas.js';
 import { $, FONT_FAMILIES, FONT_NAMES, currentPalette, linkIcon, linkDefault, resolvePalette, COLOR_THEMES, composeFontFamily, ENGLISH_FONTS, ENGLISH_FONT_NAMES, KOREAN_FONTS, KOREAN_FONT_NAMES, DASH_NAMES, detectLinkType, googleDocsPreviewUrl } from './utils.js';
 import { removeLink } from './nodes.js';
 import { doDownload, copyJsonToClipboard, defaultFilename, serialize, loadFromString, setLastSave, getLastSave } from './io.js';
@@ -313,6 +314,118 @@ export async function openDriveLoadModal() {
     $('modal-body').innerHTML = `
       <div style="color:#f85149; padding:20px;">목록 불러오기 실패: ${escapeHTML(e.message)}</div>`;
   }
+}
+
+/**
+ * Drive 파일 관리 모달 — 열기 / 이름 변경 / 삭제
+ * openDriveLoadModal과 달리 파일 단위로 작업할 수 있는 액션 버튼을 제공한다.
+ */
+export async function openDriveManageModal() {
+  if (!drive.isSignedIn()) {
+    toastError('Drive에 먼저 연결하세요.');
+    return;
+  }
+  state.modalKind = 'drive-manage';
+  $('modal-title').textContent = '🗂️ Drive 파일 관리';
+  $('modal-body').innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-dim)">파일 목록 불러오는 중…</div>';
+  const okBtn = $('modal-ok');
+  const cancel = $('modal-cancel');
+  if (okBtn) { okBtn.textContent = '닫기'; okBtn.dataset.previewClose = '1'; }
+  if (cancel) cancel.style.display = 'none';
+  showModal();
+
+  let files;
+  try {
+    files = await drive.listMindmaps();
+  } catch (e) {
+    $('modal-body').innerHTML = `<div style="color:#f85149; padding:16px;">불러오기 실패: ${escapeHTML(e.message)}</div>`;
+    return;
+  }
+
+  if (!files.length) {
+    $('modal-body').innerHTML = '<div style="padding:16px; color:var(--text-dim);">저장된 파일이 없습니다.</div>';
+    return;
+  }
+
+  function relTime(iso) {
+    const diff = Date.now() - new Date(iso).getTime();
+    const m = Math.floor(diff / 60000);
+    if (m < 1) return '방금';
+    if (m < 60) return `${m}분 전`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return `${h}시간 전`;
+    return `${Math.floor(h / 24)}일 전`;
+  }
+
+  const rows = files.map((f) => `
+    <div class="dm-row" data-id="${escapeHTML(f.id)}" data-name="${escapeHTML(f.name)}">
+      <span class="dm-name">📄 ${escapeHTML(f.name.replace(/\.json$/, ''))}</span>
+      <span class="dm-time">${relTime(f.modifiedTime)}</span>
+      <div class="dm-actions">
+        <button class="btn btn-ghost dm-btn dm-open" data-id="${escapeHTML(f.id)}" title="열기">↗ 열기</button>
+        <button class="btn btn-ghost dm-btn dm-rename" data-id="${escapeHTML(f.id)}" data-name="${escapeHTML(f.name)}" title="이름 변경">✏️</button>
+        <button class="btn btn-ghost dm-btn dm-delete" data-id="${escapeHTML(f.id)}" data-name="${escapeHTML(f.name)}" title="삭제" style="color:#f85149">🗑️</button>
+      </div>
+    </div>`).join('');
+
+  $('modal-body').innerHTML = `
+    <style>
+      .dm-row { display:flex; align-items:center; gap:8px; padding:8px 4px; border-bottom:1px solid var(--border); }
+      .dm-name { flex:1; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+      .dm-time { font-size:11px; color:var(--text-dim); white-space:nowrap; }
+      .dm-actions { display:flex; gap:4px; flex-shrink:0; }
+      .dm-btn { padding:3px 8px; font-size:11px; }
+    </style>
+    <div>${rows}</div>`;
+
+  // 열기
+  $('modal-body').querySelectorAll('.dm-open').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      try {
+        const json = await drive.loadFromDrive(btn.dataset.id);
+        if (loadFromString(json)) {
+          resetView();
+          toastSuccess('☁️ Drive에서 불러옴');
+          closeModal();
+        } else {
+          toastError('올바른 마인드맵 JSON이 아닙니다.');
+        }
+      } catch (e) {
+        toastError('불러오기 실패: ' + e.message);
+      }
+    });
+  });
+
+  // 이름 변경
+  $('modal-body').querySelectorAll('.dm-rename').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const current = btn.dataset.name.replace(/\.json$/, '');
+      const newName = prompt('새 이름:', current);
+      if (!newName || newName === current) return;
+      try {
+        await drive.renameFile(btn.dataset.id, newName + '.json');
+        toastSuccess(`✏️ "${newName}"으로 이름 변경됨`);
+        openDriveManageModal(); // 새로고침
+      } catch (e) {
+        toastError('이름 변경 실패: ' + e.message);
+      }
+    });
+  });
+
+  // 삭제
+  $('modal-body').querySelectorAll('.dm-delete').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const name = btn.dataset.name.replace(/\.json$/, '');
+      if (!confirm(`"${name}" 파일을 휴지통으로 이동할까요?`)) return;
+      try {
+        await drive.trashFile(btn.dataset.id);
+        toastSuccess(`🗑️ "${name}" 삭제됨`);
+        openDriveManageModal(); // 새로고침
+      } catch (e) {
+        toastError('삭제 실패: ' + e.message);
+      }
+    });
+  });
 }
 
 /** state.style의 배경 색·폰트를 DOM에 반영 (CSS 변수 기반) */
