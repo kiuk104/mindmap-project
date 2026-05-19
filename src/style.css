@@ -656,19 +656,25 @@ body.settings-panel-open #settings-panel { transform: translateX(0); }
   #icon-panel { width: 100%; top: 100px; }
 }
 
+/* sp-header — 제목 제거 후 공간 0, 닫기 X는 floating으로 우상단에 */
 .sp-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 18px;
-  border-bottom: 1px solid var(--border);
+  display: block;
+  height: 0;
+  padding: 0;
+  border: none;
+  position: relative;
 }
-.sp-title { font-size: 14px; font-weight: 700; color: var(--text-bright); }
+.sp-title { display: none; }
 .sp-close {
-  background: transparent; border: none; cursor: pointer;
-  color: var(--text-dim); font-size: 18px;
-  width: 28px; height: 28px;
+  position: absolute;
+  top: 8px; right: 8px;
+  background: var(--bg-elev); border: 1px solid var(--border); cursor: pointer;
+  color: var(--text-dim); font-size: 14px;
+  width: 24px; height: 24px;
   display: flex; align-items: center; justify-content: center;
   border-radius: 6px;
   transition: background 0.15s, color 0.15s;
+  z-index: 5;
 }
 .sp-close:hover { background: var(--bg-hover); color: var(--text-bright); }
 
