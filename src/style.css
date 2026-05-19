@@ -100,7 +100,15 @@ body {
 .toolbar-title {
   font-size: 15px; font-weight: 700; color: var(--accent);
   margin-right: 6px; white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 6px;
 }
+.toolbar-logo {
+  width: 20px; height: 20px;
+  display: inline-block;
+}
+/* settings.hideAppTitle === true일 때 상단 로고 및 직후 sep까지 숨김 */
+body.hide-app-title .toolbar-title,
+body.hide-app-title .toolbar-title + .sep { display: none; }
 .toolbar-hint {
   margin-left: 8px; font-size: 11px; color: var(--text-very-faint); white-space: nowrap;
 }
@@ -641,6 +649,28 @@ body.settings-panel-open #settings-panel { transform: translateX(0); }
   flex: 1; overflow-y: auto;
   padding: 18px;
 }
+/* settings 패널 — 일반/단축키 탭 헤더 */
+.stp-tabs {
+  display: flex; gap: 4px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+.stp-tab {
+  flex: 1;
+  background: transparent; border: none; cursor: pointer;
+  padding: 8px 10px;
+  font-size: 12px; font-weight: 600;
+  color: var(--text-dim);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 0.15s, border-color 0.15s;
+}
+.stp-tab:hover { color: var(--text-bright); }
+.stp-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
 .sp-section { margin-bottom: 18px; }
 .sp-section:last-child { margin-bottom: 0; }
 .sp-section[hidden] { display: none; }

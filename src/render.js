@@ -647,7 +647,12 @@ function buildNodeEl(n, ctx) {
 
   // 이벤트
   el.addEventListener('pointerdown', (e) => H.onNodeMouseDown(e, n.id));
-  el.addEventListener('dblclick',    (e) => H.onNodeDblClick(e, n.id));
+  el.addEventListener('dblclick',    (e) => {
+    // 데스크탑 브라우저의 dblclick은 기본적으로 텍스트 선택 등을 trigger —
+    // 그 부수효과가 후속 textarea.focus()의 즉시 blur로 이어질 수 있어 default 차단
+    e.preventDefault();
+    H.onNodeDblClick(e, n.id);
+  });
   el.addEventListener('contextmenu', (e) => H.onNodeContextMenu(e, n.id));
 
   return el;

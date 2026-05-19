@@ -7,53 +7,43 @@
         fill: #8957e5;
       }
 
-      .st0, .st1, .st2, .st3, .st4, .st5 {
-        stroke: #fff;
-      }
-
-      .st0, .st1, .st2, .st5 {
-        stroke-width: 1.5px;
-      }
-
       .st1 {
-        fill: #3fb950;
+        fill: #39c5cf;
       }
 
       .st2 {
-        fill: #e3b341;
+        fill: #3fb950;
       }
 
       .st3 {
-        fill: none;
-        stroke-linecap: round;
-      }
-
-      .st3, .st4 {
-        stroke-width: 2px;
-      }
-
-      .st6 {
-        opacity: .85;
+        fill: #e3b341;
       }
 
       .st4 {
-        fill: #f85149;
+        fill: none;
+        stroke: #fff;
+        stroke-linecap: round;
+        stroke-width: 2px;
       }
 
       .st5 {
-        fill: #39c5cf;
+        opacity: .85;
+      }
+
+      .st6 {
+        fill: #f85149;
       }
     </style>
   </defs>
-  <g class="st6">
-    <line class="st3" x1="32" y1="32" x2="15" y2="16"/>
-    <line class="st3" x1="32" y1="32" x2="49" y2="16"/>
-    <line class="st3" x1="32" y1="32" x2="15" y2="48"/>
-    <line class="st3" x1="32" y1="32" x2="49" y2="48"/>
+  <g class="st5">
+    <line class="st4" x1="32" y1="32" x2="15" y2="16"/>
+    <line class="st4" x1="32" y1="32" x2="49" y2="16"/>
+    <line class="st4" x1="32" y1="32" x2="15" y2="48"/>
+    <line class="st4" x1="32" y1="32" x2="49" y2="48"/>
   </g>
-  <circle class="st4" cx="32" cy="32" r="13.18"/>
-  <circle class="st1" cx="15" cy="16" r="7.73"/>
-  <circle class="st2" cx="49" cy="16" r="7.2"/>
+  <circle class="st6" cx="32" cy="32" r="13.18"/>
+  <circle class="st2" cx="15" cy="16" r="7.73"/>
+  <circle class="st3" cx="49" cy="16" r="7.2"/>
   <circle class="st0" cx="15" cy="48" r="6.38"/>
-  <circle class="st5" cx="49" cy="48" r="7.63"/>
+  <circle class="st1" cx="49" cy="48" r="7.63"/>
 </svg>

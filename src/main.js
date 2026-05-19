@@ -421,9 +421,10 @@ $('btn-theme').addEventListener('click', () => {
   updateSettings({ theme: next });
 });
 
-// 설정 변경 구독 — 테마는 즉시 반영
+// 설정 변경 구독 — 테마/툴바 로고는 즉시 반영
 onSettingsChange((s) => {
   applyAppTheme(s.theme);
+  document.body.classList.toggle('hide-app-title', !!s.hideAppTitle);
 });
 
 // ── Drive 통합 버튼 (상태에 따라 라벨·메뉴가 동적으로 변함) ──

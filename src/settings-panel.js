@@ -20,6 +20,8 @@ import { pushHistory } from './history.js';
 import { applyStyle, openFontBrowserModal } from './modal.js';
 
 let _initialized = false;
+// 활성 탭 — 'general' | 'shortcuts'
+let _activeTab = 'general';
 
 export function isSettingsPanelOpen() {
   return document.body.classList.contains('settings-panel-open');
@@ -47,6 +49,29 @@ function escapeHTML(s) {
 // ── 본문 빌드 ───────────────────────────────────────────
 function buildBody() {
   const body = $('stp-body');
+  if (!body) return;
+
+  // 탭 헤더 + 활성 탭 본문
+  body.innerHTML = `
+    <div class="stp-tabs">
+      <button type="button" class="stp-tab ${_activeTab === 'general' ? 'active' : ''}" data-tab="general">⚙️ 일반</button>
+      <button type="button" class="stp-tab ${_activeTab === 'shortcuts' ? 'active' : ''}" data-tab="shortcuts">⌨️ 단축키</button>
+    </div>
+    <div id="stp-tab-body"></div>
+  `;
+  body.querySelectorAll('.stp-tab').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      _activeTab = btn.dataset.tab;
+      buildBody();
+    });
+  });
+  if (_activeTab === 'shortcuts') buildShortcutsTab();
+  else                            buildGeneralTab();
+}
+
+// ── 일반 탭 ─────────────────────────────────────────────
+function buildGeneralTab() {
+  const body = $('stp-tab-body');
   if (!body) return;
   const s = getSettings();
   const dr = s.defaultRelation ?? {};
@@ -131,6 +156,17 @@ function buildBody() {
     </section>
 
     <section class="sp-section">
+      <div class="sp-section-title">🗺️ 상단 로고</div>
+      <label class="sp-check" style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+        <input type="checkbox" id="stp-hide-title" ${s.hideAppTitle ? 'checked' : ''} />
+        <span>툴바 "🗺️ 마인드맵" 로고 감추기</span>
+      </label>
+      <div style="font-size:11px; color:#8b949e; margin-top:6px;">
+        툴바 공간이 좁을 때 가로 폭을 확보합니다.
+      </div>
+    </section>
+
+    <section class="sp-section">
       <div class="sp-section-title">🔗 URL 자동 인식</div>
       <label class="sp-check" style="display:flex; align-items:center; gap:8px; cursor:pointer;">
         <input type="checkbox" id="stp-autolink" ${s.autoDetectLinks !== false ? 'checked' : ''} />
@@ -194,15 +230,6 @@ function buildBody() {
       </button>
     </section>
 
-    <section class="sp-section">
-      <div class="sp-section-title">⌨️ 단축키</div>
-      <div class="sp-mini-label">행을 클릭하고 새 키를 누르면 변경됩니다. 빈 키도 가능.</div>
-      <div class="shortcuts-list">
-        ${buildShortcutsHTML()}
-      </div>
-      <button type="button" class="btn btn-ghost" id="stp-reset-all-shortcuts"
-        style="margin-top:8px;">↺ 모든 단축키 초기화</button>
-    </section>
   `;
 
   // ── 이벤트 바인딩 ──
@@ -219,6 +246,9 @@ function buildBody() {
   $('stp-shadow').addEventListener('change', (e) => {
     updateSettings({ nodeShadow: e.target.checked });
     applyNodeShadow();
+  });
+  $('stp-hide-title')?.addEventListener('change', (e) => {
+    updateSettings({ hideAppTitle: e.target.checked });
   });
   $('stp-autolink')?.addEventListener('change', (e) => {
     updateSettings({ autoDetectLinks: e.target.checked });
@@ -309,19 +339,32 @@ function buildBody() {
   }));
   $('stp-rel-arrow').addEventListener('change', (e) => updateSettings({ defaultRelation: { arrow: e.target.value } }));
   enhanceDashPicker($('stp-rel-dash'));
+}
 
-  // 단축키 행
-  body.querySelectorAll('[data-shortcut-action]').forEach((row) => {
-    bindShortcutRow(row);
-  });
+// ── 단축키 탭 ───────────────────────────────────────────
+function buildShortcutsTab() {
+  const body = $('stp-tab-body');
+  if (!body) return;
+  body.innerHTML = `
+    <section class="sp-section">
+      <div class="sp-section-title">⌨️ 단축키</div>
+      <div class="sp-mini-label">행을 클릭하고 새 키를 누르면 변경됩니다. 빈 키도 가능.</div>
+      <div class="shortcuts-list">
+        ${buildShortcutsHTML()}
+      </div>
+      <button type="button" class="btn btn-ghost" id="stp-reset-all-shortcuts"
+        style="margin-top:8px;">↺ 모든 단축키 초기화</button>
+    </section>
+  `;
+  body.querySelectorAll('[data-shortcut-action]').forEach((row) => bindShortcutRow(row));
   $('stp-reset-all-shortcuts').addEventListener('click', () => {
     if (!confirm('모든 단축키를 기본값으로 되돌릴까요?')) return;
-    updateSettings({ shortcuts: {} });   // shortcuts는 통째 교체 → 비움
+    updateSettings({ shortcuts: {} });
     buildBody();
   });
 }
 
-// ── 단축키 섹션 ─────────────────────────────────────────
+// ── 단축키 섹션 HTML ────────────────────────────────────
 function buildShortcutsHTML() {
   // group별로 묶음
   const groups = {};

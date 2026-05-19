@@ -186,7 +186,13 @@ export function startEdit(e, id) {
   ta.select();
 
   let escaped = false;
-  ta.addEventListener('blur', () => {
+  // 첫 focus 직후 일부 브라우저/핸들러의 부수효과로 즉시 blur가 발사되어
+  // textarea가 사라지는 회귀가 있어 — 다음 프레임에 blur 리스너 등록
+  requestAnimationFrame(() => {
+    if (!document.body.contains(ta)) return; // 이미 사라졌으면 무시
+    ta.addEventListener('blur', onBlur);
+  });
+  function onBlur() {
     const next = ta.value.trim() || node.text;
     if (!escaped && next !== originalText) {
       commitPending();
@@ -198,7 +204,7 @@ export function startEdit(e, id) {
     }
     // 텍스트 변경은 단일 노드 patch로 충분 (편집 취소도 textarea 제거를 위해 patch 필요)
     if (!patchNode(node.id)) render();
-  });
+  }
   ta.addEventListener('keydown', (ev) => {
     if (ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); ta.blur(); }
     if (ev.key === 'Escape') { escaped = true; ta.value = node.text; ta.blur(); }
