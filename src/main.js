@@ -20,7 +20,7 @@ import { addCallout, deleteCallout, selectCallout, removeCalloutsByParents,
          isCalloutDragging } from './callouts.js';
 import { deleteZone, renameZone, selectZone } from './zones.js';
 import { openLinkModal, openColorModal, openSaveModal, openDriveLoadModal, openDriveManageModal, openGDocsPreviewModal, openNoteModal, openShareModal, tryLoadFromHash, closeModal, handleModalOK, applyStyle } from './modal.js';
-import { initSettingsPanel, toggleSettingsPanel, openSettingsPanel, closeSettingsPanel, isSettingsPanelOpen } from './settings-panel.js';
+import { initSettingsPanel, toggleSettingsPanel, openSettingsPanel, closeSettingsPanel, isSettingsPanelOpen, injectCustomFonts } from './settings-panel.js';
 import { registerShortcuts, dispatchKey } from './shortcuts.js';
 import * as drive                            from './drive.js';
 import { showContextMenu, hideContextMenu, hideAllMenus, showBgMenu, initContextMenu, showZoneMenu, showCalloutMenu } from './menu.js';
@@ -274,6 +274,9 @@ function init() {
 
 // ── 사용자 설정 로드 (앱 시작 시 1회) ──
 loadSettings();
+// 사용자 추가 폰트의 <link>를 가능한 한 일찍 주입 → 첫 render부터 폰트 적용
+// (settings 패널 초기화와 분리해서 사용자가 패널을 한 번도 안 열어도 적용)
+injectCustomFonts();
 
 // ── 캔버스 이벤트 초기화 ──
 initCanvas();
