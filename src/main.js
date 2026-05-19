@@ -282,8 +282,7 @@ initCanvas();
 initContextMenu();
 
 // ── 툴바 버튼 ──
-$('btn-add').addEventListener('click',    () => addChild());
-$('btn-link').addEventListener('click',   () => openLinkModal(state.selectedId));
+// (btn-add, btn-link는 제거됨 — 노드 추가는 Tab/배경 더블클릭/우클릭 메뉴, 링크는 노드 우클릭 메뉴/모달 사용)
 // 💾 저장 — 이전에 저장한 적이 있으면 같은 위치로 빠른 저장, 없으면 Save As 모달
 function quickSaveOrAsk() {
   quickSave(drive).then((ok) => {
@@ -576,6 +575,14 @@ $('canvas-wrap').addEventListener('contextmenu', (e) => {
   if (t.id === 'canvas-wrap' || t.id === 'canvas' || t.id === 'svg-layer') {
     showBgMenu(e);
   }
+});
+
+// ── 배경 더블클릭 → 더블클릭 위치에 새 노드 추가 (선택 노드 또는 루트의 자식) ──
+$('canvas-wrap').addEventListener('dblclick', (e) => {
+  const t = e.target;
+  if (t.id !== 'canvas-wrap' && t.id !== 'canvas' && t.id !== 'svg-layer') return;
+  const cp = canvasCoord(e.clientX, e.clientY);
+  addChild(undefined, cp.x, cp.y);
 });
 
 // ── 단축키 액션 핸들러들 ──

@@ -582,9 +582,9 @@ export function getRelationControls(r, a, b) {
 
 /** 노드 텍스트 크기 매핑 (px) — 6단계 */
 export const NODE_SIZES = {
-  xsmall: '9px',
-  small:  '11px',
-  medium: '13px',   // 기본
+  xsmall: '10px',
+  small:  '12px',
+  medium: '14px',   // 기본
   large:  '17px',
   xlarge: '22px',
   huge:   '28px',
@@ -592,9 +592,9 @@ export const NODE_SIZES = {
 
 /** UI 라벨 */
 export const NODE_SIZE_NAMES = {
-  xsmall: '아주 작게 (9px)',
-  small:  '작게 (11px)',
-  medium: '보통 (13px)',
+  xsmall: '아주 작게 (10px)',
+  small:  '작게 (12px)',
+  medium: '보통 (14px)',
   large:  '크게 (17px)',
   xlarge: '아주 크게 (22px)',
   huge:   '거대 (28px)',

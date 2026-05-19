@@ -31,8 +31,10 @@ function autoDetectLinks(node) {
 /**
  * 자식 노드 추가
  * @param {string} [parentId] - 없으면 selectedId, 그것도 없으면 루트 노드
+ * @param {number} [atX] - 지정 시 새 노드의 x 좌표 (캔버스 절대 좌표). 없으면 부모 주변 랜덤 위치.
+ * @param {number} [atY] - 지정 시 새 노드의 y 좌표. 없으면 부모 주변 랜덤 위치.
  */
-export function addChild(parentId) {
+export function addChild(parentId, atX, atY) {
   parentId = parentId
     ?? state.selectedId
     ?? Object.keys(state.nodes).find((k) => !state.nodes[k].parentId);
@@ -42,20 +44,22 @@ export function addChild(parentId) {
   pushHistory();
 
   const parent = state.nodes[parentId];
-  const angle  = Math.random() * Math.PI * 2;
-  const dist   = 200;
   const id     = uid();
   const settings = getSettings();
   const palette  = currentPalette(state, settings.customThemes);
   const color    = palette[Math.floor(Math.random() * palette.length)];
 
-  const newNode = makeNode(
-    id, '새 노드',
-    parent.x + Math.cos(angle) * dist,
-    parent.y + Math.sin(angle) * dist,
-    parentId,
-    color,
-  );
+  let x, y;
+  if (atX != null && atY != null) {
+    x = atX; y = atY;
+  } else {
+    const angle = Math.random() * Math.PI * 2;
+    const dist  = 200;
+    x = parent.x + Math.cos(angle) * dist;
+    y = parent.y + Math.sin(angle) * dist;
+  }
+
+  const newNode = makeNode(id, '새 노드', x, y, parentId, color);
   if (settings.defaultNodeBorder) newNode.borderWidth = settings.defaultNodeBorder;
   state.nodes[id] = newNode;
 

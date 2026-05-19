@@ -177,12 +177,13 @@ body.style-panel-open #canvas-wrap { right: 320px; }
   --stroke-c: transparent;
   position: absolute;
   transform: translate(-50%, -50%);
-  min-width: 110px; max-width: 220px;
-  padding: 10px 14px; border-radius: 14px;
+  min-width: 90px; max-width: 220px;
+  padding: 6px 12px; border-radius: 12px;
   cursor: pointer; user-select: none;
   border: 2px solid transparent; text-align: center;
   font-family: var(--node-font, inherit);
-  font-size: 13px; font-weight: 500; word-break: break-word;
+  font-size: 14px; font-weight: 500; word-break: break-word;
+  line-height: 1.35;
   /* 외곽 스트로크는 box-shadow 첫 레이어로, 위에 기본 그림자 */
   box-shadow:
     0 0 0 var(--stroke-w) var(--stroke-c),
@@ -206,7 +207,7 @@ body.no-node-shadow .callout,
 body.no-node-shadow .callout:hover {
   box-shadow: none !important;
 }
-.node.root     { font-size: 15px; font-weight: 700; min-width: 140px; border-radius: 18px; }
+.node.root     { font-size: 16px; font-weight: 700; min-width: 120px; border-radius: 16px; }
 .node.selected {
   border-color: var(--accent) !important;
   outline: 2px solid var(--accent);
