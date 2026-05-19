@@ -534,19 +534,18 @@ export function openShareModal() {
   state.modalKind = 'share';
   $('modal-title').textContent = '🔗 공유';
 
-  const json = serialize();
-  // 대략적인 URL 길이 추산 — base64는 4/3배. 2000자 넘으면 경고.
-  const approxUrlLen = Math.ceil(json.length * 4 / 3) + (location.origin + location.pathname).length + 6;
-  const urlTooLong = approxUrlLen > 6000;
+  const driveReady = drive.isAvailable() && drive.isSignedIn();
+  const driveHint = !drive.isAvailable()
+    ? '⚠️ Drive 미설정 — DRIVE_SETUP.md 참고'
+    : (!drive.isSignedIn() ? '⚠️ 먼저 ☁️ Drive 연결 후 사용 가능' : '');
 
   $('modal-body').innerHTML = `
     <div class="fg" style="display:grid; grid-template-columns:1fr; gap:8px;">
-      <button type="button" class="btn btn-ghost share-opt" data-share="url"
-        ${urlTooLong ? 'disabled title="맵이 너무 큽니다. JSON이나 Drive를 이용하세요."' : ''}>
-        🔗 <b>URL로 공유</b>
-        <span class="share-hint">
-          맵 전체를 인코딩한 링크를 클립보드에 복사 ${urlTooLong ? '· 사용 불가 (맵 큼)' : `· 약 ${approxUrlLen}자`}
-        </span>
+      <button type="button" class="btn btn-ghost share-opt" data-share="drive-link" ${driveReady ? '' : 'disabled'}>
+        🔗 <b>Drive 공유 링크 복사</b>
+        <span class="share-hint">${driveReady
+          ? `${escapeHTML(drive.getEmail() ?? '')} · 자동으로 Drive에 저장 → "링크 있는 모든 사용자 읽기" 권한 → URL 클립보드 복사`
+          : driveHint}</span>
       </button>
 
       <button type="button" class="btn btn-ghost share-opt" data-share="json">
@@ -569,10 +568,10 @@ export function openShareModal() {
         <span class="share-hint">벡터, 크기 변경에도 깔끔</span>
       </button>
 
-      ${drive.isAvailable() && drive.isSignedIn() ? `
+      ${driveReady ? `
         <button type="button" class="btn btn-ghost share-opt" data-share="drive">
-          ☁️ <b>Google Drive에 저장</b>
-          <span class="share-hint">${escapeHTML(drive.getEmail() ?? '')} · 큰 맵도 OK</span>
+          ☁️ <b>Google Drive에 저장만 (공유 안 함)</b>
+          <span class="share-hint">${escapeHTML(drive.getEmail() ?? '')} · 파일만 저장. 공유는 별도 처리</span>
         </button>
       ` : ''}
     </div>
@@ -600,18 +599,23 @@ function handleShareOption(kind) {
     closeModal();
     return;
   }
-  if (kind === 'url') {
-    try {
-      const json = serialize();
-      const b64 = btoa(unescape(encodeURIComponent(json)));
-      const url = location.origin + location.pathname + '#data=' + b64;
-      navigator.clipboard.writeText(url).then(() => {
-        toastSuccess(`🔗 공유 URL이 클립보드에 복사됨 (${url.length}자)`);
-      }).catch(() => toastError('클립보드 복사 실패'));
-    } catch (e) {
-      toastError('URL 생성 실패: ' + e.message);
+  if (kind === 'drive-link') {
+    if (!drive.isSignedIn()) {
+      toastError('먼저 ☁️ Drive에 연결하세요');
+      return;
     }
+    const name = defaultFilename();
     closeModal();
+    toastSuccess('☁️ Drive 저장 및 공유 링크 생성 중…');
+    drive.saveToDrive(name, serialize())
+      .then((file) => drive.makePublicLink(file.id))
+      .then((url) => {
+        return navigator.clipboard.writeText(url).then(() => url);
+      })
+      .then((url) => {
+        toastSuccess(`🔗 Drive 공유 링크가 클립보드에 복사됨\n${url}`);
+      })
+      .catch((e) => toastError('Drive 공유 실패: ' + e.message));
     return;
   }
   if (kind === 'download') {

@@ -298,8 +298,52 @@ function quickSaveOrAsk() {
 }
 $('btn-export').addEventListener('click', quickSaveOrAsk);
 $('btn-share').addEventListener('click', openShareModal);
-$('btn-import').addEventListener('click', () => $('file-in').click());
 $('file-in').addEventListener('change',   doImport);
+
+// ── 📂 불러오기 드롭다운 (로컬 파일 / Drive) ──
+function initImportDropdown() {
+  const btn = $('btn-import');
+  if (!btn) return;
+  let dd = document.getElementById('import-dropdown');
+  if (!dd) {
+    dd = document.createElement('div');
+    dd.id = 'import-dropdown';
+    document.body.appendChild(dd);
+  }
+  function closeDd() { dd.classList.remove('open'); }
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const rect = btn.getBoundingClientRect();
+    dd.style.top  = (rect.bottom + 4) + 'px';
+    dd.style.left = rect.left + 'px';
+    dd.classList.toggle('open');
+    renderImportDd();
+  });
+  document.addEventListener('click', () => closeDd());
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDd(); });
+
+  function renderImportDd() {
+    const signedIn = drive.isSignedIn();
+    const available = drive.isAvailable();
+    dd.innerHTML = `
+      <div class="dd-item" id="imp-local">📁 로컬 파일에서 불러오기</div>
+      <div class="dd-item${(!available || !signedIn) ? ' cmd-disabled' : ''}" id="imp-drive">
+        ☁️ Drive에서 불러오기${!available ? ' (미설정)' : (!signedIn ? ' (Drive 연결 필요)' : '')}
+      </div>`;
+    dd.querySelector('#imp-local')?.addEventListener('click', () => {
+      $('file-in').click();
+      closeDd();
+    });
+    const driveItem = dd.querySelector('#imp-drive');
+    if (driveItem && !driveItem.classList.contains('cmd-disabled')) {
+      driveItem.addEventListener('click', () => {
+        openDriveLoadModal();
+        closeDd();
+      });
+    }
+  }
+}
+initImportDropdown();
 $('btn-reset').addEventListener('click',  resetView);
 
 // ── Undo / Redo 버튼 + 활성화 상태 ──

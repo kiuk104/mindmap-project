@@ -398,6 +398,28 @@ export async function renameFile(fileId, newName) {
   return res.json();
 }
 
+/**
+ * 파일을 "링크 있는 모든 사용자 읽기"로 공유 권한 설정 + 공유 URL 반환.
+ * 이미 같은 권한이 있으면 409 등 무시.
+ */
+export async function makePublicLink(fileId) {
+  if (!accessToken) throw new Error('Drive에 로그인되지 않았습니다');
+  const res = await fetchWithRetry(`https://www.googleapis.com/drive/v3/files/${fileId}/permissions`, {
+    method: 'POST',
+    headers: {
+      Authorization: 'Bearer ' + accessToken,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ role: 'reader', type: 'anyone' }),
+  });
+  // 200/204면 OK. 이미 같은 권한이면 보통 200. 다른 에러는 throw.
+  if (!res.ok && res.status !== 409) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`공유 권한 설정 실패 (HTTP ${res.status}): ${text.slice(0, 200)}`);
+  }
+  return `https://drive.google.com/file/d/${fileId}/view?usp=sharing`;
+}
+
 /** 파일 휴지통으로 이동 */
 export async function trashFile(fileId) {
   if (!accessToken) throw new Error('Drive에 로그인되지 않았습니다');

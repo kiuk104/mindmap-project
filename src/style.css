@@ -1783,7 +1783,8 @@ body.settings-panel-open #settings-panel { transform: translateX(0); }
 .shortcut-reset-placeholder { display: block; width: 20px; }
 
 /* Drive 드롭다운 */
-#drive-dropdown {
+#drive-dropdown,
+#import-dropdown {
   position: fixed;
   background: var(--bg-elev);
   border: 1px solid var(--border);
@@ -1794,8 +1795,10 @@ body.settings-panel-open #settings-panel { transform: translateX(0); }
   z-index: 9999;
   display: none;
 }
-#drive-dropdown.open { display: block; }
-#drive-dropdown .dd-item {
+#drive-dropdown.open,
+#import-dropdown.open { display: block; }
+#drive-dropdown .dd-item,
+#import-dropdown .dd-item {
   padding: 8px 16px;
   cursor: pointer;
   font-size: 13px;
@@ -1805,19 +1808,23 @@ body.settings-panel-open #settings-panel { transform: translateX(0); }
   color: var(--text);
   white-space: nowrap;
 }
-#drive-dropdown .dd-item:hover { background: var(--bg-hover); }
-#drive-dropdown .dd-sep {
+#drive-dropdown .dd-item:hover,
+#import-dropdown .dd-item:not(.cmd-disabled):hover { background: var(--bg-hover); }
+#drive-dropdown .dd-sep,
+#import-dropdown .dd-sep {
   height: 1px;
   background: var(--border);
   margin: 4px 0;
 }
-#drive-dropdown .dd-header {
+#drive-dropdown .dd-header,
+#import-dropdown .dd-header {
   padding: 6px 16px 2px;
   font-size: 11px;
   color: var(--text-dim, #8b949e);
   pointer-events: none;
 }
 #drive-dropdown .dd-item.danger { color: #f85149; }
+#import-dropdown .dd-item.cmd-disabled { opacity: 0.5; cursor: default; }
 
 /* ── 웰컴 오버레이 ── */
 #welcome-overlay {
