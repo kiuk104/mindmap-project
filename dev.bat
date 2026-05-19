@@ -19,6 +19,12 @@ if not exist node_modules (
   )
 )
 
+REM ── 5173 점유 프로세스 자동 정리 (이전 dev 서버 좀비 등) ──
+for /f "tokens=5" %%a in ('netstat -ano ^| findstr :5173 ^| findstr LISTENING') do (
+  echo [INFO] Port 5173 is held by PID %%a - terminating...
+  taskkill /PID %%a /F > nul 2>&1
+)
+
 echo.
 echo ============================================
 echo  Vite dev server starting...

@@ -170,6 +170,7 @@ export function startEdit(e, id) {
   if (!el) return;
 
   const textDiv = el.querySelector('.node-text');
+  if (!textDiv) return;  // 이미 편집 중 (textarea로 교체된 상태) — 중복 호출 가드
   const node    = state.nodes[id];
   const originalText = node.text;
 

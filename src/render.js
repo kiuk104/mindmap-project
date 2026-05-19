@@ -647,9 +647,8 @@ function buildNodeEl(n, ctx) {
 
   // 이벤트
   el.addEventListener('pointerdown', (e) => H.onNodeMouseDown(e, n.id));
+  // dblclick은 fallback 보조 — 주 경로는 canvas.js의 onNodeMouseDown 내 직접 더블클릭 감지
   el.addEventListener('dblclick',    (e) => {
-    // 데스크탑 브라우저의 dblclick은 기본적으로 텍스트 선택 등을 trigger —
-    // 그 부수효과가 후속 textarea.focus()의 즉시 blur로 이어질 수 있어 default 차단
     e.preventDefault();
     H.onNodeDblClick(e, n.id);
   });

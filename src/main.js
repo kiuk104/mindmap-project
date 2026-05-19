@@ -581,15 +581,41 @@ $('canvas-wrap').addEventListener('contextmenu', (e) => {
   }
 });
 
-// ── 배경 더블클릭 → 더블클릭 위치에 새 노드 추가 (선택 노드 또는 루트의 자식) ──
-// 3중 가드: (1) e.target id, (2) 좌표 아래 노드 존재, (3) 직전 노드 인터랙션 직후 차단
-// → 두 번의 click 중 하나가 노드를 벗어났을 때 dblclick이 wrap에서 발사되는 케이스 방어
+// ── 배경 더블클릭 처리 ──
+// 1) 클릭 좌표 아래에 노드가 있으면 → 그 노드 텍스트 편집 시작 (노드 dblclick이 발사되지
+//    않은 케이스의 fallback. 두 click 중 하나가 노드 박스 밖에 떨어지면 dblclick은 두
+//    click의 최소 공통 조상=wrap에서 발사되어 노드 dblclick 핸들러가 호출되지 않음)
+// 2) 콜아웃/존 위면 무시 (각자 자기 dblclick 핸들러가 처리)
+// 3) 직전 500ms 내 노드 인터랙션이 있었으면 합성 더블클릭 부산물로 간주, 무시
+// 4) 진짜 빈 공간이면 그 위치에 새 노드 추가
 $('canvas-wrap').addEventListener('dblclick', (e) => {
+  console.log('[dbg] WRAP dblclick fired, target.id=', e.target.id, 'target.className=', e.target.className);
   const t = e.target;
-  if (t.id !== 'canvas-wrap' && t.id !== 'canvas' && t.id !== 'svg-layer') return;
+  if (t.id !== 'canvas-wrap' && t.id !== 'canvas' && t.id !== 'svg-layer') {
+    console.log('[dbg] WRAP early return — target not bg');
+    return;
+  }
+
   const hit = document.elementFromPoint(e.clientX, e.clientY);
-  if (hit && hit.closest('.node, .callout, .zone-box')) return;
+
+  // (1) 노드 위 dblclick → 텍스트 편집 fallback
+  const nodeEl = hit?.closest('.node');
+  if (nodeEl && nodeEl.id.startsWith('nd-')) {
+    const id = nodeEl.id.slice(3);
+    if (state.nodes[id]) {
+      e.preventDefault();
+      startEdit(e, id);
+    }
+    return;
+  }
+
+  // (2) 콜아웃/존 위 — 각자 처리
+  if (hit && hit.closest('.callout, .zone-box')) return;
+
+  // (3) 시간 가드
   if (Date.now() - getLastNodeInteractAt() < 500) return;
+
+  // (4) 빈 공간 → 새 노드
   const cp = canvasCoord(e.clientX, e.clientY);
   addChild(undefined, cp.x, cp.y);
 });

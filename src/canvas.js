@@ -13,6 +13,7 @@ import { render, updateLines, updateSelection } from './render.js';
 import { $, setNodeSelection, clearNodeSelection, setRelationSelection, clearRelationSelection, getRelationControls, getBranchControls } from './utils.js';
 import { pushHistory, beginPending, commitPending, cancelPending } from './history.js';
 import { newRelationStyle } from './settings.js';
+import { startEdit } from './nodes.js';
 
 // ── Pan/드래그 상태 ──
 let panning = false;
@@ -65,6 +66,12 @@ export const view = { px: 0, py: 0, sc: 1 };
 // 직전에 노드에서 발생한 pointerdown 타임스탬프 — wrap dblclick 가드용
 let lastNodeInteractAt = 0;
 export function getLastNodeInteractAt() { return lastNodeInteractAt; }
+
+// 노드 직접 더블클릭 감지 — 브라우저 dblclick은 마우스 미세 움직임만으로 발사가 깨지므로
+// pointerdown 두 번을 직접 카운트해 텍스트 편집을 trigger.
+const DBL_POINTER_MS = 400;
+let lastNodePointerDownAt = 0;
+let lastNodePointerDownId = null;
 
 /** 직전 우클릭 드래그가 실제로 이동했는지 — main.js의 contextmenu 핸들러가 메뉴 표시 여부 결정 시 사용 */
 export function consumePanDragFlag() {
@@ -232,6 +239,21 @@ export function onNodeMouseDown(e, nodeId) {
 
   // wrap dblclick 가드용 — 노드 가장자리/외부 결합 dblclick이 새 노드를 생성하지 않도록
   lastNodeInteractAt = Date.now();
+
+  // ── 직접 더블클릭 감지 ──
+  // 브라우저 dblclick은 마우스 미세 움직임으로 발사가 깨지거나 마우스 하드웨어
+  // 인식률 문제로 누락될 수 있어, 같은 노드의 두 번째 pointerdown을 직접 감지.
+  const now = Date.now();
+  if (lastNodePointerDownId === nodeId && now - lastNodePointerDownAt < DBL_POINTER_MS) {
+    lastNodePointerDownAt = 0;
+    lastNodePointerDownId = null;
+    e.stopPropagation();
+    e.preventDefault();
+    startEdit(e, nodeId);
+    return;
+  }
+  lastNodePointerDownAt = now;
+  lastNodePointerDownId = nodeId;
 
   e.stopPropagation();
 
