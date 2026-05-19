@@ -87,33 +87,50 @@ function isDescendantOf(ancestorId, nodeId) {
   return false;
 }
 
-/** 마우스 좌표 아래 노드를 찾아 drop target으로 갱신 (단일 노드 드래그에만 적용) */
+// 드래그 시 drop target 감지 거리 임계값 (스크린 px 기준 — zoom에 무관하게 체감 일정)
+const DROP_DISTANCE_PX = 60;
+
+/**
+ * 마우스 위치에서 가까운 노드를 drop target으로 갱신.
+ * 거리 계산: 마우스 캔버스 좌표 vs 노드 bounding box 표면까지의 거리 (박스 안이면 0).
+ * elementFromPoint 대신 거리 기반 — 노드 위에 정확히 올리지 않아도 가까이만 가면 인식.
+ */
 function updateDropTarget(clientX, clientY) {
   if (!dragging || !dragId || multiDragOffsets) {
     clearDropTarget();
     return;
   }
-  // 드래그 중인 노드를 일시적으로 pointer-events:none 처리해 그 아래 element를 찾음
-  const dragEl = $('nd-' + dragId);
-  const savedPE = dragEl ? dragEl.style.pointerEvents : '';
-  if (dragEl) dragEl.style.pointerEvents = 'none';
-  const hit = document.elementFromPoint(clientX, clientY);
-  if (dragEl) dragEl.style.pointerEvents = savedPE;
+  const cp = canvasCoord(clientX, clientY);
+  const dragNode = state.nodes[dragId];
+  const threshold = DROP_DISTANCE_PX / (view.sc || 1);  // zoom 보정 — 화면 60px = 캔버스 60/sc
 
-  let newDropId = null;
-  const nodeEl = hit?.closest('.node');
-  if (nodeEl && nodeEl.id.startsWith('nd-')) {
-    const candidate = nodeEl.id.slice(3);
-    const cur = state.nodes[dragId];
-    // 자기 자신·후손 금지(순환 방지), 이미 그 부모면 의미 없음
-    if (candidate !== dragId && !isDescendantOf(dragId, candidate) && cur?.parentId !== candidate) {
-      newDropId = candidate;
+  let bestId = null;
+  let bestDist = Infinity;
+  for (const id in state.nodes) {
+    if (id === dragId) continue;
+    if (dragNode?.parentId === id) continue;  // 이미 그 부모면 의미 없음
+    if (isDescendantOf(dragId, id)) continue;  // 순환 방지
+
+    const n = state.nodes[id];
+    const el = $('nd-' + id);
+    if (!el) continue;
+    // 노드 박스 표면까지의 거리 — 박스 안이면 0
+    const halfW = el.offsetWidth / 2;
+    const halfH = el.offsetHeight / 2;
+    const ax = Math.max(0, Math.abs(cp.x - n.x) - halfW);
+    const ay = Math.max(0, Math.abs(cp.y - n.y) - halfH);
+    const dist = Math.hypot(ax, ay);
+
+    if (dist <= threshold && dist < bestDist) {
+      bestDist = dist;
+      bestId = id;
     }
   }
-  if (newDropId !== dropTargetId) {
+
+  if (bestId !== dropTargetId) {
     if (dropTargetId) $('nd-' + dropTargetId)?.classList.remove('drop-target');
-    if (newDropId)    $('nd-' + newDropId)?.classList.add('drop-target');
-    dropTargetId = newDropId;
+    if (bestId)       $('nd-' + bestId)?.classList.add('drop-target');
+    dropTargetId = bestId;
   }
   // drop target과 드래그 노드 사이의 파란 프리뷰 라인 (매 move마다 SVG가 갱신되므로 재삽입)
   updateDropPreview();
