@@ -358,9 +358,11 @@ export function render() {
   const svg    = $('svg-layer');
 
   // 기존 노드 div 제거 (svg-layer는 유지)
-  // isConnected 가드: forEach 도중 blur 핸들러가 일부 자식을 미리 떼어낼 수 있어 안전망
+  // isConnected 가드 + try/catch: c.remove() 도중 textarea blur가 sync 발사되어
+  // DOM이 mutate되는 race에서 NotFoundError가 날 수 있음 → 안전하게 무시
   [...canvas.children].forEach((c) => {
-    if (c.id !== 'svg-layer' && c.isConnected) c.remove();
+    if (c.id === 'svg-layer' || !c.isConnected) return;
+    try { c.remove(); } catch {}
   });
 
   const { hiddenIds, parentIds, selSet, hitSet, activeHitId, numberPrefix } = makeRenderCtx();

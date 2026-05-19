@@ -589,12 +589,8 @@ $('canvas-wrap').addEventListener('contextmenu', (e) => {
 // 3) 직전 500ms 내 노드 인터랙션이 있었으면 합성 더블클릭 부산물로 간주, 무시
 // 4) 진짜 빈 공간이면 그 위치에 새 노드 추가
 $('canvas-wrap').addEventListener('dblclick', (e) => {
-  console.log('[dbg] WRAP dblclick fired, target.id=', e.target.id, 'target.className=', e.target.className);
   const t = e.target;
-  if (t.id !== 'canvas-wrap' && t.id !== 'canvas' && t.id !== 'svg-layer') {
-    console.log('[dbg] WRAP early return — target not bg');
-    return;
-  }
+  if (t.id !== 'canvas-wrap' && t.id !== 'canvas' && t.id !== 'svg-layer') return;
 
   const hit = document.elementFromPoint(e.clientX, e.clientY);
 

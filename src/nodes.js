@@ -204,7 +204,11 @@ export function startEdit(e, id) {
       cancelPending();
     }
     // 텍스트 변경은 단일 노드 patch로 충분 (편집 취소도 textarea 제거를 위해 patch 필요)
-    if (!patchNode(node.id)) render();
+    // queueMicrotask로 한 tick 미룸 — c.remove() 도중 sync 발사된 blur가
+    // 진행 중인 render를 재진입시키는 race를 차단
+    queueMicrotask(() => {
+      if (!patchNode(node.id)) render();
+    });
   }
   ta.addEventListener('keydown', (ev) => {
     if (ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); ta.blur(); }
