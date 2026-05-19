@@ -10,7 +10,7 @@
 
 import { state }                           from './state.js';
 import { render, patchNode, updateSelection, registerHandlers, setPostRender } from './render.js';
-import { $, uid, makeNode, COLORS, setNodeSelection, clearNodeSelection, setRelationSelection, clearRelationSelection } from './utils.js';
+import { $, uid, makeNode, COLORS, setNodeSelection, clearNodeSelection, setRelationSelection, clearRelationSelection, detectInAppBrowser } from './utils.js';
 import { showPreview, hidePreview }        from './preview.js';
 import { addChild, deleteNode, startEdit, removeLink, toggleCollapse, expandAncestors } from './nodes.js';
 import { initCanvas, view, applyTransform, resetView } from './canvas.js';
@@ -19,7 +19,7 @@ import { addCallout, deleteCallout, selectCallout, removeCalloutsByParents,
          onCalloutPointerDown, onCalloutPointerMove, onCalloutPointerUp,
          isCalloutDragging } from './callouts.js';
 import { deleteZone, renameZone, selectZone } from './zones.js';
-import { openLinkModal, openColorModal, openSaveModal, openDriveLoadModal, openDriveManageModal, openGDocsPreviewModal, openNoteModal, openShareModal, openRenameModal, openHelpModal, tryLoadFromHash, closeModal, handleModalOK, applyStyle, requestDriveSignIn } from './modal.js';
+import { openLinkModal, openColorModal, openSaveModal, openDriveLoadModal, openDriveManageModal, openGDocsPreviewModal, openNoteModal, openShareModal, openRenameModal, openHelpModal, tryLoadFromHash, closeModal, handleModalOK, applyStyle, requestDriveSignIn, openInAppBrowserGuideModal } from './modal.js';
 import { initSettingsPanel, toggleSettingsPanel, openSettingsPanel, closeSettingsPanel, isSettingsPanelOpen, injectCustomFonts } from './settings-panel.js';
 import { registerShortcuts, dispatchKey } from './shortcuts.js';
 import * as drive                            from './drive.js';
@@ -37,6 +37,40 @@ import { isFirstVisit, markVisited, initHintBar } from './onboarding.js';
 import { initMinimap, drawMinimap } from './minimap.js';
 import { initCommandPalette, openPalette, registerCommands } from './command-palette.js';
 import { exportPngFile, exportSvgFile } from './export.js';
+
+// ── 인앱 브라우저 자동 탈출 ──
+// Google이 임베디드 웹뷰의 OAuth를 차단하므로, 카카오톡·라인·FB 등에서
+// 페이지가 열리면 가능한 한 즉시 외부 브라우저(Chrome/Safari)로 전환한다.
+//   - Android: intent:// 스킴으로 Chrome 강제 열기 (Chrome 미설치 시 무반응 → 모달 폴백)
+//   - iOS 카카오톡: kakaotalk://web/openExternal?url=... 전용 스킴
+//   - 그 외 iOS 인앱: OS 제약으로 자동 탈출 불가 → 모달로 안내
+// sessionStorage 플래그로 같은 세션 내 무한 리다이렉트 방지.
+(function tryEscapeInAppBrowser() {
+  const inApp = detectInAppBrowser();
+  if (!inApp) return;
+  const FLAG = 'mindmap.inapp.escapeTried';
+  if (sessionStorage.getItem(FLAG) === '1') return;
+  sessionStorage.setItem(FLAG, '1');
+
+  const ua = navigator.userAgent || '';
+  const isAndroid = /Android/i.test(ua);
+  const isIOS     = /iPhone|iPad|iPod/i.test(ua);
+
+  if (isAndroid) {
+    // intent:// 가 Chrome 인텐트 필터로 잡혀 외부 Chrome에서 열린다.
+    // host+path+search+hash 그대로 전달 → ?drive=fileId 보존됨.
+    const tail = `${location.host}${location.pathname}${location.search}${location.hash}`;
+    const scheme = location.protocol.slice(0, -1); // 'https:' → 'https'
+    location.href = `intent://${tail}#Intent;scheme=${scheme};package=com.android.chrome;end`;
+    return;
+  }
+  if (isIOS && inApp.name === 'kakaotalk') {
+    // KakaoTalk iOS 전용 외부 브라우저 열기 스킴 (Safari로 이동)
+    location.href = `kakaotalk://web/openExternal?url=${encodeURIComponent(location.href)}`;
+    return;
+  }
+  // 자동 탈출 불가 — init 후 가이드 모달이 자동으로 뜬다.
+})();
 
 // ── render.js에 핸들러 주입 ──
 // render.js는 다른 모듈을 직접 import하지 않고
@@ -714,18 +748,9 @@ drive.initDrive()
     if (!pendingDriveLoad) return;
     if (drive.isSignedIn()) {
       tryAutoLoadDriveFile(pendingDriveLoad);
-    } else {
-      // 인앱 브라우저면 즉시 안내 모달 — 어차피 로그인이 막혀있음
-      const inApp = (() => {
-        // 동적 import 회피용 — utils.detectInAppBrowser는 동기
-        const ua = navigator.userAgent || '';
-        return /KAKAOTALK|NAVER\(inapp|Line\/|FBAN|FBAV|Instagram|MicroMessenger|Daum/i.test(ua);
-      })();
-      if (inApp) {
-        toastError('🛑 인앱 브라우저에서는 Google 로그인이 차단됩니다. ☁️ Drive 메뉴를 눌러 안내를 확인해주세요.');
-      } else {
-        toastSuccess('🔗 공유된 파일을 열려면 ☁️ Drive 메뉴에서 Google 계정으로 연결해주세요. 연결 후 자동으로 불러옵니다.');
-      }
+    } else if (!detectInAppBrowser()) {
+      // 인앱 브라우저면 별도 가이드 모달이 자동으로 뜨므로 여기선 토스트 생략.
+      toastSuccess('🔗 공유된 파일을 열려면 ☁️ Drive 메뉴에서 Google 계정으로 연결해주세요. 연결 후 자동으로 불러옵니다.');
       // 로그인 시점에 자동 로드
       const off = drive.onAuthChange(({ signedIn }) => {
         if (signedIn && pendingDriveLoad) {
@@ -968,3 +993,13 @@ $('btn-help')?.addEventListener('click', () => openHelpModal());
 
 // ── 시작 ──
 init();
+
+// 인앱 브라우저 자동 탈출 시도(상단 IIFE)가 동작하지 않은 경우 — iOS 비카카오톡 등,
+// 혹은 Android 인텐트 실패 — 사용자에게 모달로 외부 브라우저 열기 방법을 안내.
+// 자동 탈출 성공 시엔 페이지가 이미 외부 브라우저로 넘어가 이 코드는 실행되지 않음.
+{
+  const inApp = detectInAppBrowser();
+  if (inApp) {
+    setTimeout(() => openInAppBrowserGuideModal(inApp), 600);
+  }
+}
