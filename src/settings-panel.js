@@ -145,6 +145,33 @@ function buildGeneralTab() {
     </section>
 
     <section class="sp-section">
+      <div class="sp-section-title">🌳 노드 연결선 기본값</div>
+      <div class="sp-mini-label">새 마인드맵·"모두 지우기" 시점에 적용됩니다</div>
+      <div class="settings-grid">
+        <div>
+          <div class="settings-mini">모양</div>
+          <select class="fi" id="stp-line-style">
+            <option value="straight" ${s.defaultLineStyle === 'straight' ? 'selected' : ''}>━ 직선</option>
+            <option value="curved"   ${s.defaultLineStyle === 'curved'   ? 'selected' : ''}>⌒ 곡선</option>
+            <option value="stepped"  ${s.defaultLineStyle === 'stepped'  ? 'selected' : ''}>⌐ 직각</option>
+          </select>
+        </div>
+        <div>
+          <div class="settings-mini">두께</div>
+          <select class="fi" id="stp-line-width">
+            <option value="thin"   ${s.defaultLineWidth === 'thin'   ? 'selected' : ''}>얇게</option>
+            <option value="normal" ${s.defaultLineWidth === 'normal' ? 'selected' : ''}>보통</option>
+            <option value="thick"  ${s.defaultLineWidth === 'thick'  ? 'selected' : ''}>굵게</option>
+          </select>
+        </div>
+      </div>
+      <label class="sp-check" style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-top:8px;">
+        <input type="checkbox" id="stp-colored-branch" ${s.defaultColoredBranch ? 'checked' : ''} />
+        <span>자식 노드 색상으로 연결선 색</span>
+      </label>
+    </section>
+
+    <section class="sp-section">
       <div class="sp-section-title">✨ 드롭 섀도우</div>
       <label class="sp-check" style="display:flex; align-items:center; gap:8px; cursor:pointer;">
         <input type="checkbox" id="stp-shadow" ${s.nodeShadow !== false ? 'checked' : ''} />
@@ -243,6 +270,9 @@ function buildGeneralTab() {
 
   $('stp-font').addEventListener('change', (e) => updateSettings({ defaultFont: e.target.value }));
   $('stp-border').addEventListener('change', (e) => updateSettings({ defaultNodeBorder: e.target.value }));
+  $('stp-line-style')?.addEventListener('change', (e) => updateSettings({ defaultLineStyle: e.target.value }));
+  $('stp-line-width')?.addEventListener('change', (e) => updateSettings({ defaultLineWidth: e.target.value }));
+  $('stp-colored-branch')?.addEventListener('change', (e) => updateSettings({ defaultColoredBranch: e.target.checked }));
   $('stp-shadow').addEventListener('change', (e) => {
     updateSettings({ nodeShadow: e.target.checked });
     applyNodeShadow();
@@ -296,6 +326,8 @@ function buildGeneralTab() {
       `${nodeCount}개 노드와 ${relCount}개 관계선의 스타일이 설정 기본값으로 덮어써집니다.\n\n` +
       `• 현재 맵 폰트 → "${s.defaultFont}"\n` +
       `• 모든 노드 테두리 → "${s.defaultNodeBorder}"\n` +
+      `• 노드 연결선 모양·두께·색상 → "${s.defaultLineStyle} / ${s.defaultLineWidth} / 자식색=${s.defaultColoredBranch ? 'on' : 'off'}"\n` +
+      `• 모든 노드의 branchStyle 오버라이드 제거\n` +
       `• 모든 관계선 색·점선·두께·화살표 → 설정값\n\n` +
       `Undo로 되돌릴 수 있습니다. 계속할까요?`
     )) return;
@@ -306,11 +338,19 @@ function buildGeneralTab() {
     if (s.defaultFont) {
       state.style = { ...state.style, font: s.defaultFont, fontEn: null, fontKr: null };
     }
-    // 2) 모든 노드의 borderWidth
+    // 2) 노드 연결선 (모양·두께·자식색상) + 각 노드의 branchStyle 오버라이드 제거
+    if (s.defaultLineStyle) state.lineStyle = s.defaultLineStyle;
+    state.style = {
+      ...state.style,
+      lineWidth:     s.defaultLineWidth ?? state.style?.lineWidth ?? 'normal',
+      coloredBranch: !!s.defaultColoredBranch,
+    };
+    Object.values(state.nodes).forEach((n) => { delete n.branchStyle; });
+    // 3) 모든 노드의 borderWidth
     if (s.defaultNodeBorder) {
       Object.values(state.nodes).forEach((n) => { n.borderWidth = s.defaultNodeBorder; });
     }
-    // 3) 모든 관계선의 스타일
+    // 4) 모든 관계선의 스타일
     (state.relations ?? []).forEach((r) => {
       if (!r.style) r.style = {};
       r.style.color = dr.color ?? null;

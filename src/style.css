@@ -133,6 +133,14 @@ body.hide-app-title .toolbar-title + .sep { display: none; }
 .btn-ghost:hover { background: var(--bg-hover); color: var(--text-bright); }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn:disabled:hover { background: inherit; }
+/* 아이콘만 표시하는 정사각 버튼 — 툴바 공간 확보 */
+.btn.btn-icon-only {
+  padding: 6px 8px;
+  width: 34px; height: 32px;
+  justify-content: center;
+  gap: 0;
+}
+.btn.btn-icon-only svg { display: block; }
 
 /* ── 검색 박스 ── */
 .search-box {

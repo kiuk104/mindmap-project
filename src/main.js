@@ -204,6 +204,10 @@ function createSamples() {
   const s = getSettings();
   if (s?.defaultFont) state.style = { ...state.style, font: s.defaultFont };
   const border = s?.defaultNodeBorder;
+  // 노드 연결선 기본값 (모양·두께·자식 색상 사용)
+  if (s?.defaultLineStyle)        state.lineStyle = s.defaultLineStyle;
+  if (s?.defaultLineWidth)        state.style = { ...state.style, lineWidth: s.defaultLineWidth };
+  if (s?.defaultColoredBranch !== undefined) state.style = { ...state.style, coloredBranch: !!s.defaultColoredBranch };
 
   const rootId = uid();
   const root = makeNode(rootId, '중심 주제', 2500, 2500, null, '#f85149');

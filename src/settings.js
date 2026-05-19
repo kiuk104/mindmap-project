@@ -29,6 +29,10 @@ const DEFAULT = {
     width: null,            // null = 기본 두께 (2)
     arrow: 'end',           // 'end' | 'start' | 'both' | 'none'
   },
+  /** 새 마인드맵/모두 지우기 시점에 적용될 노드(부모-자식) 연결선 기본값 */
+  defaultLineStyle:    'straight',  // 'straight' | 'curved' | 'stepped'
+  defaultLineWidth:    'normal',    // 'thin' | 'normal' | 'thick'
+  defaultColoredBranch: false,      // 자식 노드 색상으로 연결선 색
   /** 사용자가 만든 커스텀 색상 테마 — [{ id, name, palette: string[] }] */
   customThemes: [],
   /** 사용자가 추가한 폰트 — [{ id, name, family, googleLink }]
