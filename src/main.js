@@ -14,7 +14,7 @@ import { $, uid, makeNode, COLORS, setNodeSelection, clearNodeSelection, setRela
 import { showPreview, hidePreview }        from './preview.js';
 import { addChild, deleteNode, startEdit, removeLink, toggleCollapse, expandAncestors } from './nodes.js';
 import { initCanvas, view, applyTransform, resetView } from './canvas.js';
-import { onNodeMouseDown, onRelationHandleDown, onBranchHandleDown, consumePanDragFlag, canvasCoord } from './canvas.js';
+import { onNodeMouseDown, onRelationHandleDown, onBranchHandleDown, consumePanDragFlag, canvasCoord, getLastNodeInteractAt } from './canvas.js';
 import { addCallout, deleteCallout, selectCallout, removeCalloutsByParents,
          onCalloutPointerDown, onCalloutPointerMove, onCalloutPointerUp,
          isCalloutDragging } from './callouts.js';
@@ -578,9 +578,14 @@ $('canvas-wrap').addEventListener('contextmenu', (e) => {
 });
 
 // ── 배경 더블클릭 → 더블클릭 위치에 새 노드 추가 (선택 노드 또는 루트의 자식) ──
+// 3중 가드: (1) e.target id, (2) 좌표 아래 노드 존재, (3) 직전 노드 인터랙션 직후 차단
+// → 두 번의 click 중 하나가 노드를 벗어났을 때 dblclick이 wrap에서 발사되는 케이스 방어
 $('canvas-wrap').addEventListener('dblclick', (e) => {
   const t = e.target;
   if (t.id !== 'canvas-wrap' && t.id !== 'canvas' && t.id !== 'svg-layer') return;
+  const hit = document.elementFromPoint(e.clientX, e.clientY);
+  if (hit && hit.closest('.node, .callout, .zone-box')) return;
+  if (Date.now() - getLastNodeInteractAt() < 500) return;
   const cp = canvasCoord(e.clientX, e.clientY);
   addChild(undefined, cp.x, cp.y);
 });

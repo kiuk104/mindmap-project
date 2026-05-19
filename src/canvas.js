@@ -62,6 +62,10 @@ const LONG_PRESS_THRESHOLD = 10; // px
 // ── Zoom 상태 ──
 export const view = { px: 0, py: 0, sc: 1 };
 
+// 직전에 노드에서 발생한 pointerdown 타임스탬프 — wrap dblclick 가드용
+let lastNodeInteractAt = 0;
+export function getLastNodeInteractAt() { return lastNodeInteractAt; }
+
 /** 직전 우클릭 드래그가 실제로 이동했는지 — main.js의 contextmenu 핸들러가 메뉴 표시 여부 결정 시 사용 */
 export function consumePanDragFlag() {
   const moved = panRightDragMoved;
@@ -225,6 +229,9 @@ export function onNodeMouseDown(e, nodeId) {
     e.target.tagName === 'TEXTAREA' ||
     e.target.classList.contains('lbadge-del')
   ) return;
+
+  // wrap dblclick 가드용 — 노드 가장자리/외부 결합 dblclick이 새 노드를 생성하지 않도록
+  lastNodeInteractAt = Date.now();
 
   e.stopPropagation();
 
