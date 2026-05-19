@@ -38,6 +38,10 @@ const H = {
 // 렌더 후에 호출되는 훅 (예: 자동 저장)
 let postRenderHook = () => {};
 
+// render() 재진입 방지 — 첫 render의 자식 제거 중에 blur 핸들러가 sync 발사되어
+// patchNode→render fallback이 호출되면 forEach가 깨지는 race를 차단.
+let rendering = false;
+
 /**
  * main.js에서 호출해서 핸들러를 등록합니다.
  * @param {Partial<typeof H>} handlers
@@ -344,12 +348,19 @@ export function updateSelection() {
 }
 
 export function render() {
+  // 재진입 방지 — c.remove() 도중 textarea가 detach되며 blur가 sync 발사되어
+  // patchNode→render fallback이 호출되는 race를 차단
+  if (rendering) return;
+  rendering = true;
+  try {
+
   const canvas = $('canvas');
   const svg    = $('svg-layer');
 
   // 기존 노드 div 제거 (svg-layer는 유지)
+  // isConnected 가드: forEach 도중 blur 핸들러가 일부 자식을 미리 떼어낼 수 있어 안전망
   [...canvas.children].forEach((c) => {
-    if (c.id !== 'svg-layer') c.remove();
+    if (c.id !== 'svg-layer' && c.isConnected) c.remove();
   });
 
   const { hiddenIds, parentIds, selSet, hitSet, activeHitId, numberPrefix } = makeRenderCtx();
@@ -403,6 +414,10 @@ export function render() {
   }
 
   postRenderHook();
+
+  } finally {
+    rendering = false;
+  }
 }
 
 /**
