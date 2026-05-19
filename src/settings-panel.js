@@ -257,6 +257,17 @@ function buildGeneralTab() {
       </button>
     </section>
 
+    <section class="sp-section">
+      <div class="sp-section-title">🔄 앱 강제 업데이트</div>
+      <div style="font-size:11px; color:#8b949e; margin-bottom:8px; line-height:1.55;">
+        브라우저 캐시(Cache Storage)와 Service Worker를 비우고 페이지를 다시 불러옵니다.<br>
+        새 배포가 반영되지 않을 때 사용하세요. <b>마인드맵 데이터(localStorage)는 유지됩니다.</b>
+      </div>
+      <button type="button" class="btn btn-ghost" id="stp-force-update" style="width:100%;">
+        🔄 앱 강제 업데이트
+      </button>
+    </section>
+
   `;
 
   // ── 이벤트 바인딩 ──
@@ -361,6 +372,35 @@ function buildGeneralTab() {
 
     applyStyle();   // 폰트 즉시 반영
     render();
+  });
+
+  // 앱 강제 업데이트 — 캐시·SW 제거 후 reload (localStorage는 유지)
+  $('stp-force-update')?.addEventListener('click', async (e) => {
+    if (!confirm(
+      '브라우저 캐시와 Service Worker를 비우고 페이지를 새로고침합니다.\n' +
+      '마인드맵 데이터(localStorage)는 유지됩니다.\n\n계속할까요?'
+    )) return;
+    const btn = e.currentTarget;
+    btn.disabled = true;
+    btn.textContent = '⏳ 캐시 비우는 중…';
+    try {
+      // 1) Cache Storage 모두 삭제 (SW가 만든 캐시)
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((k) => caches.delete(k)));
+      }
+      // 2) Service Worker 등록 해제
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map((r) => r.unregister()));
+      }
+    } catch (err) {
+      console.warn('강제 업데이트 — 캐시 정리 중 오류:', err);
+    }
+    // 3) reload — cache-busting 쿼리 파라미터 추가로 HTML도 새로 가져오게
+    const url = new URL(location.href);
+    url.searchParams.set('_v', Date.now().toString(36));
+    location.replace(url.toString());
   });
 
   // 관계선 기본값 — 각 필드 즉시 반영

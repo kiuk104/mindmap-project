@@ -110,6 +110,7 @@ export function openLinkModal(nodeId) {
       <label class="fl">URL <span style="color:#f85149">*</span></label>
       <input class="fi" id="lk-url" type="url" value="${escapeHTML(initial.url)}" />
     </div>
+    <div class="fg" id="lk-type-hint" style="display:none; font-size:11px; color:var(--text-dim); line-height:1.55; background:var(--bg-elev); border:1px solid var(--border-soft); border-radius:6px; padding:8px 10px; margin-top:-6px;"></div>
     <div class="fg">
       <label class="fl">버튼 라벨 (선택)</label>
       <input class="fi" id="lk-label" type="text" value="${escapeHTML(initial.label || '')}"
@@ -202,7 +203,29 @@ function updateLinkPlaceholder() {
     image:   'https://example.com/photo.jpg',
     url:     'https://example.com',
   };
-  $('lk-url').placeholder = placeholders[$('lk-type').value];
+  // type별 도움말 — gphotos는 미리보기 한계 + 우회 워크플로 안내
+  const hints = {
+    gphotos:
+      '⚠️ <b>Google Photos 공유 링크는 호버 미리보기·노드 임베드가 모두 불가</b>합니다 ' +
+      '(공유 URL이 HTML 페이지라 이미지로 로드할 수 없고, CORS로 클라이언트에서 추출도 불가).<br>' +
+      '👉 우회: Google Photos에서 사진을 열고 <b>우클릭 → "이미지 주소 복사"</b>로 받은 ' +
+      '<code>lh3.googleusercontent.com/...</code> URL을 <b>🖼️ 이미지 URL</b> 타입에 넣거나, ' +
+      '노드 우클릭 → 🖼️ 이미지 임베드에 붙여넣으세요. 동영상도 같은 방식으로 가능합니다.',
+    image:   '💡 호버 시 작은 미리보기가 뜹니다. 같은 URL을 노드 우클릭 → 🖼️ 이미지 임베드로 본문에 항상 표시도 가능.',
+    youtube: '💡 호버 시 영상 thumbnail 미리보기가 뜹니다.',
+    gdocs:   '💡 클릭하면 iframe 미리보기 모달이 열립니다.',
+  };
+  const type = $('lk-type').value;
+  $('lk-url').placeholder = placeholders[type] ?? '';
+  const hintEl = $('lk-type-hint');
+  if (hintEl) {
+    if (hints[type]) {
+      hintEl.innerHTML = hints[type];
+      hintEl.style.display = '';
+    } else {
+      hintEl.style.display = 'none';
+    }
+  }
 }
 
 /** 저장 모달 열기 (다른 이름으로 저장) */
