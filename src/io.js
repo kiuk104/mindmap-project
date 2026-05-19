@@ -28,12 +28,29 @@ function loadLastSave() {
 loadLastSave();
 
 export function getLastSave() { return lastSave; }
+const lastSaveListeners = new Set();
+/** lastSave({kind, name, driveFileId}) 변경 구독 — 즉시 한 번 콜백 호출 */
+export function onLastSaveChange(fn) {
+  lastSaveListeners.add(fn);
+  fn(lastSave);
+  return () => lastSaveListeners.delete(fn);
+}
+function notifyLastSave() {
+  lastSaveListeners.forEach((f) => f(lastSave));
+}
 export function setLastSave(info) {
-  lastSave = info && info.kind && info.name ? { kind: info.kind, name: info.name } : null;
+  if (info && info.kind && info.name) {
+    lastSave = { kind: info.kind, name: info.name };
+    // Drive 파일이면 fileId도 함께 기억 (리네임/직접 갱신용)
+    if (info.driveFileId) lastSave.driveFileId = info.driveFileId;
+  } else {
+    lastSave = null;
+  }
   try {
     if (lastSave) localStorage.setItem(LAST_SAVE_KEY, JSON.stringify(lastSave));
     else          localStorage.removeItem(LAST_SAVE_KEY);
   } catch {}
+  notifyLastSave();
 }
 export function clearLastSave() { setLastSave(null); }
 

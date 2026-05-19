@@ -19,12 +19,12 @@ import { addCallout, deleteCallout, selectCallout, removeCalloutsByParents,
          onCalloutPointerDown, onCalloutPointerMove, onCalloutPointerUp,
          isCalloutDragging } from './callouts.js';
 import { deleteZone, renameZone, selectZone } from './zones.js';
-import { openLinkModal, openColorModal, openSaveModal, openDriveLoadModal, openDriveManageModal, openGDocsPreviewModal, openNoteModal, openShareModal, tryLoadFromHash, closeModal, handleModalOK, applyStyle } from './modal.js';
+import { openLinkModal, openColorModal, openSaveModal, openDriveLoadModal, openDriveManageModal, openGDocsPreviewModal, openNoteModal, openShareModal, openRenameModal, tryLoadFromHash, closeModal, handleModalOK, applyStyle } from './modal.js';
 import { initSettingsPanel, toggleSettingsPanel, openSettingsPanel, closeSettingsPanel, isSettingsPanelOpen, injectCustomFonts } from './settings-panel.js';
 import { registerShortcuts, dispatchKey } from './shortcuts.js';
 import * as drive                            from './drive.js';
 import { showContextMenu, hideContextMenu, hideAllMenus, showBgMenu, initContextMenu, showZoneMenu, showCalloutMenu } from './menu.js';
-import { doImport, schedulePersist, restoreLocal, onSaveStateChange, quickSave, getLastSave, setLastSave, serialize, defaultFilename } from './io.js';
+import { doImport, schedulePersist, restoreLocal, onSaveStateChange, onLastSaveChange, quickSave, getLastSave, setLastSave, serialize, defaultFilename } from './io.js';
 import { toastSuccess, toastError } from './toast.js';
 import { runSearch, gotoHit, clearSearch }    from './search.js';
 import { initStylePanel, togglePanel, closePanel, isPanelOpen, setOnStyleApplied, syncSelectedNodeSection } from './style-panel.js';
@@ -122,6 +122,35 @@ onSaveStateChange((ts) => {
   const mm = String(t.getMinutes()).padStart(2, '0');
   const ss = String(t.getSeconds()).padStart(2, '0');
   el.textContent = `💾 자동저장 ${hh}:${mm}:${ss}`;
+});
+
+// ── 현재 맵 이름 표시 (Drive 저장이면 ☁️) ──
+onLastSaveChange((ls) => {
+  const nameEl = document.querySelector('#btn-map-title .mt-name');
+  const iconEl = document.getElementById('mt-icon');
+  if (nameEl) nameEl.textContent = ls?.name || '제목 없음';
+  if (iconEl) iconEl.hidden = ls?.kind !== 'drive';
+});
+
+// ── 파일명 클릭 → 리네임 모달 ──
+$('btn-map-title')?.addEventListener('click', () => {
+  const cur = getLastSave();
+  const currentName = cur?.name || '';
+  openRenameModal(currentName, (newName) => {
+    const prev = getLastSave();
+    // 기존 저장이 없었으면 기본 download 종류로 기억
+    const kind = prev?.kind || 'download';
+    const driveFileId = prev?.driveFileId;
+    setLastSave({ kind, name: newName, driveFileId });
+    // Drive 파일이면 Drive에서도 파일명 변경
+    if (kind === 'drive' && driveFileId) {
+      drive.renameFile(driveFileId, newName + '.json')
+        .then(() => toastSuccess(`✏️ "${newName}"으로 이름 변경됨`))
+        .catch((e) => toastError('Drive 이름 변경 실패: ' + e.message));
+    } else {
+      toastSuccess(`✏️ "${newName}"으로 이름 변경됨 — 다음 저장 시 적용`);
+    }
+  });
 });
 
 // ── 키보드 트리 네비게이션 ──
@@ -540,7 +569,7 @@ function initDriveUnifiedButton() {
       const name = defaultFilename();
       drive.saveToDrive(name, serialize())
         .then((file) => {
-          setLastSave({ kind: 'drive', name: file.name.replace(/\.json$/, '') });
+          setLastSave({ kind: 'drive', name: file.name.replace(/\.json$/, ''), driveFileId: file.id });
           toastSuccess(`☁️ Drive에 "${file.name}" 저장됨`);
         })
         .catch((e) => toastError('Drive 저장 실패: ' + e.message));

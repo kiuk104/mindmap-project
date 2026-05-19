@@ -106,6 +106,19 @@ body {
   width: 20px; height: 20px;
   display: inline-block;
 }
+/* 현재 맵 이름 표시 — 클릭하면 리네임 모달 */
+.map-title-btn {
+  background: transparent; border: 1px solid transparent;
+  cursor: pointer; padding: 4px 10px; border-radius: 6px;
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 13px; font-weight: 500; color: var(--text);
+  font-family: inherit;
+  max-width: 260px; white-space: nowrap; overflow: hidden;
+  transition: background 0.15s, border-color 0.15s;
+}
+.map-title-btn:hover { background: var(--bg-hover); border-color: var(--border); }
+.map-title-btn .mt-name { overflow: hidden; text-overflow: ellipsis; }
+.map-title-btn .mt-icon { font-size: 12px; opacity: 0.8; flex-shrink: 0; }
 /* settings.hideAppTitle === true일 때 상단 로고 및 직후 sep까지 숨김 */
 body.hide-app-title .toolbar-title,
 body.hide-app-title .toolbar-title + .sep { display: none; }

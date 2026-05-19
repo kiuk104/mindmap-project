@@ -321,7 +321,7 @@ export async function openDriveLoadModal() {
             // 이 Drive 파일을 현재 저장 대상으로 기억 → 다음 Ctrl+S 시 같은 파일 덮어쓰기
             const baseName = row.querySelector('.drive-name')?.textContent
               .replace(/^📄\s*/, '').replace(/\.json$/i, '').trim();
-            if (baseName) setLastSave({ kind: 'drive', name: baseName });
+            if (baseName) setLastSave({ kind: 'drive', name: baseName, driveFileId: fid });
             closeModal();
           } else {
             alert('올바른 마인드맵 JSON이 아닙니다.');
@@ -771,6 +771,27 @@ export async function openFontBrowserModal(addFn, isAddedFn) {
 }
 
 /** 노트 편집 모달 — 노드에 연결된 긴 텍스트 */
+// 맵 이름 변경 모달 — onRename 콜백을 module-level에 저장 (handleModalOK에서 사용)
+let _renameCallback = null;
+let _renameCurrent = '';
+export function openRenameModal(currentName, onRename) {
+  state.modalKind = 'rename';
+  _renameCallback = onRename;
+  _renameCurrent  = currentName ?? '';
+  $('modal-title').textContent = '✏️ 맵 이름 변경';
+  $('modal-body').innerHTML = `
+    <div class="fg">
+      <input class="fi" id="rn-name" type="text" value="${escapeHTML(_renameCurrent)}"
+        placeholder="맵 이름을 입력하세요" />
+    </div>
+  `;
+  showModal();
+  setTimeout(() => {
+    const el = $('rn-name');
+    if (el) { el.focus(); el.select(); }
+  }, 30);
+}
+
 export function openNoteModal(nodeId) {
   if (!nodeId) { alert('노드를 먼저 선택하세요.'); return; }
   state.ctxTargetId = nodeId;
@@ -1178,6 +1199,14 @@ export function handleModalOK() {
     return;
   }
 
+  if (state.modalKind === 'rename') {
+    const next = $('rn-name')?.value.trim();
+    closeModal();
+    if (next && next !== _renameCurrent) _renameCallback?.(next);
+    _renameCallback = null;
+    return;
+  }
+
   if (state.modalKind === 'note') {
     const text = $('note-text').value;
     const node = state.nodes[state.ctxTargetId];
@@ -1290,7 +1319,7 @@ export function handleModalOK() {
       drive.saveToDrive(name, serialize())
         .then((file) => {
           toastSuccess(`☁️ Drive에 "${file.name}" 저장 완료`);
-          setLastSave({ kind: 'drive', name });
+          setLastSave({ kind: 'drive', name, driveFileId: file.id });
           closeModal();
         })
         .catch((e) => toastError('Drive 저장 실패: ' + e.message))
