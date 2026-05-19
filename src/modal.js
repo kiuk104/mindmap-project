@@ -1215,23 +1215,49 @@ export function openImageModal(nodeId) {
   $('img-file').addEventListener('change', (e) => {
     const f = e.target.files?.[0];
     if (!f) return;
-    if (!f.type.startsWith('image/') && !f.type.startsWith('video/')) {
-      alert('이미지 또는 비디오 파일만 선택할 수 있습니다.');
+
+    // iOS에서 HEIC/HEIF 등은 f.type이 비거나 'image/heic'로 반환된다.
+    // MIME 우선, 비었거나 알 수 없으면 파일명 확장자로 폴백.
+    const ext = (f.name.match(/\.([a-z0-9]+)$/i)?.[1] ?? '').toLowerCase();
+    const imageExts = ['jpg','jpeg','png','gif','webp','heic','heif','bmp','svg','avif'];
+    const videoExts = ['mp4','webm','mov','m4v','avi','mkv','ogv'];
+    const isVideoMime = f.type.startsWith('video/') || videoExts.includes(ext);
+    const isImageMime = f.type.startsWith('image/') || imageExts.includes(ext);
+    if (!isImageMime && !isVideoMime) {
+      toastError(`이미지/비디오 파일이 아닙니다 (${f.type || '확장자: ' + (ext || '없음')})`);
+      e.target.value = ''; // 동일 파일 재선택 가능하게 reset
       return;
     }
+
+    // 진행 피드백 — 큰 사진은 수 초 걸릴 수 있어 사용자에게 표시
+    const sizeMB = (f.size / 1024 / 1024).toFixed(1);
+    const box = $('img-preview');
+    if (box) box.innerHTML = `<span class="img-preview-empty">⏳ 읽는 중… (${sizeMB}MB)</span>`;
+
     const reader = new FileReader();
     reader.onload = () => {
       const dataUrl = reader.result;
       imageDraft.url = dataUrl;
-      // 파일 MIME에 맞게 type 자동 설정
-      imageDraft.type = f.type.startsWith('video/') ? 'video' : 'image';
+      imageDraft.type = isVideoMime ? 'video' : 'image';
       const typeSel = $('img-type');
       if (typeSel) typeSel.value = imageDraft.type;
       updateImagePreview(dataUrl, imageDraft.type);
       const urlInput = $('img-url');
       if (urlInput) urlInput.value = '';
+      // 동일 파일을 다시 선택할 수 있도록 input 값 비움 (성공 후에만)
+      const fi = $('img-file');
+      if (fi) fi.value = '';
+      // 큰 파일 경고 — localStorage 5MB 한도 고려
+      if (f.size > 2 * 1024 * 1024) {
+        toastSuccess(`📎 ${sizeMB}MB 파일 첨부됨 — 자동 저장 용량 한도(약 5MB)에 주의하세요.`);
+      }
     };
-    reader.onerror = () => alert('파일 읽기에 실패했습니다.');
+    reader.onerror = () => {
+      toastError('파일 읽기 실패 — 다른 파일을 시도해주세요');
+      if (box) box.innerHTML = `<span class="img-preview-empty">아직 미디어가 없습니다</span>`;
+      const fi = $('img-file');
+      if (fi) fi.value = '';
+    };
     reader.readAsDataURL(f);
   });
 
