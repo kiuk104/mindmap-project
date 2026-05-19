@@ -32,7 +32,8 @@ import { initIconPanel, toggleIconPanel, openIconPanel, closeIconPanel, isIconPa
 import { undo, redo, pushHistory, beginPending, commitPending, cancelPending, onHistoryChange, setApplyHook, resetHistory } from './history.js';
 import { loadSettings, getSettings, updateSettings, onSettingsChange } from './settings.js';
 import { copyClipboard, cutClipboard, pasteClipboard, hasClipboard } from './clipboard.js';
-import { isFirstVisit, markVisited, showWelcome, initHintBar } from './onboarding.js';
+import { isFirstVisit, markVisited, initHintBar } from './onboarding.js';
+// showWelcome은 첫 방문 시에만 동적 import (오버레이 HTML/이벤트 코드 ~80줄 절약)
 import { initMinimap, drawMinimap } from './minimap.js';
 import { initCommandPalette, openPalette, registerCommands } from './command-palette.js';
 import { exportPngFile, exportSvgFile } from './export.js';
@@ -257,12 +258,14 @@ function init() {
   // 윈도우 리사이즈 시에도 뷰포트 박스 갱신
   window.addEventListener('resize', drawMinimap);
 
-  // 첫 방문 웰컴
+  // 첫 방문 웰컴 — 첫 방문일 때만 welcome 모듈 동적 import (별도 청크로 분리됨)
   if (isFirstVisit()) {
-    showWelcome(
-      () => { markVisited(); },  // 시작하기
-      null,                       // 템플릿 (Phase 2-B에서 구현)
-    );
+    import('./welcome.js').then(({ showWelcome }) => {
+      showWelcome(
+        () => { markVisited(); },  // 시작하기
+        null,                       // 템플릿 (Phase 2-B에서 구현)
+      );
+    });
   }
 }
 
@@ -671,30 +674,36 @@ registerCommands([
   { icon: '💾', label: '저장 (모달)', keywords: ['저장','save','파일'], shortcut: 'Ctrl+S', action: () => openSaveModal() },
   { icon: '🔗', label: '공유', keywords: ['공유','share','링크','url'], action: () => openShareModal() },
   { icon: '📂', label: '파일 불러오기', keywords: ['열기','불러오기','open','load'], action: () => $('file-in').click() },
-  { icon: '☁️', label: 'Drive에 저장', keywords: ['드라이브','drive','클라우드'], action: () => {
-    if (drive.isSignedIn()) {
+  { icon: '☁️', label: 'Drive에 저장', keywords: ['드라이브','drive','클라우드'],
+    disabled: () => !drive.isSignedIn(),
+    action: () => {
       drive.saveToDrive(defaultFilename(), serialize())
         .then((f) => toastSuccess(`☁️ "${f.name}" 저장됨`))
         .catch((e) => toastError('Drive 저장 실패: ' + e.message));
-    } else {
-      toastError('먼저 Drive에 연결하세요');
     }
-  }},
+  },
   { icon: '🖼️', label: 'PNG로 내보내기', keywords: ['이미지','내보내기','png','export'], action: () => exportPngFile(defaultFilename()) },
   { icon: '📐', label: 'SVG로 내보내기', keywords: ['벡터','svg','export'], action: () => exportSvgFile(defaultFilename()) },
   // 편집
   { icon: '↶', label: '실행 취소', keywords: ['undo','취소','되돌리기'], shortcut: 'Ctrl+Z', action: () => undo() },
   { icon: '↷', label: '다시 실행', keywords: ['redo','다시'], shortcut: 'Ctrl+Y', action: () => redo() },
-  { icon: '➕', label: '노드 추가 (자식)', keywords: ['추가','add','노드','탭'], shortcut: 'Tab', action: () => {
-    if (state.selectedId) addChild(state.selectedId);
-  }},
+  { icon: '➕', label: '노드 추가 (자식)', keywords: ['추가','add','노드','탭'], shortcut: 'Tab',
+    disabled: () => !state.selectedId,
+    action: () => { if (state.selectedId) addChild(state.selectedId); }
+  },
   { icon: '🗑️', label: '선택 노드 삭제', keywords: ['삭제','delete','del'], shortcut: 'Del',
-    disabled: !state.selectedId,
+    disabled: () => !state.selectedId && !(state.selectedIds?.length),
     action: () => { if (state.selectedId) deleteNode(state.selectedId); }
   },
-  { icon: '📋', label: '노드 복사', keywords: ['복사','copy','클립보드'], shortcut: 'Ctrl+C', action: () => copyClipboard() },
-  { icon: '✂️', label: '노드 잘라내기', keywords: ['잘라내기','cut'], shortcut: 'Ctrl+X', action: () => cutClipboard() },
-  { icon: '📌', label: '노드 붙여넣기', keywords: ['붙여넣기','paste'], shortcut: 'Ctrl+V', action: () => pasteClipboard() },
+  { icon: '📋', label: '노드 복사', keywords: ['복사','copy','클립보드'], shortcut: 'Ctrl+C',
+    disabled: () => !(state.selectedIds?.length),
+    action: () => copyClipboard() },
+  { icon: '✂️', label: '노드 잘라내기', keywords: ['잘라내기','cut'], shortcut: 'Ctrl+X',
+    disabled: () => !(state.selectedIds?.length),
+    action: () => cutClipboard() },
+  { icon: '📌', label: '노드 붙여넣기', keywords: ['붙여넣기','paste'], shortcut: 'Ctrl+V',
+    disabled: () => !hasClipboard(),
+    action: () => pasteClipboard() },
   // 보기
   { icon: '⌖', label: '화면 맞춤 (리셋)', keywords: ['맞춤','fit','화면','reset'], action: () => resetView() },
   { icon: '🔍', label: '노드 검색', keywords: ['검색','search','find'], shortcut: 'Ctrl+F', action: () => { $('search-input')?.focus(); } },
@@ -703,8 +712,12 @@ registerCommands([
   { icon: '⚙️', label: '설정', keywords: ['설정','settings','옵션'], action: () => toggleSettingsPanel() },
   { icon: '🌓', label: '다크/라이트 테마 전환', keywords: ['테마','다크','라이트','dark','light'], action: () => $('btn-theme')?.click() },
   // Drive
-  { icon: '☁️', label: 'Drive 연결/로그인', keywords: ['드라이브','로그인','google','oauth'], action: () => drive.signIn() },
-  { icon: '🚪', label: 'Drive 연결 해제', keywords: ['로그아웃','연결해제','signout'], action: () => { drive.signOut(); toastSuccess('Drive 연결 해제됨'); } },
+  { icon: '☁️', label: 'Drive 연결/로그인', keywords: ['드라이브','로그인','google','oauth'],
+    disabled: () => drive.isSignedIn() || !drive.isAvailable(),
+    action: () => drive.signIn() },
+  { icon: '🚪', label: 'Drive 연결 해제', keywords: ['로그아웃','연결해제','signout'],
+    disabled: () => !drive.isSignedIn(),
+    action: () => { drive.signOut(); toastSuccess('Drive 연결 해제됨'); } },
 ]);
 
 // ── 시작 ──

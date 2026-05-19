@@ -72,7 +72,19 @@ function getNodeBounds() {
   return { minX: minX - PAD, minY: minY - PAD, maxX: maxX + PAD, maxY: maxY + PAD };
 }
 
+// RAF coalescing — 동일 프레임 내 여러 번 호출되어도 1회만 그림
+let rafQueued = false;
 export function drawMinimap() {
+  if (!canvas || !ctx || !visible) return;
+  if (rafQueued) return;
+  rafQueued = true;
+  requestAnimationFrame(() => {
+    rafQueued = false;
+    drawMinimapNow();
+  });
+}
+
+function drawMinimapNow() {
   if (!canvas || !ctx || !visible) return;
 
   isDark = document.documentElement.getAttribute('data-theme') !== 'light';

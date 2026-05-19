@@ -68,12 +68,17 @@ function fuzzyScore(query, target) {
   return i === q.length ? score / t.length : 0;
 }
 
+/** disabled가 함수면 호출, 아니면 truthy 그대로 평가 — 매 렌더 시점에 동적으로 갱신 */
+function isDisabled(cmd) {
+  return typeof cmd.disabled === 'function' ? !!cmd.disabled() : !!cmd.disabled;
+}
+
 function renderList(query) {
   const scored = commands
     .map((cmd) => {
       const labelScore = fuzzyScore(query, cmd.label);
       const keyScore   = Math.max(...(cmd.keywords ?? []).map((k) => fuzzyScore(query, k)));
-      return { cmd, score: Math.max(labelScore, keyScore) };
+      return { cmd, score: Math.max(labelScore, keyScore), disabled: isDisabled(cmd) };
     })
     .filter(({ score }) => score > 0)
     .sort((a, b) => b.score - a.score)
@@ -84,8 +89,11 @@ function renderList(query) {
     return;
   }
 
-  list.innerHTML = scored.map(({ cmd }, i) => `
-    <div class="cmd-item ${i === 0 ? 'active' : ''} ${cmd.disabled ? 'cmd-disabled' : ''}"
+  // 첫 번째 active는 비활성이 아닌 항목 중 첫 번째로
+  const firstActiveIdx = scored.findIndex((s) => !s.disabled);
+
+  list.innerHTML = scored.map(({ cmd, disabled }, i) => `
+    <div class="cmd-item ${i === firstActiveIdx ? 'active' : ''} ${disabled ? 'cmd-disabled' : ''}"
          data-idx="${i}">
       <span class="cmd-icon">${cmd.icon ?? '▸'}</span>
       <span class="cmd-label">${cmd.label}</span>
@@ -93,7 +101,8 @@ function renderList(query) {
       ${cmd.hint ? `<span class="cmd-hint">${cmd.hint}</span>` : ''}
     </div>`).join('');
 
-  list.querySelectorAll('.cmd-item:not(.cmd-disabled)').forEach((el, i) => {
+  list.querySelectorAll('.cmd-item:not(.cmd-disabled)').forEach((el) => {
+    const i = Number(el.dataset.idx);
     el.addEventListener('mouseenter', () => {
       list.querySelectorAll('.cmd-item').forEach((x) => x.classList.remove('active'));
       el.classList.add('active');

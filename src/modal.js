@@ -16,7 +16,7 @@ import { pushHistory } from './history.js';
 import { getSettings, updateSettings } from './settings.js';
 import { enhanceDashPicker } from './dash-picker.js';
 import { toastSuccess, toastError } from './toast.js';
-import { POPULAR_FONTS } from './popular-fonts.js';
+// popular-fonts는 폰트 찾기 모달이 열릴 때만 동적 import (초기 번들에서 제외)
 
 /** 현재 다중 선택을 포함한 대상 노드 ID 목록을 반환 (없으면 단일 ctx 대상) */
 function targetNodeIds(fallback) {
@@ -649,9 +649,14 @@ export function tryLoadFromHash() {
  * 폰트 찾기 모달 — Google Fonts 인기 목록에서 검색·클릭으로 settings.customFonts에 추가.
  * 모달 열릴 때 모든 후보 폰트의 <link>를 lazy-inject해서 각 행이 실제 폰트로 미리보임.
  */
-export function openFontBrowserModal(addFn, isAddedFn) {
+export async function openFontBrowserModal(addFn, isAddedFn) {
   state.modalKind = 'font-browser';
   $('modal-title').textContent = '✨ 폰트 찾기 (Google Fonts)';
+  $('modal-body').innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-dim);">폰트 목록 불러오는 중…</div>';
+  showModal();
+
+  // 동적 import — 첫 페이지 로드 시 99줄짜리 폰트 데이터를 받지 않음
+  const { POPULAR_FONTS } = await import('./popular-fonts.js');
 
   // 카테고리별 그룹
   const groups = {};
@@ -735,7 +740,7 @@ export function openFontBrowserModal(addFn, isAddedFn) {
   if (cancel) cancel.style.display = 'none';
 
   setTimeout(() => { $('fb-search')?.focus(); }, 30);
-  showModal();
+  // showModal()은 함수 시작에서 이미 호출됨 (동적 import 대기 동안 로딩 표시)
 }
 
 /** 노트 편집 모달 — 노드에 연결된 긴 텍스트 */
