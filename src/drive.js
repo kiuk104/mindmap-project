@@ -18,6 +18,7 @@
  */
 
 import { GOOGLE_CLIENT_ID } from './config.js';
+import { toastError } from './toast.js';
 
 const SCOPES = 'https://www.googleapis.com/auth/drive.file';
 const MIME   = 'application/json';
@@ -284,7 +285,7 @@ export function getEmail()      { return currentEmail; }
 /** 사용자에게 OAuth 동의 팝업 표시 (이미 로그인된 경우 silent refresh) */
 export function signIn() {
   if (!tokenClient) {
-    alert('Drive 연동이 설정되지 않았습니다.\nDRIVE_SETUP.md를 참고해 OAuth 클라이언트 ID를 설정해주세요.');
+    toastError('Drive 연동이 설정되지 않았습니다 (DRIVE_SETUP.md 참고).');
     return;
   }
   tokenClient.requestAccessToken({ prompt: accessToken ? '' : 'consent' });

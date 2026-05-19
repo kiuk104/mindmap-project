@@ -504,6 +504,22 @@ onSettingsChange((s) => {
   document.body.classList.toggle('hide-app-title', !!s.hideAppTitle);
 });
 
+/** signIn 호출 직후 사용자에게 안내 — 모바일에서 팝업이 안 보이는 케이스 가이드 */
+function notifySignInOpened() {
+  const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+  if (isMobile) {
+    toastSuccess(
+      '🔑 Google 로그인 창을 여는 중…\n' +
+      '⚠️ 모바일에서는 팝업이 자주 차단됩니다. 안 뜨면:\n' +
+      '① 브라우저 주소창의 팝업 차단 아이콘을 눌러 허용\n' +
+      '② 다시 "Google 계정으로 연결" 클릭\n' +
+      '계속 안 되면 데스크탑에서 연결 후 같은 계정으로 모바일에서 자동 복구됩니다.'
+    );
+  } else {
+    toastSuccess('🔑 Google 로그인 창을 여는 중… 팝업 차단이 있다면 허용해주세요.');
+  }
+}
+
 // ── Drive 통합 버튼 (상태에 따라 라벨·메뉴가 동적으로 변함) ──
 function initDriveUnifiedButton() {
   const btn = $('btn-drive-unified');
@@ -553,6 +569,7 @@ function initDriveUnifiedButton() {
       dd.querySelector('#dd-signin')?.addEventListener('click', () => {
         drive.signIn();
         closeDd();
+        notifySignInOpened();
       });
       return;
     }
@@ -832,7 +849,7 @@ registerCommands([
   // Drive
   { icon: '☁️', label: 'Drive 연결/로그인', keywords: ['드라이브','로그인','google','oauth'],
     disabled: () => drive.isSignedIn() || !drive.isAvailable(),
-    action: () => drive.signIn() },
+    action: () => { drive.signIn(); notifySignInOpened(); } },
   { icon: '🚪', label: 'Drive 연결 해제', keywords: ['로그아웃','연결해제','signout'],
     disabled: () => !drive.isSignedIn(),
     action: () => { drive.signOut(); toastSuccess('Drive 연결 해제됨'); } },
