@@ -359,6 +359,21 @@ $('btn-export').addEventListener('click', quickSaveOrAsk);
 $('btn-share').addEventListener('click', openShareModal);
 $('file-in').addEventListener('change',   doImport);
 
+// 모바일 오버플로 메뉴(⋯)에서 트리거되면 원본 버튼이 display:none이라
+// getBoundingClientRect()가 모두 0을 반환한다. 이 경우 ⋯ 버튼 기준으로 위치를 잡는다.
+function anchorDropdown(btn) {
+  const r = btn.getBoundingClientRect();
+  if (r.width > 0 || r.height > 0) {
+    return { top: r.bottom + 4, left: r.left };
+  }
+  const more = document.getElementById('btn-tb-more');
+  if (more) {
+    const mr = more.getBoundingClientRect();
+    return { top: mr.bottom + 4, left: Math.max(8, mr.right - 240) };
+  }
+  return { top: 60, left: 8 };
+}
+
 // ── 📂 불러오기 드롭다운 (로컬 파일 / Drive) ──
 function initImportDropdown() {
   const btn = $('btn-import');
@@ -372,9 +387,9 @@ function initImportDropdown() {
   function closeDd() { dd.classList.remove('open'); }
   btn.addEventListener('click', (e) => {
     e.stopPropagation();
-    const rect = btn.getBoundingClientRect();
-    dd.style.top  = (rect.bottom + 4) + 'px';
-    dd.style.left = rect.left + 'px';
+    const { top, left } = anchorDropdown(btn);
+    dd.style.top  = top + 'px';
+    dd.style.left = left + 'px';
     dd.classList.toggle('open');
     renderImportDd();
   });
@@ -565,7 +580,11 @@ function initToolbarOverflow() {
       return `<div class="dd-item" data-target="${id}">${label}</div>`;
     }).join('');
     dd.querySelectorAll('.dd-item').forEach((el) => {
-      el.addEventListener('click', () => {
+      el.addEventListener('click', (e) => {
+        // 원본 버튼이 또 다른 드롭다운(예: Drive)을 여는 경우, 원본 클릭이
+        // document로 버블되면 그 드롭다운의 document-click-close 핸들러가
+        // 방금 연 메뉴를 즉시 닫아버린다. 버블 차단 필수.
+        e.stopPropagation();
         closeDd();
         // 원본 버튼의 click 핸들러를 그대로 trigger (DRY)
         document.getElementById(el.dataset.target)?.click();
@@ -609,9 +628,9 @@ function initDriveUnifiedButton() {
   // 드롭다운 열기/닫기 토글
   btn.addEventListener('click', (e) => {
     e.stopPropagation();
-    const rect = btn.getBoundingClientRect();
-    dd.style.top  = (rect.bottom + 4) + 'px';
-    dd.style.left = rect.left + 'px';
+    const { top, left } = anchorDropdown(btn);
+    dd.style.top  = top + 'px';
+    dd.style.left = left + 'px';
     dd.classList.toggle('open');
     renderDdContent();
   });
