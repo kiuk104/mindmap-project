@@ -545,6 +545,13 @@ body.relation-drafting .node { cursor: crosshair !important; }
   background: transparent; border: none; outline: none;
   color: inherit; font-size: inherit; font-weight: inherit;
   font-family: inherit; text-align: center; width: 100%; resize: none;
+  /* 부모 .node의 user-select:none / touch-callout:none이 상속되면 iOS Safari에서
+     이미 포커스된 textarea를 다시 탭해도 커서가 배치되지 않고 blur 처리돼
+     편집 모드가 종료된다. 명시적으로 텍스트 선택·터치 동작을 허용. */
+  user-select: text;
+  -webkit-user-select: text;
+  -webkit-touch-callout: default;
+  touch-action: auto;
 }
 
 /* ── 색상 선택 dots ── */
