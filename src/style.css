@@ -228,6 +228,25 @@ body.no-node-shadow .callout:hover {
     var(--shadow-node) !important;
 }
 
+/* 드래그 중 부모 재연결 잠재 대상 — 다른 노드를 이쪽으로 끌어왔을 때 표시 */
+.node.drop-target {
+  outline: 3px solid var(--accent-blue);
+  outline-offset: 4px;
+  box-shadow:
+    0 0 0 var(--stroke-w) var(--stroke-c),
+    0 0 18px 4px rgba(31, 111, 235, 0.5),
+    var(--shadow-node);
+}
+/* 드래그 중인 노드와 잠재 새 부모 사이의 미리보기 라인 */
+.reparent-preview {
+  stroke: var(--accent-blue);
+  stroke-width: 4;
+  stroke-linecap: round;
+  fill: none;
+  pointer-events: none;
+  opacity: 0.85;
+}
+
 /* ── 검색 일치 노드 ── */
 .node.search-hit {
   box-shadow:

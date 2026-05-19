@@ -73,6 +73,81 @@ const DBL_POINTER_MS = 400;
 let lastNodePointerDownAt = 0;
 let lastNodePointerDownId = null;
 
+// 드래그 중 부모 재연결을 위한 drop target 추적
+let dropTargetId = null;
+
+/** nodeId가 ancestorId의 후손(자기 자신 포함)인가 — 부모 재연결 시 순환 방지 */
+function isDescendantOf(ancestorId, nodeId) {
+  let cur = state.nodes[nodeId];
+  while (cur) {
+    if (cur.id === ancestorId) return true;
+    if (!cur.parentId) return false;
+    cur = state.nodes[cur.parentId];
+  }
+  return false;
+}
+
+/** 마우스 좌표 아래 노드를 찾아 drop target으로 갱신 (단일 노드 드래그에만 적용) */
+function updateDropTarget(clientX, clientY) {
+  if (!dragging || !dragId || multiDragOffsets) {
+    clearDropTarget();
+    return;
+  }
+  // 드래그 중인 노드를 일시적으로 pointer-events:none 처리해 그 아래 element를 찾음
+  const dragEl = $('nd-' + dragId);
+  const savedPE = dragEl ? dragEl.style.pointerEvents : '';
+  if (dragEl) dragEl.style.pointerEvents = 'none';
+  const hit = document.elementFromPoint(clientX, clientY);
+  if (dragEl) dragEl.style.pointerEvents = savedPE;
+
+  let newDropId = null;
+  const nodeEl = hit?.closest('.node');
+  if (nodeEl && nodeEl.id.startsWith('nd-')) {
+    const candidate = nodeEl.id.slice(3);
+    const cur = state.nodes[dragId];
+    // 자기 자신·후손 금지(순환 방지), 이미 그 부모면 의미 없음
+    if (candidate !== dragId && !isDescendantOf(dragId, candidate) && cur?.parentId !== candidate) {
+      newDropId = candidate;
+    }
+  }
+  if (newDropId !== dropTargetId) {
+    if (dropTargetId) $('nd-' + dropTargetId)?.classList.remove('drop-target');
+    if (newDropId)    $('nd-' + newDropId)?.classList.add('drop-target');
+    dropTargetId = newDropId;
+  }
+  // drop target과 드래그 노드 사이의 파란 프리뷰 라인 (매 move마다 SVG가 갱신되므로 재삽입)
+  updateDropPreview();
+}
+
+/** drop target → 드래그 노드를 잇는 파란 미리보기 line을 SVG에 그림 */
+function updateDropPreview() {
+  const svg = $('svg-layer');
+  if (!svg) return;
+  const old = svg.querySelector('.reparent-preview');
+  if (old) old.remove();
+  if (!dropTargetId || !dragId) return;
+  const from = state.nodes[dropTargetId];
+  const to   = state.nodes[dragId];
+  if (!from || !to) return;
+  const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  line.setAttribute('class', 'reparent-preview');
+  line.setAttribute('x1', from.x);
+  line.setAttribute('y1', from.y);
+  line.setAttribute('x2', to.x);
+  line.setAttribute('y2', to.y);
+  svg.appendChild(line);
+}
+
+function clearDropTarget() {
+  if (dropTargetId) {
+    $('nd-' + dropTargetId)?.classList.remove('drop-target');
+    dropTargetId = null;
+  }
+  // 프리뷰 라인도 즉시 제거
+  const svg = $('svg-layer');
+  svg?.querySelector('.reparent-preview')?.remove();
+}
+
 /** 직전 우클릭 드래그가 실제로 이동했는지 — main.js의 contextmenu 핸들러가 메뉴 표시 여부 결정 시 사용 */
 export function consumePanDragFlag() {
   const moved = panRightDragMoved;
@@ -406,6 +481,8 @@ export function initCanvas() {
         if (el) { el.style.left = state.nodes[dragId].x + 'px'; el.style.top  = state.nodes[dragId].y + 'px'; }
       }
       updateLines();
+      // 단일 노드 드래그 — 마우스 아래 다른 노드 위면 부모 재연결 잠재 대상으로 표시
+      updateDropTarget(e.clientX, e.clientY);
     }
 
     if (selBoxActive) {
@@ -529,6 +606,12 @@ export function initCanvas() {
       render();
     }
     if (dragging) {
+      // drop target이 있으면 부모 재연결 — 위치 변경과 같은 history 엔트리에 묶임
+      if (dropTargetId && dragMoved && !multiDragOffsets) {
+        const n = state.nodes[dragId];
+        if (n && n.parentId !== dropTargetId) n.parentId = dropTargetId;
+      }
+      clearDropTarget();
       if (dragMoved) commitPending();
       else cancelPending();
       multiDragOffsets = null;
