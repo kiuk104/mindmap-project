@@ -1211,12 +1211,12 @@ export function openImageModal(nodeId) {
     updateImagePreview(imageDraft.url, imageDraft.type);
   });
 
-  // 파일 선택 → FileReader로 data URL 변환 → 미리보기 (image + video 모두 허용)
-  $('img-file').addEventListener('change', (e) => {
+  // 파일 선택 → 이미지: 캔버스 다운스케일 + JPEG 재인코딩 (HEIC 호환), 비디오: 원본 data URL
+  $('img-file').addEventListener('change', async (e) => {
     const f = e.target.files?.[0];
     if (!f) return;
 
-    // iOS에서 HEIC/HEIF 등은 f.type이 비거나 'image/heic'로 반환된다.
+    // iOS·Galaxy에서 HEIC/HEIF 등은 f.type이 비거나 'image/heic'로 반환된다.
     // MIME 우선, 비었거나 알 수 없으면 파일명 확장자로 폴백.
     const ext = (f.name.match(/\.([a-z0-9]+)$/i)?.[1] ?? '').toLowerCase();
     const imageExts = ['jpg','jpeg','png','gif','webp','heic','heif','bmp','svg','avif'];
@@ -1225,18 +1225,27 @@ export function openImageModal(nodeId) {
     const isImageMime = f.type.startsWith('image/') || imageExts.includes(ext);
     if (!isImageMime && !isVideoMime) {
       toastError(`이미지/비디오 파일이 아닙니다 (${f.type || '확장자: ' + (ext || '없음')})`);
-      e.target.value = ''; // 동일 파일 재선택 가능하게 reset
+      e.target.value = '';
       return;
     }
 
-    // 진행 피드백 — 큰 사진은 수 초 걸릴 수 있어 사용자에게 표시
     const sizeMB = (f.size / 1024 / 1024).toFixed(1);
     const box = $('img-preview');
-    if (box) box.innerHTML = `<span class="img-preview-empty">⏳ 읽는 중… (${sizeMB}MB)</span>`;
+    if (box) {
+      const label = isVideoMime ? '읽는 중' : '디코딩·압축 중';
+      box.innerHTML = `<span class="img-preview-empty">⏳ ${label}… (${sizeMB}MB)</span>`;
+    }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = reader.result;
+    try {
+      let dataUrl;
+      if (isVideoMime) {
+        // 비디오는 그대로 — 캔버스로 못 그림
+        dataUrl = await fileToDataUrl(f);
+      } else {
+        // 이미지: 원본 data URL → Image 디코딩 → 캔버스 다운스케일 → JPEG 재인코딩.
+        // HEIC/HEIF처럼 노드 <img>에서 재현되기 어려운 포맷도 표준 JPEG로 정규화.
+        dataUrl = await downscaleImageFile(f, 1600, 0.85);
+      }
       imageDraft.url = dataUrl;
       imageDraft.type = isVideoMime ? 'video' : 'image';
       const typeSel = $('img-type');
@@ -1244,21 +1253,21 @@ export function openImageModal(nodeId) {
       updateImagePreview(dataUrl, imageDraft.type);
       const urlInput = $('img-url');
       if (urlInput) urlInput.value = '';
-      // 동일 파일을 다시 선택할 수 있도록 input 값 비움 (성공 후에만)
       const fi = $('img-file');
       if (fi) fi.value = '';
-      // 큰 파일 경고 — localStorage 5MB 한도 고려
-      if (f.size > 2 * 1024 * 1024) {
-        toastSuccess(`📎 ${sizeMB}MB 파일 첨부됨 — 자동 저장 용량 한도(약 5MB)에 주의하세요.`);
+      // 재인코딩 후 결과 크기 알림 — localStorage 5MB 한도 가이드
+      const outBytes = Math.ceil(dataUrl.length * 0.75); // base64 → 바이트 어림
+      const outMB = (outBytes / 1024 / 1024).toFixed(1);
+      if (outBytes > 2 * 1024 * 1024) {
+        toastSuccess(`📎 첨부 완료 (${outMB}MB) — 자동 저장 5MB 한도 주의`);
       }
-    };
-    reader.onerror = () => {
-      toastError('파일 읽기 실패 — 다른 파일을 시도해주세요');
+    } catch (err) {
+      console.warn('이미지 처리 실패:', err);
+      toastError(`이미지를 불러올 수 없습니다 — ${err.message || '브라우저가 이 포맷을 지원하지 않음'}\n💡 갤러리에서 사진 공유 → "JPEG로 변환" 후 첨부해 주세요`);
       if (box) box.innerHTML = `<span class="img-preview-empty">아직 미디어가 없습니다</span>`;
       const fi = $('img-file');
       if (fi) fi.value = '';
-    };
-    reader.readAsDataURL(f);
+    }
   });
 
   // 미디어 제거
@@ -1274,6 +1283,52 @@ export function openImageModal(nodeId) {
   }
 
   showModal();
+}
+
+/** File → data URL Promise */
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload  = () => resolve(r.result);
+    r.onerror = () => reject(new Error('파일 읽기 실패'));
+    r.readAsDataURL(file);
+  });
+}
+
+/**
+ * 이미지 파일을 캔버스로 다운스케일·JPEG 재인코딩.
+ *  - HEIC/HEIF가 브라우저에서 직접 <img> 표시가 안되는 케이스에서도
+ *    Image 디코더가 처리 가능하면 표준 JPEG로 변환되어 어디서나 렌더된다.
+ *  - 디코딩 자체가 실패하면(브라우저가 포맷 미지원) reject.
+ * @param {File} file
+ * @param {number} maxSide   긴 변 최대 픽셀 (이상이면 비율 유지 축소)
+ * @param {number} quality   JPEG 품질 0~1
+ * @returns {Promise<string>} data:image/jpeg;base64,...
+ */
+async function downscaleImageFile(file, maxSide = 1600, quality = 0.85) {
+  const src = await fileToDataUrl(file);
+  const img = await new Promise((resolve, reject) => {
+    const i = new Image();
+    i.onload  = () => resolve(i);
+    i.onerror = () => reject(new Error('브라우저가 이 이미지 포맷을 디코딩하지 못합니다 (HEIC 등)'));
+    i.src = src;
+  });
+  let w = img.naturalWidth, h = img.naturalHeight;
+  if (!w || !h) throw new Error('이미지 크기를 읽을 수 없습니다');
+  if (w > maxSide || h > maxSide) {
+    const scale = maxSide / Math.max(w, h);
+    w = Math.round(w * scale);
+    h = Math.round(h * scale);
+  }
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Canvas 2D 컨텍스트 생성 실패');
+  // 흰 배경 — 투명 PNG가 JPEG 변환되면 검정이 되므로 명시
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, w, h);
+  ctx.drawImage(img, 0, 0, w, h);
+  return canvas.toDataURL('image/jpeg', quality);
 }
 
 /** type='auto'면 URL로 video인지 자동 감지. 명시 type은 그대로 반환. */
