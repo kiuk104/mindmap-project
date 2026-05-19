@@ -9,7 +9,7 @@
  */
 
 import { state }                           from './state.js';
-import { render, registerHandlers, setPostRender } from './render.js';
+import { render, patchNode, registerHandlers, setPostRender } from './render.js';
 import { $, uid, makeNode, COLORS, setNodeSelection, clearNodeSelection, setRelationSelection, clearRelationSelection } from './utils.js';
 import { showPreview, hidePreview }        from './preview.js';
 import { addChild, deleteNode, startEdit, removeLink, toggleCollapse, expandAncestors } from './nodes.js';
@@ -74,7 +74,8 @@ registerHandlers({
     if (!n || !Array.isArray(n.tasks) || !n.tasks[idx]) return;
     pushHistory();
     n.tasks[idx].done = checked;
-    render();
+    // 단일 노드 patch (자기 자신만 변경) — 실패 시 전체 render fallback
+    if (!patchNode(nodeId)) render();
   },
   onCalloutPointerDown: (e, coId) => onCalloutPointerDown(e, coId, canvasCoord),
   onCalloutEdit:        editCalloutInline,

@@ -280,6 +280,69 @@ function buildSvgMarkup(hiddenIds) {
 }
 
 /** 캔버스 전체 재렌더 */
+/**
+ * 렌더 컨텍스트 계산 — render()와 patchNode()가 공유.
+ * hiddenIds/parentIds/selSet/hitSet/activeHitId/numberPrefix를 한 번에 만들어 반환.
+ */
+function makeRenderCtx() {
+  const hiddenIds = computeHiddenIds(state.nodes);
+  const parentIds = parentIdsSet(state.nodes);
+
+  const selSet = new Set(state.selectedIds ?? []);
+  if (state.selectedId && !selSet.has(state.selectedId)) selSet.add(state.selectedId);
+
+  const hitSet = new Set(state.searchHits);
+  const activeHitId = hitSet.size > 0 ? state.searchHits[state.searchIdx] : null;
+
+  const numberPrefix = {};
+  Object.values(state.nodes).forEach((p) => {
+    const fmt = p.numbering;
+    if (!fmt || fmt === 'none') return;
+    const sibs = Object.values(state.nodes).filter((c) => c.parentId === p.id);
+    sibs.forEach((c, i) => { numberPrefix[c.id] = formatNumber(fmt, i); });
+  });
+  return { hiddenIds, parentIds, selSet, hitSet, activeHitId, numberPrefix };
+}
+
+/**
+ * 단일 노드 DOM 부분 갱신 — 해당 노드 div만 재빌드해 교체.
+ * 안전 조건이 깨지면 false 반환 (호출자가 render() 전체 호출로 fallback).
+ *
+ * 안전 사용 조건: 노드의 텍스트·색·아이콘·테스트·노트·링크 등 자기 자신 속성만 변경된 경우.
+ * 노드 추가/삭제, parentId 변경, collapse, 부모.numbering 변경은 다른 노드에도 영향이 있어
+ * 반드시 render() 호출.
+ *
+ * @param {string} id
+ * @returns {boolean} 성공 여부
+ */
+export function patchNode(id) {
+  const n = state.nodes[id];
+  if (!n) return false;
+  const ctx = makeRenderCtx();
+  if (ctx.hiddenIds.has(id)) return false;
+  const old = document.getElementById('nd-' + id);
+  if (!old) return false;
+  const fresh = buildNodeEl(n, ctx);
+  old.replaceWith(fresh);
+  // patchNode도 자동저장/미니맵/패널 동기화가 필요하므로 postRenderHook을 호출
+  postRenderHook();
+  return true;
+}
+
+/**
+ * 선택 클래스만 토글 — 가장 가벼운 부분 갱신.
+ * 노드 div 자체는 재빌드하지 않으므로 텍스트·아이콘 등 기타 속성에는 영향 없음.
+ */
+export function updateSelection() {
+  const selSet = new Set(state.selectedIds ?? []);
+  if (state.selectedId && !selSet.has(state.selectedId)) selSet.add(state.selectedId);
+  document.querySelectorAll('.node').forEach((el) => {
+    if (!el.id.startsWith('nd-')) return;
+    const id = el.id.slice(3);
+    el.classList.toggle('selected', selSet.has(id));
+  });
+}
+
 export function render() {
   const canvas = $('canvas');
   const svg    = $('svg-layer');
@@ -289,50 +352,82 @@ export function render() {
     if (c.id !== 'svg-layer') c.remove();
   });
 
-  // 접힘 노드의 후손 ID 집합 + 자식을 가진 부모 ID 집합 (한 번 계산해 SVG·노드 양쪽에 사용)
-  const hiddenIds = computeHiddenIds(state.nodes);
-  const parentIds = parentIdsSet(state.nodes);
-
-  // 넘버링 prefix 캐시 — 부모.numbering이 설정된 경우 그 자식들의 인덱스 계산
-  // 형제 순서는 Object.keys 등장 순서(=생성 순서) 기준 안정성 보장
-  const numberPrefix = {};   // nodeId → 'A.' / '1.' 등
-  Object.values(state.nodes).forEach((p) => {
-    const fmt = p.numbering;
-    if (!fmt || fmt === 'none') return;
-    const sibs = Object.values(state.nodes).filter((c) => c.parentId === p.id);
-    sibs.forEach((c, i) => { numberPrefix[c.id] = formatNumber(fmt, i); });
-  });
+  const { hiddenIds, parentIds, selSet, hitSet, activeHitId, numberPrefix } = makeRenderCtx();
 
   // ── SVG (부모-자식 선 + 관계선 + 화살표 marker) ──
   svg.innerHTML = buildSvgMarkup(hiddenIds);
 
   bindRelationHandlers(svg);
 
-  // 검색 매치 ID Set (성능)
-  const hitSet = new Set(state.searchHits);
-  const activeHitId = hitSet.size > 0 ? state.searchHits[state.searchIdx] : null;
-
-  // 선택된 노드 Set (다중 선택 포함)
-  const selSet = new Set(state.selectedIds ?? []);
-  if (state.selectedId && !selSet.has(state.selectedId)) selSet.add(state.selectedId);
-
   // ── 노드 div ──
+  const ctx = { hiddenIds, parentIds, selSet, hitSet, activeHitId, numberPrefix };
   Object.values(state.nodes).forEach((n) => {
     if (hiddenIds.has(n.id)) return;
-    const isRoot = !n.parentId;
-    const isSel  = selSet.has(n.id);
-    const isRelSource = state.relationDraft && state.relationDraft.fromId === n.id;
-    const isHit  = hitSet.has(n.id);
-    const isActiveHit = n.id === activeHitId;
+    canvas.appendChild(buildNodeEl(n, ctx));
+  });
 
-    const el = document.createElement('div');
-    el.className = 'node'
-      + (isRoot ? ' root' : '')
-      + (isSel ? ' selected' : '')
-      + (isRelSource ? ' rel-source' : '')
-      + (isHit ? ' search-hit' : '')
-      + (isActiveHit ? ' search-active' : '');
-    el.id = 'nd-' + n.id;
+  // ── 콜아웃 div 렌더 (말풍선 박스 — 꼬리는 box 추가 후 SVG로) ──
+  if (Array.isArray(state.callouts)) {
+    state.callouts.forEach((co) => {
+      const p = state.nodes[co.parentId];
+      if (!p || hiddenIds.has(co.parentId)) return;
+
+      const box = document.createElement('div');
+      box.id = 'co-' + co.id;
+      box.className = 'callout' + (state.selectedCalloutId === co.id ? ' selected' : '');
+      box.style.left = (p.x + co.dx) + 'px';
+      box.style.top  = (p.y + co.dy) + 'px';
+      const bgColor = co.color || '#fde68a';
+      box.style.background = bgColor;
+      // 사용자 지정 글자 색이 없으면 배경에 대비되는 자동 색
+      box.style.color = co.textColor || contrastingTextColor(bgColor);
+      box.textContent = co.text || '';
+
+      // 이벤트 — 드래그/선택/편집은 H 핸들러로
+      box.addEventListener('pointerdown', (e) => {
+        if (H.onCalloutPointerDown) H.onCalloutPointerDown(e, co.id);
+      });
+      box.addEventListener('dblclick', (e) => {
+        e.stopPropagation();
+        if (H.onCalloutEdit) H.onCalloutEdit(co.id);
+      });
+      box.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (H.onCalloutContextMenu) H.onCalloutContextMenu(e, co.id);
+      });
+      canvas.appendChild(box);
+    });
+    // 콜아웃 box들이 DOM에 추가된 후, 실제 크기로 꼬리 polygon을 SVG에 prepend
+    renderCalloutTails(hiddenIds);
+  }
+
+  postRenderHook();
+}
+
+/**
+ * 단일 노드의 DOM 요소를 생성한다. render()와 patchNode()가 공유.
+ * ctx는 컨텍스트 계산값(컬렉션) — 같은 프레임 내 여러 노드 빌드 시 한 번만 계산.
+ * @param {object} n  state.nodes[id] 객체
+ * @param {{ hiddenIds: Set, parentIds: Set, selSet: Set, hitSet: Set, activeHitId: ?string, numberPrefix: Record<string,string> }} ctx
+ * @returns {HTMLDivElement}
+ */
+function buildNodeEl(n, ctx) {
+  const { parentIds, selSet, hitSet, activeHitId, numberPrefix } = ctx;
+  const isRoot = !n.parentId;
+  const isSel  = selSet.has(n.id);
+  const isRelSource = state.relationDraft && state.relationDraft.fromId === n.id;
+  const isHit  = hitSet.has(n.id);
+  const isActiveHit = n.id === activeHitId;
+
+  const el = document.createElement('div');
+  el.className = 'node'
+    + (isRoot ? ' root' : '')
+    + (isSel ? ' selected' : '')
+    + (isRelSource ? ' rel-source' : '')
+    + (isHit ? ' search-hit' : '')
+    + (isActiveHit ? ' search-active' : '');
+  el.id = 'nd-' + n.id;
     el.style.left       = n.x + 'px';
     el.style.top        = n.y + 'px';
     el.style.background = n.color;
@@ -550,51 +645,12 @@ export function render() {
       el.appendChild(toggle);
     }
 
-    // 이벤트
-    el.addEventListener('pointerdown', (e) => H.onNodeMouseDown(e, n.id));
-    el.addEventListener('dblclick',    (e) => H.onNodeDblClick(e, n.id));
-    el.addEventListener('contextmenu', (e) => H.onNodeContextMenu(e, n.id));
+  // 이벤트
+  el.addEventListener('pointerdown', (e) => H.onNodeMouseDown(e, n.id));
+  el.addEventListener('dblclick',    (e) => H.onNodeDblClick(e, n.id));
+  el.addEventListener('contextmenu', (e) => H.onNodeContextMenu(e, n.id));
 
-    canvas.appendChild(el);
-  });
-
-  // ── 콜아웃 div 렌더 (말풍선 박스 — 꼬리는 box 추가 후 SVG로) ──
-  if (Array.isArray(state.callouts)) {
-    state.callouts.forEach((co) => {
-      const p = state.nodes[co.parentId];
-      if (!p || hiddenIds.has(co.parentId)) return;
-
-      const box = document.createElement('div');
-      box.id = 'co-' + co.id;
-      box.className = 'callout' + (state.selectedCalloutId === co.id ? ' selected' : '');
-      box.style.left = (p.x + co.dx) + 'px';
-      box.style.top  = (p.y + co.dy) + 'px';
-      const bgColor = co.color || '#fde68a';
-      box.style.background = bgColor;
-      // 사용자 지정 글자 색이 없으면 배경에 대비되는 자동 색
-      box.style.color = co.textColor || contrastingTextColor(bgColor);
-      box.textContent = co.text || '';
-
-      // 이벤트 — 드래그/선택/편집은 H 핸들러로
-      box.addEventListener('pointerdown', (e) => {
-        if (H.onCalloutPointerDown) H.onCalloutPointerDown(e, co.id);
-      });
-      box.addEventListener('dblclick', (e) => {
-        e.stopPropagation();
-        if (H.onCalloutEdit) H.onCalloutEdit(co.id);
-      });
-      box.addEventListener('contextmenu', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (H.onCalloutContextMenu) H.onCalloutContextMenu(e, co.id);
-      });
-      canvas.appendChild(box);
-    });
-    // 콜아웃 box들이 DOM에 추가된 후, 실제 크기로 꼬리 polygon을 SVG에 prepend
-    renderCalloutTails(hiddenIds);
-  }
-
-  postRenderHook();
+  return el;
 }
 
 /**
