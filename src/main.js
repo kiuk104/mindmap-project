@@ -259,20 +259,24 @@ function createSamples() {
 
 // ?drive=fileId 공유 URL 처리 — Drive 로그인 상태에 따라 즉시 또는 지연 로드
 let pendingDriveLoad = null;
-function consumeDriveQuery() {
-  const id = new URLSearchParams(location.search).get('drive');
-  if (!id) return null;
-  // URL 정리 — 새로고침 시 다시 안 트리거되게
+function readDriveQuery() {
+  return new URLSearchParams(location.search).get('drive');
+}
+function clearDriveQuery() {
+  if (!new URLSearchParams(location.search).get('drive')) return;
   const u = new URL(location.href);
   u.searchParams.delete('drive');
   history.replaceState(null, '', u.toString());
-  return id;
 }
 async function tryAutoLoadDriveFile(fileId) {
   try {
     const content = await drive.loadFromDrive(fileId);
     if (loadFromStringFromIO(content)) {
       pendingDriveLoad = null;
+      // 성공적으로 로드된 다음에만 URL 정리.
+      // 미리 정리하면 카카오톡 등 인앱 브라우저에서 "외부 브라우저로 열기" 시
+      // 쿼리가 사라져 빈 앱만 열린다.
+      clearDriveQuery();
       setLastSave({ kind: 'drive', name: '공유 파일', driveFileId: fileId });
       resetView();
       toastSuccess('🔗 공유된 마인드맵을 자동으로 불러왔습니다');
@@ -286,7 +290,8 @@ async function tryAutoLoadDriveFile(fileId) {
 
 function init() {
   // ?drive=fileId 공유 URL이면 자동 로드 시도 (가장 우선)
-  pendingDriveLoad = consumeDriveQuery();
+  // URL은 정리하지 않고 보존 — 인앱 브라우저에서 외부 브라우저로 열 때 쿼리 유지 필요.
+  pendingDriveLoad = readDriveQuery();
   // URL hash에 공유 데이터가 있으면 그것이 다음 우선 (localStorage·샘플보다 우선)
   const fromHash = pendingDriveLoad ? false : tryLoadFromHash();
   const restored = fromHash || restoreLocal();
