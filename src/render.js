@@ -6,7 +6,7 @@
  */
 
 import { state } from './state.js';
-import { $, linkIcon, linkDefault, lighten, LINE_WIDTHS, NODE_SIZES, NODE_SHAPES, NODE_BORDERS, NODE_OUTLINES, DASH_PATTERNS, getRelationControls, getBranchControls, computeHiddenIds, parentIdsSet, formatNumber, contrastingTextColor } from './utils.js';
+import { $, linkIcon, linkDefault, lighten, LINE_WIDTHS, NODE_SIZES, NODE_SHAPES, NODE_BORDERS, NODE_OUTLINES, DASH_PATTERNS, getRelationControls, getBranchControls, computeHiddenIds, parentIdsSet, formatNumber, contrastingTextColor, isVideoUrl } from './utils.js';
 import { getZoneBox, hexToRgba } from './zones.js';
 import { getSettings } from './settings.js';
 import { isAssetIcon, assetIdToUrl } from './icon-assets.js';
@@ -486,19 +486,34 @@ function buildNodeEl(n, ctx) {
       el.style.setProperty('--stroke-c', n.outlineColor || lighten(n.color, 40));
     }
 
-    // 임베드 이미지 — 노드 가장자리까지 확장, 상단 둥근 코너에 맞춰 클립
+    // 임베드 미디어 — 이미지 또는 비디오 (type=video이거나 URL이 비디오 확장자)
     if (n.image?.url) {
       const wrap = document.createElement('div');
       wrap.className = 'node-image-wrap';
+      const isVideo = n.image.type === 'video' ||
+        (n.image.type !== 'image' && isVideoUrl(n.image.url));
 
-      const img = document.createElement('img');
-      img.className = 'node-image';
-      img.src       = n.image.url;
-      img.alt       = '';
-      img.draggable = false;
-      img.addEventListener('error', () => { wrap.style.display = 'none'; });
-
-      wrap.appendChild(img);
+      if (isVideo) {
+        const vid = document.createElement('video');
+        vid.className = 'node-image';
+        vid.src       = n.image.url;
+        vid.controls  = true;
+        vid.muted     = true;
+        vid.playsInline = true;
+        vid.preload   = 'metadata';
+        // 비디오 컨트롤 클릭 시 노드 드래그 시작 차단
+        vid.addEventListener('pointerdown', (e) => e.stopPropagation());
+        vid.addEventListener('error', () => { wrap.style.display = 'none'; });
+        wrap.appendChild(vid);
+      } else {
+        const img = document.createElement('img');
+        img.className = 'node-image';
+        img.src       = n.image.url;
+        img.alt       = '';
+        img.draggable = false;
+        img.addEventListener('error', () => { wrap.style.display = 'none'; });
+        wrap.appendChild(img);
+      }
       el.appendChild(wrap);
     }
 

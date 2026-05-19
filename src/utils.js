@@ -346,6 +346,18 @@ export function lighten(hex, pct) {
  * @param {string} url
  * @returns {string|null}
  */
+/**
+ * URL이 비디오인지 자동 감지 — 확장자 + 알려진 video CDN 패턴.
+ * data:video/* MIME도 비디오로 인식.
+ */
+export function isVideoUrl(url) {
+  if (!url) return false;
+  if (/^data:video\//i.test(url)) return true;
+  // .mp4 / .webm / .mov / .ogv / .m4v / .ogg 확장자 (쿼리스트링 허용)
+  if (/\.(mp4|webm|mov|m4v|ogv|ogg)(\?|#|$)/i.test(url)) return true;
+  return false;
+}
+
 export function ytThumb(url) {
   const m = url.match(/(?:v=|youtu\.be\/|embed\/)([a-zA-Z0-9_-]{11})/);
   return m ? `https://img.youtube.com/vi/${m[1]}/mqdefault.jpg` : null;

@@ -7,7 +7,7 @@
 import { state } from './state.js';
 import { render, patchNode } from './render.js';
 import { resetView } from './canvas.js';
-import { $, FONT_FAMILIES, FONT_NAMES, currentPalette, linkIcon, linkDefault, resolvePalette, COLOR_THEMES, composeFontFamily, ENGLISH_FONTS, ENGLISH_FONT_NAMES, KOREAN_FONTS, KOREAN_FONT_NAMES, DASH_NAMES, detectLinkType, googleDocsPreviewUrl } from './utils.js';
+import { $, FONT_FAMILIES, FONT_NAMES, currentPalette, linkIcon, linkDefault, resolvePalette, COLOR_THEMES, composeFontFamily, ENGLISH_FONTS, ENGLISH_FONT_NAMES, KOREAN_FONTS, KOREAN_FONT_NAMES, DASH_NAMES, detectLinkType, googleDocsPreviewUrl, isVideoUrl } from './utils.js';
 import { removeLink } from './nodes.js';
 import { doDownload, copyJsonToClipboard, defaultFilename, serialize, loadFromString, setLastSave, getLastSave } from './io.js';
 import { exportSvgFile, exportPngFile } from './export.js';
@@ -834,25 +834,29 @@ function renderTasksBody() {
 
 export function getTasksDraft() { return tasksDraft; }
 
-// 이미지 모달 상태 — 모달 인스턴스 단위로 관리
-let imageDraft = { url: null, sourceTab: 'url' };
+// 이미지/비디오 모달 상태 — 모달 인스턴스 단위로 관리
+let imageDraft = { url: null, sourceTab: 'url', type: 'auto' };
 
 /**
- * 이미지 임베드 모달 열기
+ * 미디어(이미지/비디오) 임베드 모달 열기
  *   - URL 입력 또는 파일 업로드(데이터 URL로 변환)
- *   - 다중 선택 시 선택된 모든 노드에 동일 이미지 적용
- *   - "이미지 제거" 버튼으로 기존 이미지 비우기
+ *   - 타입: 자동(URL 확장자 감지) / 이미지 / 비디오
+ *   - 다중 선택 시 선택된 모든 노드에 동일 미디어 적용
+ *   - "제거" 버튼으로 기존 미디어 비우기
  * @param {string} nodeId
  */
 export function openImageModal(nodeId) {
   if (!nodeId) { alert('노드를 먼저 선택하세요.'); return; }
   state.ctxTargetId = nodeId;
   state.modalKind   = 'image';
-  $('modal-title').textContent = '🖼️ 노드 이미지';
+  $('modal-title').textContent = '🎬 노드 미디어 (이미지/비디오)';
 
   const node = state.nodes[nodeId];
   const currentUrl = node?.image?.url ?? '';
-  imageDraft = { url: currentUrl || null, sourceTab: 'url' };
+  const currentType = node?.image?.type ?? 'auto';
+  imageDraft = { url: currentUrl || null, sourceTab: 'url', type: currentType };
+
+  const isCurVideo = effectiveType(currentUrl, currentType) === 'video';
 
   $('modal-body').innerHTML = `
     <div class="img-tabs">
@@ -861,18 +865,31 @@ export function openImageModal(nodeId) {
     </div>
 
     <div class="fg" id="img-tab-url">
-      <label class="fl">이미지 URL</label>
+      <label class="fl">미디어 URL</label>
       <input class="fi" id="img-url" type="url"
-        placeholder="https://example.com/photo.jpg"
+        placeholder="https://example.com/photo.jpg  또는  ...video.mp4"
         value="${escapeHTML(currentUrl)}" />
     </div>
 
     <div class="fg" id="img-tab-file" hidden>
-      <label class="fl">파일 선택 (jpg / png / gif / webp / svg)</label>
-      <input class="fi" id="img-file" type="file" accept="image/*" />
+      <label class="fl">파일 선택 (이미지 또는 비디오)</label>
+      <input class="fi" id="img-file" type="file" accept="image/*,video/*" />
       <div style="font-size:11px; color:#8b949e; margin-top:6px;">
-        💡 파일은 base64로 JSON 안에 저장됩니다. 큰 이미지는 파일 크기를 키우니
+        💡 파일은 base64로 JSON 안에 저장됩니다. 비디오/큰 이미지는 파일 크기를 키우니
         500KB 이내를 권장합니다.
+      </div>
+    </div>
+
+    <div class="fg">
+      <label class="fl">타입</label>
+      <select class="fi" id="img-type">
+        <option value="auto"  ${currentType === 'auto'  ? 'selected' : ''}>🔍 자동 (URL 확장자 감지)</option>
+        <option value="image" ${currentType === 'image' ? 'selected' : ''}>🖼️ 이미지</option>
+        <option value="video" ${currentType === 'video' ? 'selected' : ''}>🎬 비디오</option>
+      </select>
+      <div style="font-size:11px; color:#8b949e; margin-top:6px;">
+        자동 감지는 .mp4 / .webm / .mov 등의 확장자만 비디오로 판단합니다.
+        Google Photos 비디오 직접 URL처럼 확장자가 없는 경우 수동 선택하세요.
       </div>
     </div>
 
@@ -880,14 +897,16 @@ export function openImageModal(nodeId) {
       <div class="sp-mini-label">미리보기</div>
       <div class="img-preview" id="img-preview">
         ${currentUrl
-          ? `<img src="${escapeHTML(currentUrl)}" alt="preview" draggable="false" />`
-          : `<span class="img-preview-empty">아직 이미지가 없습니다</span>`}
+          ? (isCurVideo
+              ? `<video src="${escapeHTML(currentUrl)}" controls muted style="max-width:100%; max-height:240px;"></video>`
+              : `<img src="${escapeHTML(currentUrl)}" alt="preview" draggable="false" />`)
+          : `<span class="img-preview-empty">아직 미디어가 없습니다</span>`}
       </div>
     </div>
 
     ${currentUrl
       ? `<button type="button" class="btn btn-ghost" id="img-clear"
-           style="margin-top:8px;">🗑️ 이미지 제거</button>`
+           style="margin-top:8px;">🗑️ 미디어 제거</button>`
       : ''}
   `;
 
@@ -908,23 +927,32 @@ export function openImageModal(nodeId) {
   $('img-url').addEventListener('input', (e) => {
     const v = e.target.value.trim();
     imageDraft.url = v || null;
-    updateImagePreview(v);
+    updateImagePreview(v, imageDraft.type);
   });
 
-  // 파일 선택 → FileReader로 data URL 변환 → 미리보기
+  // 타입 셀렉트 → 미리보기 갱신
+  $('img-type').addEventListener('change', (e) => {
+    imageDraft.type = e.target.value;
+    updateImagePreview(imageDraft.url, imageDraft.type);
+  });
+
+  // 파일 선택 → FileReader로 data URL 변환 → 미리보기 (image + video 모두 허용)
   $('img-file').addEventListener('change', (e) => {
     const f = e.target.files?.[0];
     if (!f) return;
-    if (!f.type.startsWith('image/')) {
-      alert('이미지 파일만 선택할 수 있습니다.');
+    if (!f.type.startsWith('image/') && !f.type.startsWith('video/')) {
+      alert('이미지 또는 비디오 파일만 선택할 수 있습니다.');
       return;
     }
     const reader = new FileReader();
     reader.onload = () => {
       const dataUrl = reader.result;
       imageDraft.url = dataUrl;
-      updateImagePreview(dataUrl);
-      // URL 탭으로도 값 동기화 (사용자가 다시 탭 전환 시 일관성)
+      // 파일 MIME에 맞게 type 자동 설정
+      imageDraft.type = f.type.startsWith('video/') ? 'video' : 'image';
+      const typeSel = $('img-type');
+      if (typeSel) typeSel.value = imageDraft.type;
+      updateImagePreview(dataUrl, imageDraft.type);
       const urlInput = $('img-url');
       if (urlInput) urlInput.value = '';
     };
@@ -932,14 +960,14 @@ export function openImageModal(nodeId) {
     reader.readAsDataURL(f);
   });
 
-  // 이미지 제거
+  // 미디어 제거
   const clearBtn = $('img-clear');
   if (clearBtn) {
     clearBtn.addEventListener('click', () => {
       imageDraft.url = null;
       $('img-url').value = '';
       $('img-file').value = '';
-      updateImagePreview(null);
+      updateImagePreview(null, 'auto');
       clearBtn.style.display = 'none';
     });
   }
@@ -947,15 +975,27 @@ export function openImageModal(nodeId) {
   showModal();
 }
 
-function updateImagePreview(url) {
+/** type='auto'면 URL로 video인지 자동 감지. 명시 type은 그대로 반환. */
+function effectiveType(url, type) {
+  if (type === 'video' || type === 'image') return type;
+  return isVideoUrl(url) ? 'video' : 'image';
+}
+
+function updateImagePreview(url, type = 'auto') {
   const box = $('img-preview');
   if (!box) return;
   if (!url) {
-    box.innerHTML = `<span class="img-preview-empty">아직 이미지가 없습니다</span>`;
+    box.innerHTML = `<span class="img-preview-empty">아직 미디어가 없습니다</span>`;
     return;
   }
-  box.innerHTML = `<img src="${escapeHTML(url)}" alt="preview" draggable="false"
-    onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'❌ 이미지 로드 실패', className:'img-preview-empty'}))" />`;
+  const isVideo = effectiveType(url, type) === 'video';
+  if (isVideo) {
+    box.innerHTML = `<video src="${escapeHTML(url)}" controls muted style="max-width:100%; max-height:240px;"
+      onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'❌ 비디오 로드 실패', className:'img-preview-empty'}))"></video>`;
+  } else {
+    box.innerHTML = `<img src="${escapeHTML(url)}" alt="preview" draggable="false"
+      onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'❌ 이미지 로드 실패', className:'img-preview-empty'}))" />`;
+  }
 }
 
 // ── 커스텀 테마 모달 ─────────────────────────────────────
@@ -1178,7 +1218,9 @@ export function handleModalOK() {
     const ids = targetNodeIds(state.ctxTargetId);
     if (ids.length) {
       pushHistory();
-      const newImage = imageDraft.url ? { url: imageDraft.url } : null;
+      const newImage = imageDraft.url
+        ? { url: imageDraft.url, type: imageDraft.type ?? 'auto' }
+        : null;
       ids.forEach((id) => {
         if (state.nodes[id]) state.nodes[id].image = newImage;
       });
