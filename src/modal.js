@@ -7,7 +7,7 @@
 import { state } from './state.js';
 import { render, patchNode } from './render.js';
 import { resetView } from './canvas.js';
-import { $, FONT_FAMILIES, FONT_NAMES, currentPalette, linkIcon, linkDefault, resolvePalette, COLOR_THEMES, composeFontFamily, ENGLISH_FONTS, ENGLISH_FONT_NAMES, KOREAN_FONTS, KOREAN_FONT_NAMES, DASH_NAMES, detectLinkType, googleDocsPreviewUrl, isVideoUrl } from './utils.js';
+import { $, FONT_FAMILIES, FONT_NAMES, currentPalette, linkIcon, linkDefault, resolvePalette, COLOR_THEMES, composeFontFamily, ENGLISH_FONTS, ENGLISH_FONT_NAMES, KOREAN_FONTS, KOREAN_FONT_NAMES, DASH_NAMES, detectLinkType, googleDocsPreviewUrl, isVideoUrl, detectInAppBrowser } from './utils.js';
 import { removeLink } from './nodes.js';
 import { doDownload, copyJsonToClipboard, defaultFilename, serialize, loadFromString, setLastSave, getLastSave } from './io.js';
 import { exportSvgFile, exportPngFile } from './export.js';
@@ -279,7 +279,7 @@ export async function openDriveLoadModal() {
     return;
   }
   if (!drive.isSignedIn()) {
-    drive.signIn();
+    requestDriveSignIn();
     return;
   }
 
@@ -654,6 +654,107 @@ function handleShareOption(kind) {
       .catch((e) => toastError('Drive 저장 실패: ' + e.message));
     return;
   }
+}
+
+/**
+ * Drive 로그인 진입점 — 카카오톡 등 인앱 브라우저면 가이드 모달을 띄우고,
+ * 일반 브라우저면 실제 OAuth 팝업을 연다. 모바일이면 팝업 차단 안내 토스트도.
+ *
+ * Google은 보안 정책상 임베디드 웹뷰에서의 OAuth를 차단하므로,
+ * 인앱 브라우저에서 signIn()을 호출하면 "disallowed_useragent" 등으로 실패한다.
+ */
+export function requestDriveSignIn() {
+  const inApp = detectInAppBrowser();
+  if (inApp) {
+    openInAppBrowserGuideModal(inApp);
+    return;
+  }
+  drive.signIn();
+  const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+  if (isMobile) {
+    toastSuccess(
+      '🔑 Google 로그인 창을 여는 중…\n' +
+      '⚠️ 모바일에서는 팝업이 자주 차단됩니다. 안 뜨면:\n' +
+      '① 브라우저 주소창의 팝업 차단 아이콘을 눌러 허용\n' +
+      '② 다시 "Google 계정으로 연결" 클릭'
+    );
+  } else {
+    toastSuccess('🔑 Google 로그인 창을 여는 중… 팝업 차단이 있다면 허용해주세요.');
+  }
+}
+
+/**
+ * 인앱 브라우저 안내 모달 — Google이 임베디드 웹뷰에서 OAuth를 막기 때문에
+ * 외부 브라우저(Chrome/Safari)에서 다시 열도록 사용자를 안내한다.
+ * @param {{name:string, label:string}} inApp
+ */
+export function openInAppBrowserGuideModal(inApp) {
+  state.modalKind = 'inapp-guide';
+  $('modal-title').textContent = '🛑 외부 브라우저에서 열어주세요';
+
+  const isIOS     = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const isAndroid = /Android/i.test(navigator.userAgent);
+  const url = location.href;
+
+  let openHowto;
+  if (inApp.name === 'kakaotalk') {
+    openHowto = isIOS
+      ? '하단 <b>⋯</b> 메뉴 → <b>"Safari로 열기"</b>'
+      : '우측 상단 <b>⋯</b> 메뉴 → <b>"다른 브라우저로 열기"</b> 또는 <b>"Chrome으로 열기"</b>';
+  } else {
+    openHowto = isIOS
+      ? '하단·우측 공유/메뉴 버튼 → <b>"Safari에서 열기"</b>'
+      : '우측 상단 ⋯ 메뉴 → <b>"브라우저에서 열기"</b> 또는 <b>"Chrome으로 열기"</b>';
+  }
+
+  $('modal-body').innerHTML = `
+    <div style="line-height:1.7; font-size:13px;">
+      <p style="margin:0 0 12px;">
+        <b>${escapeHTML(inApp.label)} 내부 브라우저</b>에서는 Google 보안 정책상
+        <b>Google 계정 로그인이 차단</b>됩니다. (Google이 모든 인앱 웹뷰에 적용)
+      </p>
+      <p style="margin:0 0 8px;"><b>해결 방법</b></p>
+      <ol style="margin:0 0 14px 18px; padding:0;">
+        <li>${openHowto}</li>
+        <li>또는 아래 <b>URL 복사</b> 후 Chrome/Safari 주소창에 붙여넣기</li>
+      </ol>
+
+      <div style="background:var(--bg-hover); padding:10px; border-radius:6px;
+                  word-break:break-all; font-family:monospace; font-size:11px; margin-bottom:12px;">
+        ${escapeHTML(url)}
+      </div>
+
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button type="button" class="btn" id="iab-copy">📋 URL 복사</button>
+        ${isAndroid ? `<button type="button" class="btn btn-ghost" id="iab-intent">🌐 Chrome으로 열기 시도</button>` : ''}
+      </div>
+
+      <p style="margin:14px 0 0; color:#8b949e; font-size:11.5px;">
+        Tip: 한 번 외부 브라우저에서 로그인하면 같은 기기·같은 브라우저에서는
+        토큰이 유지되어 다시 로그인할 필요가 없습니다.
+      </p>
+    </div>
+  `;
+
+  $('iab-copy')?.addEventListener('click', () => {
+    navigator.clipboard.writeText(url)
+      .then(() => toastSuccess('📋 URL 복사됨 — Chrome/Safari 주소창에 붙여넣어주세요'))
+      .catch(() => toastError('복사 실패 — 주소창에서 직접 복사해주세요'));
+  });
+  $('iab-intent')?.addEventListener('click', () => {
+    // Android intent: 강제로 Chrome에서 열기 (Chrome 미설치/카카오 차단 시 실패할 수 있음)
+    const intentUrl = `intent://${location.host}${location.pathname}${location.search}${location.hash}` +
+                      `#Intent;scheme=${location.protocol.replace(':','')};package=com.android.chrome;end`;
+    location.href = intentUrl;
+  });
+
+  // OK 버튼만 보이고 "닫기"로 동작
+  const okBtn  = $('modal-ok');
+  const cancel = $('modal-cancel');
+  if (okBtn) { okBtn.textContent = '닫기'; okBtn.dataset.previewClose = '1'; }
+  if (cancel) cancel.style.display = 'none';
+
+  showModal();
 }
 
 /**
@@ -1320,7 +1421,7 @@ function patchOrRender(ids) {
 /** 모달 확인 버튼 처리 */
 export function handleModalOK() {
   // OK 액션이 없는 닫기-만 모달들
-  if (state.modalKind === 'gdocs-preview' || state.modalKind === 'share' || state.modalKind === 'font-browser' || state.modalKind === 'help') {
+  if (state.modalKind === 'gdocs-preview' || state.modalKind === 'share' || state.modalKind === 'font-browser' || state.modalKind === 'help' || state.modalKind === 'inapp-guide') {
     closeModal();
     return;
   }

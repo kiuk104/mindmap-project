@@ -19,7 +19,7 @@ import { addCallout, deleteCallout, selectCallout, removeCalloutsByParents,
          onCalloutPointerDown, onCalloutPointerMove, onCalloutPointerUp,
          isCalloutDragging } from './callouts.js';
 import { deleteZone, renameZone, selectZone } from './zones.js';
-import { openLinkModal, openColorModal, openSaveModal, openDriveLoadModal, openDriveManageModal, openGDocsPreviewModal, openNoteModal, openShareModal, openRenameModal, openHelpModal, tryLoadFromHash, closeModal, handleModalOK, applyStyle } from './modal.js';
+import { openLinkModal, openColorModal, openSaveModal, openDriveLoadModal, openDriveManageModal, openGDocsPreviewModal, openNoteModal, openShareModal, openRenameModal, openHelpModal, tryLoadFromHash, closeModal, handleModalOK, applyStyle, requestDriveSignIn } from './modal.js';
 import { initSettingsPanel, toggleSettingsPanel, openSettingsPanel, closeSettingsPanel, isSettingsPanelOpen, injectCustomFonts } from './settings-panel.js';
 import { registerShortcuts, dispatchKey } from './shortcuts.js';
 import * as drive                            from './drive.js';
@@ -594,22 +594,6 @@ function initToolbarOverflow() {
 }
 initToolbarOverflow();
 
-/** signIn 호출 직후 사용자에게 안내 — 모바일에서 팝업이 안 보이는 케이스 가이드 */
-function notifySignInOpened() {
-  const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
-  if (isMobile) {
-    toastSuccess(
-      '🔑 Google 로그인 창을 여는 중…\n' +
-      '⚠️ 모바일에서는 팝업이 자주 차단됩니다. 안 뜨면:\n' +
-      '① 브라우저 주소창의 팝업 차단 아이콘을 눌러 허용\n' +
-      '② 다시 "Google 계정으로 연결" 클릭\n' +
-      '계속 안 되면 데스크탑에서 연결 후 같은 계정으로 모바일에서 자동 복구됩니다.'
-    );
-  } else {
-    toastSuccess('🔑 Google 로그인 창을 여는 중… 팝업 차단이 있다면 허용해주세요.');
-  }
-}
-
 // ── Drive 통합 버튼 (상태에 따라 라벨·메뉴가 동적으로 변함) ──
 function initDriveUnifiedButton() {
   const btn = $('btn-drive-unified');
@@ -657,9 +641,8 @@ function initDriveUnifiedButton() {
     if (!signedIn) {
       dd.innerHTML = `<div class="dd-item" id="dd-signin">🔑 Google 계정으로 연결</div>`;
       dd.querySelector('#dd-signin')?.addEventListener('click', () => {
-        drive.signIn();
         closeDd();
-        notifySignInOpened();
+        requestDriveSignIn();
       });
       return;
     }
@@ -727,7 +710,17 @@ drive.initDrive()
     if (drive.isSignedIn()) {
       tryAutoLoadDriveFile(pendingDriveLoad);
     } else {
-      toastSuccess('🔗 공유된 파일을 열려면 ☁️ Drive 메뉴에서 Google 계정으로 연결해주세요. 연결 후 자동으로 불러옵니다.');
+      // 인앱 브라우저면 즉시 안내 모달 — 어차피 로그인이 막혀있음
+      const inApp = (() => {
+        // 동적 import 회피용 — utils.detectInAppBrowser는 동기
+        const ua = navigator.userAgent || '';
+        return /KAKAOTALK|NAVER\(inapp|Line\/|FBAN|FBAV|Instagram|MicroMessenger|Daum/i.test(ua);
+      })();
+      if (inApp) {
+        toastError('🛑 인앱 브라우저에서는 Google 로그인이 차단됩니다. ☁️ Drive 메뉴를 눌러 안내를 확인해주세요.');
+      } else {
+        toastSuccess('🔗 공유된 파일을 열려면 ☁️ Drive 메뉴에서 Google 계정으로 연결해주세요. 연결 후 자동으로 불러옵니다.');
+      }
       // 로그인 시점에 자동 로드
       const off = drive.onAuthChange(({ signedIn }) => {
         if (signedIn && pendingDriveLoad) {
@@ -956,7 +949,7 @@ registerCommands([
   // Drive
   { icon: '☁️', label: 'Drive 연결/로그인', keywords: ['드라이브','로그인','google','oauth'],
     disabled: () => drive.isSignedIn() || !drive.isAvailable(),
-    action: () => { drive.signIn(); notifySignInOpened(); } },
+    action: () => { requestDriveSignIn(); } },
   { icon: '🚪', label: 'Drive 연결 해제', keywords: ['로그아웃','연결해제','signout'],
     disabled: () => !drive.isSignedIn(),
     action: () => { drive.signOut(); toastSuccess('Drive 연결 해제됨'); } },

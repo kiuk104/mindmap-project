@@ -728,3 +728,25 @@ export function clearRelationSelection(state) {
   state.selectedCalloutId = null;
   state.selectedZoneId    = null;
 }
+
+/**
+ * 카카오톡·라인·페이스북 등 인앱 브라우저 감지.
+ * Google OAuth는 보안 정책상 임베디드 웹뷰에서의 로그인을 차단하므로,
+ * 사용자에게 외부 브라우저로 열도록 안내해야 한다.
+ * @returns {{name:string, label:string}|null}
+ */
+export function detectInAppBrowser() {
+  const ua = navigator.userAgent || '';
+  if (/KAKAOTALK/i.test(ua))       return { name: 'kakaotalk', label: '카카오톡' };
+  if (/NAVER\(inapp/i.test(ua))    return { name: 'naver',     label: '네이버 앱' };
+  if (/Line\//i.test(ua))          return { name: 'line',      label: '라인' };
+  if (/FBAN|FBAV/i.test(ua))       return { name: 'facebook',  label: '페이스북' };
+  if (/Instagram/i.test(ua))       return { name: 'instagram', label: '인스타그램' };
+  if (/MicroMessenger/i.test(ua))  return { name: 'wechat',    label: '위챗' };
+  if (/Daum/i.test(ua))            return { name: 'daum',      label: '다음 앱' };
+  if (/everytimeApp/i.test(ua))    return { name: 'everytime', label: '에브리타임' };
+  if (/zumApp/i.test(ua))          return { name: 'zum',       label: 'zum 앱' };
+  // 일반적인 in-app webview 의심: iOS는 Safari가 빠짐, Android는 wv가 있음
+  // 너무 공격적이라 위양성 위험. 위 명시적 케이스만 처리.
+  return null;
+}
