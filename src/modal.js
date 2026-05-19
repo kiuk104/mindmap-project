@@ -608,12 +608,16 @@ function handleShareOption(kind) {
     closeModal();
     toastSuccess('☁️ Drive 저장 및 공유 링크 생성 중…');
     drive.saveToDrive(name, serialize())
-      .then((file) => drive.makePublicLink(file.id))
-      .then((url) => {
+      .then((file) =>
+        drive.makePublicLink(file.id).then(() => file.id)
+      )
+      .then((fileId) => {
+        // 받는 사람이 클릭하면 우리 앱이 열리고 자동으로 Drive 파일 로드
+        const url = `${location.origin}${location.pathname}?drive=${fileId}`;
         return navigator.clipboard.writeText(url).then(() => url);
       })
       .then((url) => {
-        toastSuccess(`🔗 Drive 공유 링크가 클립보드에 복사됨\n${url}`);
+        toastSuccess(`🔗 공유 링크가 클립보드에 복사됨 — 받는 사람이 클릭하면 앱에서 자동 열림\n${url}`);
       })
       .catch((e) => toastError('Drive 공유 실패: ' + e.message));
     return;

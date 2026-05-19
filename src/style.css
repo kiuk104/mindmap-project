@@ -505,22 +505,30 @@ body.relation-drafting .node { cursor: crosshair !important; }
 }
 
 /* ── 모바일 반응형 ── */
+/* 데스크탑(>768px)에서는 더보기 버튼 숨김 — 보조 버튼들이 직접 보임 */
+#btn-tb-more { display: none; }
+
 @media (max-width: 768px) {
   #toolbar {
-    flex-wrap: wrap; height: auto; min-height: 54px;
+    flex-wrap: nowrap; height: 54px;
     padding: 6px 8px; gap: 4px;
+    overflow: hidden;
   }
+  /* 모바일에서는 보조 버튼 모두 숨기고 더보기 버튼 활성화 */
+  .tb-overflow-hide { display: none !important; }
+  #btn-tb-more { display: inline-flex; }
   .toolbar-title { font-size: 14px; }
   .btn { padding: 7px 10px; min-height: 36px; font-size: 11px; }
   .btn small { display: none; }
   .sep { display: none; }
-  #canvas-wrap { top: 100px; }
-  .search-box input { width: 130px; }
+  #canvas-wrap { top: 54px; }
+  .search-box input { width: 110px; }
   .search-box input:focus { width: 160px; }
-  .toolbar-saved { font-size: 10px; }
+  .toolbar-saved { display: none; }
   .toolbar-hint { display: none; }
   #help-hud { display: none; }
   #hud { bottom: 8px; right: 8px; font-size: 11px; }
+  .map-title-btn { max-width: 120px; font-size: 12px; padding: 4px 6px; }
 
   #ctx-menu, #ctx-bg-menu {
     min-width: 220px;
@@ -1797,7 +1805,8 @@ body.settings-panel-open #settings-panel { transform: translateX(0); }
 
 /* Drive 드롭다운 */
 #drive-dropdown,
-#import-dropdown {
+#import-dropdown,
+#tb-more-dropdown {
   position: fixed;
   background: var(--bg-elev);
   border: 1px solid var(--border);
@@ -1809,9 +1818,11 @@ body.settings-panel-open #settings-panel { transform: translateX(0); }
   display: none;
 }
 #drive-dropdown.open,
-#import-dropdown.open { display: block; }
+#import-dropdown.open,
+#tb-more-dropdown.open { display: block; }
 #drive-dropdown .dd-item,
-#import-dropdown .dd-item {
+#import-dropdown .dd-item,
+#tb-more-dropdown .dd-item {
   padding: 8px 16px;
   cursor: pointer;
   font-size: 13px;
@@ -1822,7 +1833,8 @@ body.settings-panel-open #settings-panel { transform: translateX(0); }
   white-space: nowrap;
 }
 #drive-dropdown .dd-item:hover,
-#import-dropdown .dd-item:not(.cmd-disabled):hover { background: var(--bg-hover); }
+#import-dropdown .dd-item:not(.cmd-disabled):hover,
+#tb-more-dropdown .dd-item:hover { background: var(--bg-hover); }
 #drive-dropdown .dd-sep,
 #import-dropdown .dd-sep {
   height: 1px;

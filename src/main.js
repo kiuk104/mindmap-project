@@ -24,7 +24,7 @@ import { initSettingsPanel, toggleSettingsPanel, openSettingsPanel, closeSetting
 import { registerShortcuts, dispatchKey } from './shortcuts.js';
 import * as drive                            from './drive.js';
 import { showContextMenu, hideContextMenu, hideAllMenus, showBgMenu, initContextMenu, showZoneMenu, showCalloutMenu } from './menu.js';
-import { doImport, schedulePersist, restoreLocal, onSaveStateChange, onLastSaveChange, quickSave, getLastSave, setLastSave, serialize, defaultFilename } from './io.js';
+import { doImport, schedulePersist, restoreLocal, onSaveStateChange, onLastSaveChange, quickSave, getLastSave, setLastSave, serialize, defaultFilename, loadFromString as loadFromStringFromIO } from './io.js';
 import { toastSuccess, toastError } from './toast.js';
 import { runSearch, gotoHit, clearSearch }    from './search.js';
 import { initStylePanel, togglePanel, closePanel, isPanelOpen, setOnStyleApplied, syncSelectedNodeSection } from './style-panel.js';
@@ -257,11 +257,41 @@ function createSamples() {
   });
 }
 
+// ?drive=fileId 공유 URL 처리 — Drive 로그인 상태에 따라 즉시 또는 지연 로드
+let pendingDriveLoad = null;
+function consumeDriveQuery() {
+  const id = new URLSearchParams(location.search).get('drive');
+  if (!id) return null;
+  // URL 정리 — 새로고침 시 다시 안 트리거되게
+  const u = new URL(location.href);
+  u.searchParams.delete('drive');
+  history.replaceState(null, '', u.toString());
+  return id;
+}
+async function tryAutoLoadDriveFile(fileId) {
+  try {
+    const content = await drive.loadFromDrive(fileId);
+    if (loadFromStringFromIO(content)) {
+      pendingDriveLoad = null;
+      setLastSave({ kind: 'drive', name: '공유 파일', driveFileId: fileId });
+      resetView();
+      toastSuccess('🔗 공유된 마인드맵을 자동으로 불러왔습니다');
+    } else {
+      toastError('공유 파일이 올바른 마인드맵 JSON이 아닙니다');
+    }
+  } catch (e) {
+    toastError('공유 파일 로드 실패: ' + e.message);
+  }
+}
+
 function init() {
-  // URL hash에 공유 데이터가 있으면 그것이 최우선 (localStorage·샘플보다 우선)
-  const fromHash = tryLoadFromHash();
+  // ?drive=fileId 공유 URL이면 자동 로드 시도 (가장 우선)
+  pendingDriveLoad = consumeDriveQuery();
+  // URL hash에 공유 데이터가 있으면 그것이 다음 우선 (localStorage·샘플보다 우선)
+  const fromHash = pendingDriveLoad ? false : tryLoadFromHash();
   const restored = fromHash || restoreLocal();
-  if (!restored) createSamples();
+  // pendingDriveLoad가 있으면 빈 샘플로 시작 (Drive 로드 대기) — 단 restoreLocal로 복구된 상태는 유지
+  if (!restored && !pendingDriveLoad) createSamples();
 
   render();
 
@@ -504,6 +534,47 @@ onSettingsChange((s) => {
   document.body.classList.toggle('hide-app-title', !!s.hideAppTitle);
 });
 
+// ── 툴바 오버플로 (⋯ 더보기) — 모바일에서만 보이는 드롭다운 ──
+function initToolbarOverflow() {
+  const btn = $('btn-tb-more');
+  if (!btn) return;
+  let dd = document.getElementById('tb-more-dropdown');
+  if (!dd) {
+    dd = document.createElement('div');
+    dd.id = 'tb-more-dropdown';
+    document.body.appendChild(dd);
+  }
+  function closeDd() { dd.classList.remove('open'); }
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const rect = btn.getBoundingClientRect();
+    dd.style.top  = (rect.bottom + 4) + 'px';
+    dd.style.left = Math.max(8, rect.right - 240) + 'px';
+    dd.classList.toggle('open');
+    renderMore();
+  });
+  document.addEventListener('click', () => closeDd());
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDd(); });
+
+  function renderMore() {
+    // data-tb-extra 라벨이 있는 hidden 보조 버튼들을 메뉴로
+    const buttons = document.querySelectorAll('[data-tb-extra]');
+    dd.innerHTML = [...buttons].map((b) => {
+      const id = b.id;
+      const label = b.dataset.tbExtra;
+      return `<div class="dd-item" data-target="${id}">${label}</div>`;
+    }).join('');
+    dd.querySelectorAll('.dd-item').forEach((el) => {
+      el.addEventListener('click', () => {
+        closeDd();
+        // 원본 버튼의 click 핸들러를 그대로 trigger (DRY)
+        document.getElementById(el.dataset.target)?.click();
+      });
+    });
+  }
+}
+initToolbarOverflow();
+
 /** signIn 호출 직후 사용자에게 안내 — 모바일에서 팝업이 안 보이는 케이스 가이드 */
 function notifySignInOpened() {
   const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
@@ -630,7 +701,24 @@ function initDriveUnifiedButton() {
 initDriveUnifiedButton();
 
 // Drive 초기화 (스크립트 로드)는 비동기로 진행
-drive.initDrive().catch((e) => console.warn('Drive init 실패:', e));
+drive.initDrive()
+  .then(() => {
+    // ?drive=fileId가 있는데 미로그인이면 안내; 로그인되면 즉시 로드.
+    if (!pendingDriveLoad) return;
+    if (drive.isSignedIn()) {
+      tryAutoLoadDriveFile(pendingDriveLoad);
+    } else {
+      toastSuccess('🔗 공유된 파일을 열려면 ☁️ Drive 메뉴에서 Google 계정으로 연결해주세요. 연결 후 자동으로 불러옵니다.');
+      // 로그인 시점에 자동 로드
+      const off = drive.onAuthChange(({ signedIn }) => {
+        if (signedIn && pendingDriveLoad) {
+          off();
+          tryAutoLoadDriveFile(pendingDriveLoad);
+        }
+      });
+    }
+  })
+  .catch((e) => console.warn('Drive init 실패:', e));
 
 // ── 검색 input ──
 $('search-input').addEventListener('input', (e) => runSearch(e.target.value));
