@@ -105,6 +105,10 @@ function notify() {
   listeners.forEach((fn) => fn(lastSavedTs));
 }
 
+// 자동저장 실패 알림 상태 — 중복 토스트 방지 + 복구 시점 피드백
+let lastPersistErrorAt = 0;
+const PERSIST_ERROR_NOTIFY_INTERVAL_MS = 30_000;
+
 /** 자동 저장 예약 (300ms 디바운스) */
 export function schedulePersist() {
   clearTimeout(persistTimer);
@@ -113,8 +117,24 @@ export function schedulePersist() {
       localStorage.setItem(STORAGE_KEY, serialize());
       lastSavedTs = Date.now();
       notify();
+      // 직전 실패가 있었다면 복구됨 알림 — 사용자가 백업 후 공간을 확보한 케이스
+      if (lastPersistErrorAt) {
+        toastSuccess('💾 자동 저장이 복구되었습니다');
+        lastPersistErrorAt = 0;
+      }
     } catch (e) {
       console.warn('자동 저장 실패:', e);
+      const now = Date.now();
+      // 30초당 1회만 토스트 (계속 떠서 거슬리지 않게)
+      if (now - lastPersistErrorAt > PERSIST_ERROR_NOTIFY_INTERVAL_MS) {
+        const isQuota = e?.name === 'QuotaExceededError'
+          || /quota|storage/i.test(e?.message ?? '');
+        toastError(isQuota
+          ? '💾 자동 저장 실패: 브라우저 저장 공간 부족 — 💾 저장으로 파일로 백업하세요'
+          : '💾 자동 저장 실패 — 💾 저장으로 백업하세요'
+        );
+        lastPersistErrorAt = now;
+      }
     }
   }, 300);
 }
