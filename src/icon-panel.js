@@ -8,7 +8,14 @@
  */
 
 import { state } from './state.js';
-import { render } from './render.js';
+import { render, patchNode } from './render.js';
+
+/** 여러 노드를 patchNode로 갱신하되, 한 노드라도 실패하면 전체 render fallback */
+function patchOrRender(ids) {
+  for (const id of ids) {
+    if (!patchNode(id)) { render(); return; }
+  }
+}
 import { $, ICON_GROUPS, ICON_TAB_NAMES, ICON_CAT_NAMES_KR } from './utils.js';
 import { ICON_ASSETS, isAssetIcon, assetIdToUrl } from './icon-assets.js';
 import { pushHistory } from './history.js';
@@ -200,7 +207,7 @@ function renderBody() {
       ids2.forEach((id) => {
         if (state.nodes[id]) state.nodes[id].icon = newIcon;
       });
-      render();   // postRender 훅이 다시 renderBody 호출 → 현재 표시 자동 갱신
+      patchOrRender(ids2);
     });
   });
 
@@ -212,7 +219,7 @@ function renderBody() {
     ids2.forEach((id) => {
       if (state.nodes[id]) state.nodes[id].icon = '';
     });
-    render();
+    patchOrRender(ids2);
   });
 
   // 아이콘 색 — input은 픽커가 열린 동안 빈번하게 발사됨.
@@ -241,7 +248,7 @@ function renderBody() {
     ids2.forEach((id) => {
       if (state.nodes[id]) state.nodes[id].iconColor = e.target.value;
     });
-    render();
+    patchOrRender(ids2);
   });
   $('ip-icon-color-reset')?.addEventListener('click', () => {
     const ids2 = targetNodeIds();
@@ -250,7 +257,7 @@ function renderBody() {
     ids2.forEach((id) => {
       if (state.nodes[id]) state.nodes[id].iconColor = null;
     });
-    render();
+    patchOrRender(ids2);
   });
 }
 

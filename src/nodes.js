@@ -3,7 +3,7 @@
  */
 
 import { state } from './state.js';
-import { render } from './render.js';
+import { render, patchNode } from './render.js';
 import { uid, makeNode, currentPalette, setNodeSelection, $, findUrlsInText, detectLinkType } from './utils.js';
 import { pushHistory, beginPending, commitPending, cancelPending } from './history.js';
 import { getSettings } from './settings.js';
@@ -192,7 +192,8 @@ export function startEdit(e, id) {
     } else {
       cancelPending();
     }
-    render();
+    // 텍스트 변경은 단일 노드 patch로 충분 (편집 취소도 textarea 제거를 위해 patch 필요)
+    if (!patchNode(node.id)) render();
   });
   ta.addEventListener('keydown', (ev) => {
     if (ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); ta.blur(); }

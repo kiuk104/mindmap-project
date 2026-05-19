@@ -5,7 +5,7 @@
  */
 
 import { state } from './state.js';
-import { render } from './render.js';
+import { render, patchNode } from './render.js';
 import { resetView } from './canvas.js';
 import { $, FONT_FAMILIES, FONT_NAMES, currentPalette, linkIcon, linkDefault, resolvePalette, COLOR_THEMES, composeFontFamily, ENGLISH_FONTS, ENGLISH_FONT_NAMES, KOREAN_FONTS, KOREAN_FONT_NAMES, DASH_NAMES, detectLinkType, googleDocsPreviewUrl } from './utils.js';
 import { removeLink } from './nodes.js';
@@ -1096,6 +1096,13 @@ export function openColorModal(nodeId) {
   showModal();
 }
 
+/** 여러 노드를 patchNode로 갱신하되, 한 노드라도 실패하면 전체 render fallback */
+function patchOrRender(ids) {
+  for (const id of ids) {
+    if (!patchNode(id)) { render(); return; }
+  }
+}
+
 /** 모달 확인 버튼 처리 */
 export function handleModalOK() {
   // OK 액션이 없는 닫기-만 모달들
@@ -1112,7 +1119,7 @@ export function handleModalOK() {
       node.note = text;
     }
     closeModal();
-    render();
+    if (!patchNode(state.ctxTargetId)) render();
     return;
   }
   if (state.modalKind === 'tasks') {
@@ -1125,7 +1132,7 @@ export function handleModalOK() {
       node.tasks = tasksDraft.map((t) => ({ ...t }));
     }
     closeModal();
-    render();
+    if (!patchNode(state.ctxTargetId)) render();
     return;
   }
 
@@ -1148,13 +1155,15 @@ export function handleModalOK() {
       node.links.push({ type, url, label });
     }
 
+    const targetId = state.ctxTargetId;
     closeModal();
-    render();
+    if (!patchNode(targetId)) render();
 
   } else if (state.modalKind === 'color') {
     const selected = $('modal-body').querySelector('.cdot.sel');
+    let ids = [];
     if (selected) {
-      const ids = targetNodeIds(state.ctxTargetId);
+      ids = targetNodeIds(state.ctxTargetId);
       if (ids.length) {
         pushHistory();
         ids.forEach((id) => {
@@ -1163,7 +1172,7 @@ export function handleModalOK() {
       }
     }
     closeModal();
-    render();
+    if (ids.length) patchOrRender(ids); else render();
 
   } else if (state.modalKind === 'image') {
     const ids = targetNodeIds(state.ctxTargetId);
@@ -1175,7 +1184,7 @@ export function handleModalOK() {
       });
     }
     closeModal();
-    render();
+    if (ids.length) patchOrRender(ids); else render();
 
   } else if (state.modalKind === 'customTheme') {
     handleCustomThemeOK();

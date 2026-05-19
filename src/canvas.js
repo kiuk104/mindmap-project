@@ -9,7 +9,7 @@
  */
 
 import { state } from './state.js';
-import { render, updateLines } from './render.js';
+import { render, updateLines, updateSelection } from './render.js';
 import { $, setNodeSelection, clearNodeSelection, setRelationSelection, clearRelationSelection, getRelationControls, getBranchControls } from './utils.js';
 import { pushHistory, beginPending, commitPending, cancelPending } from './history.js';
 import { newRelationStyle } from './settings.js';
@@ -260,8 +260,13 @@ export function onNodeMouseDown(e, nodeId) {
   } else if (!alreadySelected) {
     setNodeSelection(state, [nodeId]);
   }
+  // 관계선이 선택돼 있었으면 SVG 스타일도 갱신해야 하므로 전체 render
+  // 그 외엔 노드 .selected 클래스만 토글 — 노드 div가 교체되지 않아야 dblclick(편집)이 정상 동작
+  const hadRelSelection = !!state.selectedRelationId || (state.selectedRelationIds?.length > 0);
   state.selectedRelationId = null;
-  render();
+  state.selectedRelationIds = [];
+  if (hadRelSelection) render();
+  else                  updateSelection();
 
   // 드래그 준비 — 다중 선택 시엔 그룹 전체 이동
   dragging = true;

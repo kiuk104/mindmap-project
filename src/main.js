@@ -9,7 +9,7 @@
  */
 
 import { state }                           from './state.js';
-import { render, patchNode, registerHandlers, setPostRender } from './render.js';
+import { render, patchNode, updateSelection, registerHandlers, setPostRender } from './render.js';
 import { $, uid, makeNode, COLORS, setNodeSelection, clearNodeSelection, setRelationSelection, clearRelationSelection } from './utils.js';
 import { showPreview, hidePreview }        from './preview.js';
 import { addChild, deleteNode, startEdit, removeLink, toggleCollapse, expandAncestors } from './nodes.js';
@@ -127,8 +127,10 @@ onSaveStateChange((ts) => {
 // ── 키보드 트리 네비게이션 ──
 function selectAndCenter(id) {
   setNodeSelection(state, [id]);
-  expandAncestors(id);
-  render();
+  // expandAncestors가 실제로 collapsed를 풀었으면 다른 노드 가시성 변화 → 전체 render
+  // 변화 없으면 .selected 클래스만 토글하는 가벼운 updateSelection 사용
+  if (expandAncestors(id)) render();
+  else                     updateSelection();
   // 선택 노드가 뷰포트 밖이면 가까이 끌어옴 (절대 좌표가 화면에 들어오도록)
   const node = state.nodes[id];
   if (!node) return;
