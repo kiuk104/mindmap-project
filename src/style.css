@@ -1851,6 +1851,75 @@ body.settings-panel-open #settings-panel { transform: translateX(0); }
 #drive-dropdown .dd-item.danger { color: #f85149; }
 #import-dropdown .dd-item.cmd-disabled { opacity: 0.5; cursor: default; }
 
+/* ── 도움말 모달 ── */
+.help-body {
+  max-height: 70vh; overflow-y: auto;
+  font-size: 13px; line-height: 1.55;
+  color: var(--text);
+}
+.help-section { margin-bottom: 22px; }
+.help-section:last-child { margin-bottom: 0; }
+.help-h {
+  font-size: 14px; font-weight: 700; color: var(--text-bright);
+  margin: 0 0 8px; padding-bottom: 6px;
+  border-bottom: 1px solid var(--border-soft);
+}
+.help-list { margin: 0; padding-left: 20px; }
+.help-list li { margin-bottom: 5px; }
+.help-table { width: 100%; border-collapse: collapse; }
+.help-table td {
+  padding: 6px 10px; border-bottom: 1px solid var(--border-soft);
+  font-size: 12px; vertical-align: top;
+}
+.help-table td:first-child {
+  white-space: nowrap; color: var(--text-bright); font-weight: 600;
+  width: 35%;
+}
+.help-shortcuts {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px 20px;
+}
+.help-shortcut-group-title {
+  font-size: 11px; font-weight: 700; color: var(--text-dim);
+  text-transform: uppercase; letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+.help-shortcut-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 4px 0; font-size: 12px;
+  border-bottom: 1px dashed var(--border-soft);
+}
+.help-shortcut-label { color: var(--text); }
+.help-key, .help-body kbd {
+  background: var(--bg-hover); border: 1px solid var(--border);
+  border-radius: 4px; padding: 1px 6px;
+  font-size: 11px; color: var(--text-bright);
+  font-family: ui-monospace, monospace; white-space: nowrap;
+}
+.help-note {
+  font-size: 11px; color: var(--text-dim);
+  margin: 10px 0 0; padding: 6px 10px;
+  background: var(--bg-elev); border-radius: 4px;
+}
+.help-body details {
+  background: var(--bg-elev); border: 1px solid var(--border-soft);
+  border-radius: 6px; padding: 8px 12px; margin-bottom: 6px;
+}
+.help-body details summary {
+  cursor: pointer; font-size: 12.5px; color: var(--text-bright);
+}
+.help-body details[open] { padding-bottom: 10px; }
+.help-body details summary + * { margin-top: 8px; }
+.help-body code {
+  background: var(--bg-hover); padding: 1px 5px; border-radius: 3px;
+  font-size: 11px; font-family: ui-monospace, monospace;
+}
+.help-body a { color: var(--accent-blue); }
+.help-foot {
+  font-size: 11px; color: var(--text-dim);
+  text-align: center; margin-top: 18px;
+}
+
 /* ── 웰컴 오버레이 ── */
 #welcome-overlay {
   position: fixed; inset: 0;

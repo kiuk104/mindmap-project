@@ -19,7 +19,7 @@ import { addCallout, deleteCallout, selectCallout, removeCalloutsByParents,
          onCalloutPointerDown, onCalloutPointerMove, onCalloutPointerUp,
          isCalloutDragging } from './callouts.js';
 import { deleteZone, renameZone, selectZone } from './zones.js';
-import { openLinkModal, openColorModal, openSaveModal, openDriveLoadModal, openDriveManageModal, openGDocsPreviewModal, openNoteModal, openShareModal, openRenameModal, tryLoadFromHash, closeModal, handleModalOK, applyStyle } from './modal.js';
+import { openLinkModal, openColorModal, openSaveModal, openDriveLoadModal, openDriveManageModal, openGDocsPreviewModal, openNoteModal, openShareModal, openRenameModal, openHelpModal, tryLoadFromHash, closeModal, handleModalOK, applyStyle } from './modal.js';
 import { initSettingsPanel, toggleSettingsPanel, openSettingsPanel, closeSettingsPanel, isSettingsPanelOpen, injectCustomFonts } from './settings-panel.js';
 import { registerShortcuts, dispatchKey } from './shortcuts.js';
 import * as drive                            from './drive.js';
@@ -941,7 +941,13 @@ registerCommands([
   { icon: '🚪', label: 'Drive 연결 해제', keywords: ['로그아웃','연결해제','signout'],
     disabled: () => !drive.isSignedIn(),
     action: () => { drive.signOut(); toastSuccess('Drive 연결 해제됨'); } },
+  // 도움말
+  { icon: '❓', label: '도움말 (단축키·제스처·FAQ)', keywords: ['도움말','help','단축키','제스처','faq'],
+    action: () => openHelpModal() },
 ]);
+
+// 도움말 버튼
+$('btn-help')?.addEventListener('click', () => openHelpModal());
 
 // ── 시작 ──
 init();

@@ -14,6 +14,7 @@ import { exportSvgFile, exportPngFile } from './export.js';
 import * as drive from './drive.js';
 import { pushHistory } from './history.js';
 import { getSettings, updateSettings } from './settings.js';
+import { ACTIONS, getBinding } from './shortcuts.js';
 import { enhanceDashPicker } from './dash-picker.js';
 import { toastSuccess, toastError } from './toast.js';
 // popular-fonts는 폰트 찾기 모달이 열릴 때만 동적 import (초기 번들에서 제외)
@@ -656,6 +657,127 @@ function handleShareOption(kind) {
 }
 
 /**
+ * 도움말 모달 — 단축키·제스처·기능 안내 + FAQ.
+ * shortcuts.js의 ACTIONS를 기반으로 단축키 표를 동적 생성.
+ */
+export function openHelpModal() {
+  state.modalKind = 'help';
+  $('modal-title').textContent = '❓ 도움말';
+
+  // 단축키를 그룹별로 묶음
+  const groups = {};
+  for (const [id, meta] of Object.entries(ACTIONS)) {
+    const g = meta.group || '기타';
+    const binding = getBinding(id);
+    if (!binding) continue;
+    (groups[g] ||= []).push({ label: meta.label, binding });
+  }
+  const shortcutsHTML = Object.entries(groups).map(([gname, items]) => `
+    <div class="help-shortcut-group">
+      <div class="help-shortcut-group-title">${escapeHTML(gname)}</div>
+      ${items.map((it) => `
+        <div class="help-shortcut-row">
+          <span class="help-shortcut-label">${escapeHTML(it.label)}</span>
+          <kbd class="help-key">${escapeHTML(it.binding.replace(/\+/g, ' + '))}</kbd>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+
+  $('modal-body').innerHTML = `
+    <div class="help-body">
+      <section class="help-section">
+        <h3 class="help-h">🎯 빠른 시작</h3>
+        <ul class="help-list">
+          <li>중심 노드를 더블클릭(또는 빠르게 두 번 클릭)해 텍스트 편집</li>
+          <li><kbd>Tab</kbd>으로 자식 노드 추가</li>
+          <li>빈 공간 더블클릭으로 새 노드 추가</li>
+          <li>노드를 드래그해서 위치 이동, 다른 노드 위로 드래그하면 그 노드가 새 부모</li>
+        </ul>
+      </section>
+
+      <section class="help-section">
+        <h3 class="help-h">🖱️ 마우스 / 터치 제스처</h3>
+        <table class="help-table">
+          <tr><td>드래그 (배경)</td><td>화면 이동(Pan)</td></tr>
+          <tr><td>드래그 (노드)</td><td>노드 이동 · 다른 노드 위면 부모 재연결(파란 라인 프리뷰)</td></tr>
+          <tr><td>휠 / 핀치</td><td>줌 인/아웃</td></tr>
+          <tr><td>더블클릭 / 더블탭</td><td>노드 텍스트 편집 (빈 공간은 새 노드 추가)</td></tr>
+          <tr><td>우클릭 / 길게누름(0.5초)</td><td>컨텍스트 메뉴</td></tr>
+          <tr><td>Shift + 클릭</td><td>다중 선택 토글</td></tr>
+          <tr><td>드래그 (배경, 좌클릭)</td><td>셀렉트 박스 다중 선택</td></tr>
+        </table>
+      </section>
+
+      <section class="help-section">
+        <h3 class="help-h">⌨️ 키보드 단축키</h3>
+        <div class="help-shortcuts">${shortcutsHTML}</div>
+        <p class="help-note">⚙️ 설정 → 단축키 탭에서 모든 단축키를 변경할 수 있습니다.</p>
+      </section>
+
+      <section class="help-section">
+        <h3 class="help-h">💾 저장 · 공유</h3>
+        <ul class="help-list">
+          <li><b>자동 저장</b>: 모든 변경이 로컬에 즉시 저장됩니다 (브라우저별).</li>
+          <li><b>💾 저장</b>: JSON 파일 다운로드 / 클립보드 / Drive / PNG / SVG 선택.</li>
+          <li><b>🔗 공유</b>: Drive 공유 링크 복사가 가장 편함. 받는 사람이 링크 클릭 → 우리 앱이 자동 열림 + Drive 로그인 시 자동 로드.</li>
+          <li><b>좌상단 파일명 클릭</b>: 맵 이름 변경 (Drive 파일이면 같이 리네임).</li>
+        </ul>
+      </section>
+
+      <section class="help-section">
+        <h3 class="help-h">☁️ Google Drive 연동</h3>
+        <ul class="help-list">
+          <li>☁️ Drive 메뉴 → "Google 계정으로 연결" → OAuth 팝업 → 동의.</li>
+          <li>저장된 파일은 ☁️ Drive → "파일 관리"에서 이름변경·삭제.</li>
+          <li><b>모바일</b>: 팝업이 자주 차단됩니다. 안 뜨면 주소창의 차단 아이콘에서 허용 또는 데스크탑에서 한 번 연결.</li>
+        </ul>
+      </section>
+
+      <section class="help-section">
+        <h3 class="help-h">🎨 노드 스타일</h3>
+        <ul class="help-list">
+          <li>노드를 선택하면 우측 🎨 스타일 패널에서 텍스트·색·모양·테두리·외곽 스트로크 등 변경.</li>
+          <li>다중 선택 시 스타일 패널 변경은 선택된 모든 노드에 적용.</li>
+          <li>🙂 아이콘 패널에서 이모지·Sticker·Illustration 추가.</li>
+          <li>노드 우클릭 → 🖼️ 이미지 임베드: 사진뿐 아니라 비디오 URL도 임베드 가능.</li>
+        </ul>
+      </section>
+
+      <section class="help-section">
+        <h3 class="help-h">❓ FAQ</h3>
+        <details><summary><b>Google Photos 사진을 노드에 넣고 싶어요</b></summary>
+          공유 링크는 직접 임베드 불가합니다. Google Photos에서 사진 우클릭 → "이미지 주소 복사"로 받은 <code>lh3.googleusercontent.com/...</code> URL을 🖼️ 이미지 임베드 또는 🔗 링크(image 타입)에 사용하세요.
+        </details>
+        <details><summary><b>새 배포가 반영이 안 돼요</b></summary>
+          ⚙️ 설정 → "🔄 앱 강제 업데이트" 버튼으로 브라우저 캐시·Service Worker를 비우고 다시 로드합니다. 마인드맵 데이터는 유지됩니다.
+        </details>
+        <details><summary><b>모바일 툴바가 좁아 버튼이 안 보여요</b></summary>
+          툴바 우측 "⋯ 더보기" 버튼에서 모든 보조 기능에 접근할 수 있습니다.
+        </details>
+        <details><summary><b>실수로 모두 지웠어요</b></summary>
+          <kbd>Ctrl + Z</kbd>(또는 macOS <kbd>Cmd + Z</kbd>)로 즉시 복구. 도구 종료 후엔 복구 불가니 중요 맵은 💾 저장으로 백업하세요.
+        </details>
+        <details><summary><b>명령 팔레트(Ctrl+K)는 뭐예요</b></summary>
+          모든 액션을 검색해서 실행할 수 있는 빠른 런처입니다. <kbd>Ctrl + K</kbd>(macOS <kbd>Cmd + K</kbd>)로 열어 한글 또는 영문 키워드로 검색하세요.
+        </details>
+      </section>
+
+      <p class="help-foot">
+        프로젝트: <a href="https://github.com/kiuk104/mindmap-project" target="_blank" rel="noopener">github.com/kiuk104/mindmap-project</a>
+      </p>
+    </div>
+  `;
+
+  // 닫기-only 모달
+  const okBtn  = $('modal-ok');
+  const cancel = $('modal-cancel');
+  if (okBtn) { okBtn.textContent = '닫기'; okBtn.dataset.previewClose = '1'; }
+  if (cancel) cancel.style.display = 'none';
+  showModal();
+}
+
+/**
  * URL hash로 받은 공유 데이터 자동 로드 (앱 시작 시 호출).
  * 'data=...' 가 있으면 디코드 후 loadFromString, 그 후 hash 정리.
  */
@@ -1198,7 +1320,7 @@ function patchOrRender(ids) {
 /** 모달 확인 버튼 처리 */
 export function handleModalOK() {
   // OK 액션이 없는 닫기-만 모달들
-  if (state.modalKind === 'gdocs-preview' || state.modalKind === 'share' || state.modalKind === 'font-browser') {
+  if (state.modalKind === 'gdocs-preview' || state.modalKind === 'share' || state.modalKind === 'font-browser' || state.modalKind === 'help') {
     closeModal();
     return;
   }
