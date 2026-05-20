@@ -58,7 +58,7 @@ let longPressX = 0;
 let longPressY = 0;
 let longPressFired = false;
 const LONG_PRESS_MS = 500;
-const LONG_PRESS_THRESHOLD = 10; // px
+const LONG_PRESS_THRESHOLD = 20; // px — Galaxy 등 Android 터치 지터 대응 (구: 10)
 
 // ── Zoom 상태 ──
 export const view = { px: 0, py: 0, sc: 1 };
@@ -69,7 +69,7 @@ export function getLastNodeInteractAt() { return lastNodeInteractAt; }
 
 // 노드 직접 더블클릭 감지 — 브라우저 dblclick은 마우스 미세 움직임만으로 발사가 깨지므로
 // pointerdown 두 번을 직접 카운트해 텍스트 편집을 trigger.
-const DBL_POINTER_MS = 400;
+const DBL_POINTER_MS = 600; // ms — Galaxy/Android 더블탭 인식 여유 (구: 400)
 let lastNodePointerDownAt = 0;
 let lastNodePointerDownId = null;
 
@@ -148,10 +148,10 @@ function updateDropPreview() {
   if (!from || !to) return;
   const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
   line.setAttribute('class', 'reparent-preview');
-  line.setAttribute('x1', from.x);
-  line.setAttribute('y1', from.y);
-  line.setAttribute('x2', to.x);
-  line.setAttribute('y2', to.y);
+  line.setAttribute('x1', String(from.x));
+  line.setAttribute('y1', String(from.y));
+  line.setAttribute('x2', String(to.x));
+  line.setAttribute('y2', String(to.y));
   svg.appendChild(line);
 }
 

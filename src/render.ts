@@ -12,7 +12,9 @@ import { getSettings } from './settings.js';
 import { isAssetIcon, assetIdToUrl } from './icon-assets.js';
 
 // main.js가 주입할 핸들러 (기본값은 빈 함수)
-const H = {
+// TS-4 단계 — 핸들러 시그니처가 호출처마다 다양(MouseEvent/PointerEvent/id 등)하므로
+// 일괄 any 타입. strict 강화 단계에서 인터페이스로 정밀화.
+const H: any = {
   onNodeMouseDown:      () => {},
   onNodeDblClick:       () => {},
   onNodeContextMenu:    () => {},
@@ -206,7 +208,7 @@ function buildSvgMarkup(hiddenIds) {
     const markerStart = (arrow === 'start' || arrow === 'both') ? 'url(#rel-arrow)' : 'none';
 
     // 점선 패턴 (기본은 dashed) — 'wavy'는 dasharray가 아닌 filter로, dotted는 round 캡
-    const dashKey  = rs.dash ?? 'dashed';
+    const dashKey: string = rs.dash ?? 'dashed';
     const isWavyRel = dashKey === 'wavy';
     const dashAttr = isWavyRel ? '' : (DASH_PATTERNS[dashKey] ?? DASH_PATTERNS.dashed);
     const filterAttrRel = isWavyRel ? `filter="url(#wavy-line)"` : '';
@@ -574,7 +576,7 @@ function buildNodeEl(n, ctx) {
         cb.checked = !!t.done;
         cb.addEventListener('click', (e) => e.stopPropagation());
         cb.addEventListener('change', (e) => {
-          if (H.onTaskToggle) H.onTaskToggle(n.id, i, e.target.checked);
+          if (H.onTaskToggle) H.onTaskToggle(n.id, i, (e.target as HTMLInputElement).checked);
         });
 
         const txt = document.createElement('span');
