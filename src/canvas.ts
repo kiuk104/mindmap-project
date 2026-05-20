@@ -71,13 +71,13 @@ export function getLastNodeInteractAt() { return lastNodeInteractAt; }
 // pointerdown 두 번을 직접 카운트해 텍스트 편집을 trigger.
 const DBL_POINTER_MS = 600; // ms — Galaxy/Android 더블탭 인식 여유 (구: 400)
 let lastNodePointerDownAt = 0;
-let lastNodePointerDownId = null;
+let lastNodePointerDownId: string | null = null;
 
 // 드래그 중 부모 재연결을 위한 drop target 추적
 let dropTargetId: string | null = null;
 
 /** nodeId가 ancestorId의 후손(자기 자신 포함)인가 — 부모 재연결 시 순환 방지 */
-function isDescendantOf(ancestorId, nodeId) {
+function isDescendantOf(ancestorId: string, nodeId: string): boolean {
   let cur = state.nodes[nodeId];
   while (cur) {
     if (cur.id === ancestorId) return true;
@@ -95,7 +95,7 @@ const DROP_DISTANCE_PX = 60;
  * 거리 계산: 마우스 캔버스 좌표 vs 노드 bounding box 표면까지의 거리 (박스 안이면 0).
  * elementFromPoint 대신 거리 기반 — 노드 위에 정확히 올리지 않아도 가까이만 가면 인식.
  */
-function updateDropTarget(clientX, clientY) {
+function updateDropTarget(clientX: number, clientY: number) {
   if (!dragging || !dragId || multiDragOffsets) {
     clearDropTarget();
     return;
@@ -173,7 +173,7 @@ export function consumePanDragFlag() {
 }
 
 /** 화면 좌표 → 캔버스 좌표 변환 */
-export function canvasCoord(clientX, clientY) {
+export function canvasCoord(clientX: number, clientY: number) {
   const wrap = $('canvas-wrap');
   const rect = wrap.getBoundingClientRect();
   return {
@@ -207,7 +207,7 @@ export function resetView() {
 }
 
 // ── 길게 누름 헬퍼 ──
-function startLongPress(e) {
+function startLongPress(e: PointerEvent) {
   if (e.pointerType !== 'touch') return;
   cancelLongPress();
   longPressTarget = e.target;
@@ -242,7 +242,7 @@ function cancelLongPress() {
   longPressTarget = null;
 }
 
-function checkLongPressMove(e) {
+function checkLongPressMove(e: PointerEvent) {
   if (!longPressTimer) return;
   const dx = Math.abs(e.clientX - longPressX);
   const dy = Math.abs(e.clientY - longPressY);
@@ -254,7 +254,7 @@ function checkLongPressMove(e) {
  * @param {string} rid       관계선 ID
  * @param {'c1'|'c2'} handle 어느 쪽 핸들인지
  */
-export function onRelationHandleDown(e, rid, handle) {
+export function onRelationHandleDown(e: PointerEvent, rid: string, handle: 'c1' | 'c2') {
   if (e.button !== 0) return;
   panning = false;
   dragging = false;
@@ -289,7 +289,7 @@ export function onRelationHandleDown(e, rid, handle) {
  * 부모-자식 분기선 핸들 마우스다운 — 드래그 시작.
  * 첫 드래그면 현재 default control point 위치를 handles로 materialize.
  */
-export function onBranchHandleDown(e, nodeId, handle) {
+export function onBranchHandleDown(e: PointerEvent, nodeId: string, handle: 'c1' | 'c2') {
   if (e.button !== 0) return;
   panning = false;
   dragging = false;
@@ -321,14 +321,15 @@ export function onBranchHandleDown(e, nodeId, handle) {
 }
 
 // ── 노드 포인터다운 (드래그 시작 / 관계선 완성 / 다중 선택) ──
-export function onNodeMouseDown(e, nodeId) {
+export function onNodeMouseDown(e: PointerEvent, nodeId: string) {
   if (e.button !== 0) return;
   // 뷰어 모드 — 노드 드래그·다중 선택·관계선 그리기 모두 차단 (선택만 별도 click 핸들러에서 처리)
   if (document.body.classList.contains('view-mode')) return;
+  const tgt = e.target as HTMLElement | null;
   if (
-    e.target.tagName === 'A' ||
-    e.target.tagName === 'TEXTAREA' ||
-    e.target.classList.contains('lbadge-del')
+    tgt?.tagName === 'A' ||
+    tgt?.tagName === 'TEXTAREA' ||
+    tgt?.classList.contains('lbadge-del')
   ) return;
 
   // wrap dblclick 가드용 — 노드 가장자리/외부 결합 dblclick이 새 노드를 생성하지 않도록
@@ -418,10 +419,10 @@ export function initCanvas() {
   //   - 터치: 한 손가락 = Pan
   //   - 마우스 우클릭(button 2): Pan
   //   - 마우스 좌클릭(button 0): 셀렉트 박스
-  wrap.addEventListener('pointerdown', (e) => {
+  wrap.addEventListener('pointerdown', (e: PointerEvent) => {
     if (pinching) return;
-    const t = e.target;
-    const isBg = t.id === 'canvas-wrap' || t.id === 'canvas' || t.id === 'svg-layer';
+    const t = e.target as HTMLElement | null;
+    const isBg = t?.id === 'canvas-wrap' || t?.id === 'canvas' || t?.id === 'svg-layer';
     if (!isBg) return;
 
     // 관계선 그리기 중이면 배경 클릭으로 취소 (좌클릭만)
@@ -652,7 +653,7 @@ export function initCanvas() {
   document.addEventListener('pointercancel', endPointer);
 
   // 휠 → 줌 (데스크톱)
-  wrap.addEventListener('wheel', (e) => {
+  wrap.addEventListener('wheel', (e: WheelEvent) => {
     e.preventDefault();
     const rect  = wrap.getBoundingClientRect();
     const mx    = e.clientX - rect.left;
@@ -662,7 +663,7 @@ export function initCanvas() {
   }, { passive: false });
 
   // ── 핀치 줌 (두 손가락 터치) ──
-  wrap.addEventListener('touchstart', (e) => {
+  wrap.addEventListener('touchstart', (e: TouchEvent) => {
     if (e.touches.length === 2) {
       pinching = true;
       panning  = false;
@@ -680,7 +681,7 @@ export function initCanvas() {
     }
   }, { passive: false });
 
-  wrap.addEventListener('touchmove', (e) => {
+  wrap.addEventListener('touchmove', (e: TouchEvent) => {
     if (pinching && e.touches.length === 2) {
       const t1 = e.touches[0];
       const t2 = e.touches[1];
@@ -696,19 +697,19 @@ export function initCanvas() {
     }
   }, { passive: false });
 
-  wrap.addEventListener('touchend', (e) => {
+  wrap.addEventListener('touchend', (e: TouchEvent) => {
     if (e.touches.length < 2) pinching = false;
   });
   wrap.addEventListener('touchcancel', () => { pinching = false; });
 }
 
-function touchDist(a, b) {
+function touchDist(a: Touch, b: Touch): number {
   const dx = a.clientX - b.clientX;
   const dy = a.clientY - b.clientY;
   return Math.sqrt(dx * dx + dy * dy);
 }
 
-function applyZoomAround(mx, my, targetSc) {
+function applyZoomAround(mx: number, my: number, targetSc: number) {
   const newSc = Math.max(0.15, Math.min(3, targetSc));
   view.px = mx - (mx - view.px) * (newSc / view.sc);
   view.py = my - (my - view.py) * (newSc / view.sc);

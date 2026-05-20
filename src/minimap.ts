@@ -13,18 +13,21 @@ import { view, applyTransform } from './canvas.js';
 const W = 160, H = 110; // 미니맵 크기 (px)
 const PAD = 12;          // 노드 영역 여백
 
-let canvas, ctx, isDark;
+let canvas: HTMLCanvasElement | null = null;
+let ctx: CanvasRenderingContext2D | null = null;
+let isDark = false;
 let visible = true;
 
 export function initMinimap() {
-  canvas = document.getElementById('minimap-canvas');
+  canvas = document.getElementById('minimap-canvas') as HTMLCanvasElement | null;
   if (!canvas) return;
   ctx = canvas.getContext('2d');
   canvas.width  = W;
   canvas.height = H;
 
   // 클릭 → 해당 캔버스 좌표로 이동
-  canvas.addEventListener('click', (e) => {
+  canvas.addEventListener('click', (e: MouseEvent) => {
+    if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
     const mx = (e.clientX - rect.left) / rect.width;
     const my = (e.clientY - rect.top)  / rect.height;
@@ -53,7 +56,7 @@ export function initMinimap() {
   const toggle = document.getElementById('minimap-toggle');
   toggle?.addEventListener('click', () => {
     visible = !visible;
-    canvas.parentElement.classList.toggle('hidden-map', !visible);
+    canvas?.parentElement?.classList.toggle('hidden-map', !visible);
     if (toggle) toggle.textContent = visible ? '▾' : '▴';
   });
 }
@@ -86,6 +89,7 @@ export function drawMinimap() {
 
 function drawMinimapNow() {
   if (!canvas || !ctx || !visible) return;
+  const c = ctx; // narrow 캡처
 
   isDark = document.documentElement.getAttribute('data-theme') !== 'light';
   const bg    = isDark ? '#0d1117' : '#f6f8fa';
@@ -116,10 +120,10 @@ function drawMinimapNow() {
   Object.values(state.nodes ?? {}).forEach(({ x, y, id }) => {
     const px = offX + (x - bb.minX) * sc;
     const py = offY + (y - bb.minY) * sc;
-    ctx.beginPath();
-    ctx.arc(px, py, selectedSet.has(id) ? 3.5 : 2.5, 0, Math.PI * 2);
-    ctx.fillStyle = selectedSet.has(id) ? nodeSelFill : nodeFill;
-    ctx.fill();
+    c.beginPath();
+    c.arc(px, py, selectedSet.has(id) ? 3.5 : 2.5, 0, Math.PI * 2);
+    c.fillStyle = selectedSet.has(id) ? nodeSelFill : nodeFill;
+    c.fill();
   });
 
   // 현재 뷰포트 박스 — canvas-wrap의 실제 크기 사용 (toolbar 54px 제외 위해)

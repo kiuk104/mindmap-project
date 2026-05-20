@@ -272,13 +272,13 @@ export function linkDefault(type: string): string {
  * 끝에 붙은 문장부호(. , ; : ! ? ) ] }) 는 자동으로 제거.
  */
 const URL_RE = /\bhttps?:\/\/\S+/gi;
-export function findUrlsInText(text) {
+export function findUrlsInText(text: string): string[] {
   if (!text) return [];
   return [...text.matchAll(URL_RE)].map((m) => m[0].replace(/[.,;:!?)\]}>]+$/, ''));
 }
 
 /** URL 문자열에서 어떤 link type인지 자동 감지 */
-export function detectLinkType(url) {
+export function detectLinkType(url: string): string {
   if (!url) return 'url';
   const u = url.toLowerCase();
   if (/^https?:\/\/(www\.)?(notion\.so|notion\.site)/.test(u)) return 'notion';
@@ -303,7 +303,7 @@ export function detectLinkType(url) {
  * Google이 /preview 엔드포인트에 iframe 임베드를 허용 (편집 불가, 읽기 전용).
  * @returns {string|null} 변환된 URL, 또는 매칭 실패 시 null
  */
-export function googleDocsPreviewUrl(url) {
+export function googleDocsPreviewUrl(url: string): string | null {
   if (!url) return null;
   const m = url.match(/^(https?:\/\/docs\.google\.com\/(?:document|spreadsheets|presentation)\/d\/[a-zA-Z0-9_-]+)(?:\/(?:edit|view|preview|pub|htmlview))?(?:[?#].*)?$/);
   if (!m) return null;
@@ -317,7 +317,7 @@ export function googleDocsPreviewUrl(url) {
  * @param {string} bgHex - '#RRGGBB' 또는 'rgba(...)'
  * @returns {string} '#1f2937' 또는 '#ffffff'
  */
-export function contrastingTextColor(bgHex) {
+export function contrastingTextColor(bgHex: string): string {
   if (!bgHex) return '#ffffff';
   let r, g, b;
   if (bgHex.startsWith('rgba') || bgHex.startsWith('rgb')) {
@@ -341,7 +341,7 @@ export function contrastingTextColor(bgHex) {
  * @param {string} hex   예: '#1f6feb'
  * @param {number} pct   밝기 증가량 (0~255)
  */
-export function lighten(hex, pct) {
+export function lighten(hex: string, pct: number): string {
   let r = parseInt(hex.slice(1, 3), 16);
   let g = parseInt(hex.slice(3, 5), 16);
   let b = parseInt(hex.slice(5, 7), 16);
@@ -360,7 +360,7 @@ export function lighten(hex, pct) {
  * URL이 비디오인지 자동 감지 — 확장자 + 알려진 video CDN 패턴.
  * data:video/* MIME도 비디오로 인식.
  */
-export function isVideoUrl(url) {
+export function isVideoUrl(url: string): boolean {
   if (!url) return false;
   if (/^data:video\//i.test(url)) return true;
   // .mp4 / .webm / .mov / .ogv / .m4v / .ogg 확장자 (쿼리스트링 허용)
@@ -368,7 +368,7 @@ export function isVideoUrl(url) {
   return false;
 }
 
-export function ytThumb(url) {
+export function ytThumb(url: string): string | null {
   const m = url.match(/(?:v=|youtu\.be\/|embed\/)([a-zA-Z0-9_-]{11})/);
   return m ? `https://img.youtube.com/vi/${m[1]}/mqdefault.jpg` : null;
 }
@@ -482,7 +482,7 @@ function toRoman(n: number): string {
  * @param {number} index
  * @returns {string} 'A.' 등 (없으면 빈 문자열)
  */
-export function formatNumber(format, index) {
+export function formatNumber(format: string, index: number): string {
   if (!format || format === 'none') return '';
   const i = index + 1;
   switch (format) {
@@ -545,7 +545,7 @@ export const DASH_NAMES = {
  * @param {number} strength 0..1
  * @returns {{c1:{x,y}, c2:{x,y}}}
  */
-export function getBranchControls(p, n, strength) {
+export function getBranchControls(p: { x: number; y: number }, n: any, strength?: number) {
   const h = n?.branchStyle?.handles;
   if (h?.c1 && h?.c2) {
     return {
@@ -573,7 +573,7 @@ export function getBranchControls(p, n, strength) {
  * @param {{x:number,y:number}} b 끝 노드
  * @returns {{c1:{x,y}, c2:{x,y}}}
  */
-export function getRelationControls(r, a, b) {
+export function getRelationControls(r: any, a: { x: number; y: number }, b: { x: number; y: number }) {
   // 사용자 조정 — 두 핸들 모두 있을 때
   if (r?.handles?.c1 && r?.handles?.c2) {
     return {
@@ -709,7 +709,7 @@ export const ICON_CAT_NAMES_KR = {
  * 노드 선택이 변경되면 콜아웃/존 선택은 자동 해제 — 동시에 두 종류가 선택돼
  * 시각 표시가 누적되는 것을 막음.
  */
-export function setNodeSelection(state, ids) {
+export function setNodeSelection(state: any, ids: string[]) {
   state.selectedIds = Array.isArray(ids) ? [...ids] : [];
   state.selectedId  = state.selectedIds.length === 1 ? state.selectedIds[0] : null;
   state.selectedCalloutId = null;
@@ -717,7 +717,7 @@ export function setNodeSelection(state, ids) {
 }
 
 /** 노드 선택 모두 해제 (콜아웃·존 선택도 함께 해제) */
-export function clearNodeSelection(state) {
+export function clearNodeSelection(state: any) {
   state.selectedIds = [];
   state.selectedId  = null;
   state.selectedCalloutId = null;
@@ -726,7 +726,7 @@ export function clearNodeSelection(state) {
 
 /** 관계선 다중 선택 — selectedRelationIds와 selectedRelationId를 일관되게 갱신.
  *  마찬가지로 콜아웃/존 선택도 자동 해제. */
-export function setRelationSelection(state, ids) {
+export function setRelationSelection(state: any, ids: string[]) {
   state.selectedRelationIds = Array.isArray(ids) ? [...ids] : [];
   state.selectedRelationId  = state.selectedRelationIds.length === 1 ? state.selectedRelationIds[0] : null;
   state.selectedCalloutId = null;
@@ -734,7 +734,7 @@ export function setRelationSelection(state, ids) {
 }
 
 /** 관계선 선택 모두 해제 (콜아웃·존 선택도 함께 해제) */
-export function clearRelationSelection(state) {
+export function clearRelationSelection(state: any) {
   state.selectedRelationIds = [];
   state.selectedRelationId  = null;
   state.selectedCalloutId = null;

@@ -23,7 +23,7 @@ import { applyStyle } from './modal.js';
  * @param {MouseEvent} e
  * @param {string} nodeId
  */
-export function showContextMenu(e, nodeId) {
+export function showContextMenu(e: MouseEvent, nodeId: string) {
   e.preventDefault();
   e.stopPropagation();
 
@@ -40,7 +40,7 @@ export function showContextMenu(e, nodeId) {
 }
 
 /** 배경 우클릭 메뉴 표시 */
-export function showBgMenu(e) {
+export function showBgMenu(e: MouseEvent) {
   e.preventDefault();
   e.stopPropagation();
 
@@ -70,7 +70,7 @@ export function showBgMenu(e) {
 }
 
 /** 화면 안에 들어오도록 위치 보정 */
-function positionMenu(menu, x, y) {
+function positionMenu(menu: HTMLElement, x: number, y: number) {
   menu.style.display = 'block';
   menu.style.left    = x + 'px';
   menu.style.top     = y + 'px';
@@ -115,7 +115,7 @@ export function hideAllMenus() {
  * @param {MouseEvent} e
  * @param {string} zoneId
  */
-export function showZoneMenu(e, zoneId) {
+export function showZoneMenu(e: MouseEvent, zoneId: string) {
   e.preventDefault();
   e.stopPropagation();
   selectZone(zoneId);    // 우클릭 대상은 자동 선택
@@ -130,7 +130,7 @@ export function showZoneMenu(e, zoneId) {
  * @param {MouseEvent} e
  * @param {string} coId
  */
-export function showCalloutMenu(e, coId) {
+export function showCalloutMenu(e: MouseEvent, coId: string) {
   e.preventDefault();
   e.stopPropagation();
   selectCallout(coId);
@@ -145,7 +145,7 @@ export function initContextMenu() {
   // ── 노드 메뉴 ──
   $('ctx-edit').addEventListener('click', () => {
     hideContextMenu();
-    setNodeSelection(state, [state.ctxTargetId]);
+    if (state.ctxTargetId) setNodeSelection(state, [state.ctxTargetId]);
     render();
     setTimeout(() => {
       const el = $('nd-' + state.ctxTargetId);
@@ -165,7 +165,7 @@ export function initContextMenu() {
 
   $('ctx-color').addEventListener('click', () => {
     hideContextMenu();
-    openColorModal(state.ctxTargetId);
+    if (state.ctxTargetId) openColorModal(state.ctxTargetId);
   });
 
   $('ctx-icon').addEventListener('click', () => {
@@ -176,17 +176,17 @@ export function initContextMenu() {
 
   $('ctx-image').addEventListener('click', () => {
     hideContextMenu();
-    openImageModal(state.ctxTargetId);
+    if (state.ctxTargetId) openImageModal(state.ctxTargetId);
   });
 
   $('ctx-note').addEventListener('click', () => {
     hideContextMenu();
-    openNoteModal(state.ctxTargetId);
+    if (state.ctxTargetId) openNoteModal(state.ctxTargetId);
   });
 
   $('ctx-tasks').addEventListener('click', () => {
     hideContextMenu();
-    openTasksModal(state.ctxTargetId);
+    if (state.ctxTargetId) openTasksModal(state.ctxTargetId);
   });
 
   $('ctx-callout').addEventListener('click', () => {

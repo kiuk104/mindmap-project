@@ -11,7 +11,7 @@ import { state } from './state.js';
 import { render, patchNode } from './render.js';
 
 /** 여러 노드를 patchNode로 갱신하되, 한 노드라도 실패하면 전체 render fallback */
-function patchOrRender(ids) {
+function patchOrRender(ids: string[]) {
   for (const id of ids) {
     if (!patchNode(id)) { render(); return; }
   }
@@ -67,9 +67,9 @@ function renderBody() {
 
   // 데이터 소스
   const isAssetTab = activeTab === 'sticker' || activeTab === 'illustration';
-  const groups = isAssetTab
-    ? (ICON_ASSETS[activeTab] ?? {})
-    : (ICON_GROUPS[activeTab]  ?? {});
+  const groups: Record<string, any[]> = isAssetTab
+    ? ((ICON_ASSETS as any)[activeTab] ?? {})
+    : ((ICON_GROUPS as any)[activeTab]  ?? {});
   const catKeys = Object.keys(groups);
 
   if (activeCategory && !catKeys.includes(activeCategory)) activeCategory = '';
@@ -80,8 +80,8 @@ function renderBody() {
   `).join('');
 
   // 카테고리 필터 옵션
-  const catOptionsHTML = `<option value="">All</option>` + catKeys.map((c) => {
-    const kr = ICON_CAT_NAMES_KR[c];
+  const catOptionsHTML = `<option value="">All</option>` + catKeys.map((c: string) => {
+    const kr = (ICON_CAT_NAMES_KR as Record<string, string>)[c];
     return `<option value="${c}" ${c === activeCategory ? 'selected' : ''}>${kr ? c + ' (' + kr + ')' : c}</option>`;
   }).join('');
 
@@ -116,9 +116,9 @@ function renderBody() {
     const entries = groups[cat] ?? [];
     const colKey  = activeTab + ':' + cat;
     const collapsed = collapsedKeys.has(colKey);
-    const kr = ICON_CAT_NAMES_KR[cat];
+    const kr = (ICON_CAT_NAMES_KR as Record<string, string>)[cat];
 
-    const tilesHTML = entries.map((entry) => {
+    const tilesHTML = entries.map((entry: any) => {
       if (isAssetTab) {
         const fullId = 'asset:' + entry.id;
         const url = assetIdToUrl(fullId);
@@ -171,7 +171,7 @@ function renderBody() {
   // ── 이벤트 ──
   body.classList.toggle('ip-disabled', ids.length === 0);
 
-  body.querySelectorAll('.icon-tab').forEach((b) => {
+  body.querySelectorAll('.icon-tab').forEach((b: any) => {
     b.addEventListener('click', () => {
       activeTab = b.dataset.tab;
       activeCategory = '';
@@ -179,12 +179,12 @@ function renderBody() {
     });
   });
 
-  $('ip-cat-filter')?.addEventListener('change', (e) => {
+  $('ip-cat-filter')?.addEventListener('change', (e: any) => {
     activeCategory = e.target.value;
     renderBody();
   });
 
-  body.querySelectorAll('.icon-cat-header').forEach((h) => {
+  body.querySelectorAll('.icon-cat-header').forEach((h: any) => {
     h.addEventListener('click', () => {
       const cat = h.dataset.catToggle;
       const key = activeTab + ':' + cat;
@@ -198,7 +198,7 @@ function renderBody() {
   });
 
   // 아이콘 클릭 — 선택된 모든 노드에 적용 (선택 없으면 무시)
-  body.querySelectorAll('.icon-pick').forEach((el) => {
+  body.querySelectorAll('.icon-pick').forEach((el: any) => {
     el.addEventListener('click', () => {
       const ids2 = targetNodeIds();
       if (!ids2.length) return;
@@ -228,7 +228,7 @@ function renderBody() {
   //   참조를 잃어 즉시 닫혀버린다.
   //   해결: input 도중에는 캔버스 sticker span만 직접 업데이트하고 render() 회피.
   //         change 시점(픽커 닫힘 후)에 한 번만 history push + 전체 render.
-  $('ip-icon-color')?.addEventListener('input', (e) => {
+  $('ip-icon-color')?.addEventListener('input', (e: any) => {
     const ids2 = targetNodeIds();
     if (!ids2.length) return;
     const color = e.target.value;
@@ -241,7 +241,7 @@ function renderBody() {
     });
     delete e.target.dataset.reset;
   });
-  $('ip-icon-color')?.addEventListener('change', (e) => {
+  $('ip-icon-color')?.addEventListener('change', (e: any) => {
     const ids2 = targetNodeIds();
     if (!ids2.length) return;
     pushHistory();
@@ -262,7 +262,7 @@ function renderBody() {
 }
 
 /** 현재 아이콘 칩 — 이모지/자산/없음 분기 */
-function renderCurrentChip(icon) {
+function renderCurrentChip(icon: string): string {
   if (!icon) return `<span class="ip-current dim">없음</span>`;
   if (isAssetIcon(icon)) {
     const url = assetIdToUrl(icon);

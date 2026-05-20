@@ -330,7 +330,7 @@ async function tryAutoLoadDriveFile(fileId: string) {
     } else {
       toastError('공유 파일이 올바른 마인드맵 JSON이 아닙니다');
     }
-  } catch (e) {
+  } catch (e: any) {
     toastError('공유 파일 로드 실패: ' + e.message);
   }
 }
@@ -795,7 +795,7 @@ drive.initDrive()
           loadFromStringFromIO(json);
           resetView();
           toastSuccess(`☁️ "${ls.name}" 불러옴`);
-        } catch (e) {
+        } catch (e: any) {
           toastError('불러오기 실패: ' + e.message);
         }
       }, 600);

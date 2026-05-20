@@ -37,12 +37,12 @@ export function initCommandPalette() {
   input = document.getElementById('cmd-input');
   list  = document.getElementById('cmd-list');
 
-  overlay.addEventListener('click', (e) => {
+  overlay.addEventListener('click', (e: Event) => {
     if (e.target === overlay) closePalette();
   });
 
   input.addEventListener('input', () => renderList(input.value));
-  input.addEventListener('keydown', (e) => {
+  input.addEventListener('keydown', (e: KeyboardEvent) => {
     const items = list.querySelectorAll('.cmd-item:not(.cmd-disabled)');
     const cur = list.querySelector('.cmd-item.active');
     let idx = Array.from(items).indexOf(cur);
@@ -50,12 +50,12 @@ export function initCommandPalette() {
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       idx = Math.min(idx + 1, items.length - 1);
-      items.forEach((el, i) => el.classList.toggle('active', i === idx));
+      items.forEach((el: Element, i: number) => el.classList.toggle('active', i === idx));
       items[idx]?.scrollIntoView({ block: 'nearest' });
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       idx = Math.max(idx - 1, 0);
-      items.forEach((el, i) => el.classList.toggle('active', i === idx));
+      items.forEach((el: Element, i: number) => el.classList.toggle('active', i === idx));
       items[idx]?.scrollIntoView({ block: 'nearest' });
     } else if (e.key === 'Enter') {
       e.preventDefault();
@@ -67,7 +67,7 @@ export function initCommandPalette() {
   });
 }
 
-function fuzzyScore(query, target) {
+function fuzzyScore(query: string, target: string): number {
   if (!query) return 1;
   const q = query.toLowerCase();
   const t = target.toLowerCase();
@@ -81,15 +81,15 @@ function fuzzyScore(query, target) {
 }
 
 /** disabled가 함수면 호출, 아니면 truthy 그대로 평가 — 매 렌더 시점에 동적으로 갱신 */
-function isDisabled(cmd) {
+function isDisabled(cmd: Command): boolean {
   return typeof cmd.disabled === 'function' ? !!cmd.disabled() : !!cmd.disabled;
 }
 
-function renderList(query) {
+function renderList(query: string) {
   const scored = commands
-    .map((cmd) => {
+    .map((cmd: Command) => {
       const labelScore = fuzzyScore(query, cmd.label);
-      const keyScore   = Math.max(...(cmd.keywords ?? []).map((k) => fuzzyScore(query, k)));
+      const keyScore   = Math.max(...(cmd.keywords ?? []).map((k: string) => fuzzyScore(query, k)));
       return { cmd, score: Math.max(labelScore, keyScore), disabled: isDisabled(cmd) };
     })
     .filter(({ score }) => score > 0)
@@ -113,10 +113,10 @@ function renderList(query) {
       ${cmd.hint ? `<span class="cmd-hint">${cmd.hint}</span>` : ''}
     </div>`).join('');
 
-  list.querySelectorAll('.cmd-item:not(.cmd-disabled)').forEach((el) => {
+  list.querySelectorAll('.cmd-item:not(.cmd-disabled)').forEach((el: any) => {
     const i = Number(el.dataset.idx);
     el.addEventListener('mouseenter', () => {
-      list.querySelectorAll('.cmd-item').forEach((x) => x.classList.remove('active'));
+      list.querySelectorAll('.cmd-item').forEach((x: any) => x.classList.remove('active'));
       el.classList.add('active');
     });
     el.addEventListener('click', () => {

@@ -42,7 +42,7 @@ export function createZoneFromSelection() {
 }
 
 /** hex(#RRGGBB) + alpha(0..1)를 rgba 문자열로 */
-export function hexToRgba(hex, alpha) {
+export function hexToRgba(hex: string, alpha?: number): string {
   if (!hex) return 'rgba(31,111,235,0.10)';
   if (hex.startsWith('rgba')) return hex;   // 이미 rgba면 그대로
   const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex);
@@ -52,7 +52,7 @@ export function hexToRgba(hex, alpha) {
 }
 
 /** 옛 rgba(...) 형식의 zone.color → {color: '#hex', opacity}로 정규화 */
-export function migrateZone(z) {
+export function migrateZone(z: any): any {
   if (!z) return z;
   // 새 포맷: color가 hex
   if (z.color && !z.color.startsWith('rgba') && z.opacity !== undefined) return z;
@@ -69,7 +69,7 @@ export function migrateZone(z) {
 }
 
 /** 존 삭제 */
-export function deleteZone(zoneId) {
+export function deleteZone(zoneId: string) {
   const idx = state.zones?.findIndex((z) => z.id === zoneId);
   if (idx === undefined || idx < 0) return;
   pushHistory();
@@ -79,7 +79,7 @@ export function deleteZone(zoneId) {
 }
 
 /** 존 라벨 편집 */
-export function renameZone(zoneId) {
+export function renameZone(zoneId: string) {
   const z = state.zones?.find((zz) => zz.id === zoneId);
   if (!z) return;
   const next = prompt('존 라벨:', z.label ?? '');
@@ -91,7 +91,7 @@ export function renameZone(zoneId) {
 }
 
 /** 존 선택 (다른 선택 클리어) */
-export function selectZone(zoneId) {
+export function selectZone(zoneId: string) {
   state.selectedZoneId = zoneId;
   state.selectedIds = [];
   state.selectedId = null;
@@ -105,13 +105,13 @@ export function selectZone(zoneId) {
  * 존의 화면상 bbox 계산. 멤버 노드들의 DOM 크기를 합쳐 padding 추가.
  * @returns {{x, y, w, h}|null} 화면 표시용 박스 (canvas 좌표) 또는 null
  */
-export function getZoneBox(zone, getNodeSize) {
-  const ids = zone.nodeIds?.filter((id) => state.nodes[id]) ?? [];
+export function getZoneBox(zone: any, getNodeSize?: (id: string) => { w: number; h: number }) {
+  const ids: string[] = zone.nodeIds?.filter((id: string) => state.nodes[id]) ?? [];
   if (ids.length === 0) return null;
 
   const PAD = 22;
   let xMin = Infinity, yMin = Infinity, xMax = -Infinity, yMax = -Infinity;
-  ids.forEach((id) => {
+  ids.forEach((id: string) => {
     const n = state.nodes[id];
     const size = getNodeSize ? getNodeSize(id) : { w: 150, h: 44 };
     const w = size.w, h = size.h;

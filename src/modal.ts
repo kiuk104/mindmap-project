@@ -328,13 +328,13 @@ export async function openDriveLoadModal() {
             alert('올바른 마인드맵 JSON이 아닙니다.');
             row.style.opacity = '1';
           }
-        } catch (e) {
+        } catch (e: any) {
           alert('드라이브 읽기 실패: ' + e.message);
           row.style.opacity = '1';
         }
       });
     });
-  } catch (e) {
+  } catch (e: any) {
     $('modal-body').innerHTML = `
       <div style="color:#f85149; padding:20px;">목록 불러오기 실패: ${escapeHTML(e.message)}</div>`;
   }
@@ -361,7 +361,7 @@ export async function openDriveManageModal() {
   let files;
   try {
     files = await drive.listMindmaps();
-  } catch (e) {
+  } catch (e: any) {
     $('modal-body').innerHTML = `<div style="color:#f85149; padding:16px;">불러오기 실패: ${escapeHTML(e.message)}</div>`;
     return;
   }
@@ -637,7 +637,7 @@ async function handleNativeShare() {
         await navigator.share({ title, text, url: shareUrl, files: [file] });
         return;
       }
-    } catch (e) {
+    } catch (e: any) {
       if (e?.name === 'AbortError') return;
       // PNG 첨부 실패는 URL 공유로 폴백 — 사용자에게 굳이 알릴 필요 없음
     }
@@ -645,7 +645,7 @@ async function handleNativeShare() {
 
   try {
     await navigator.share({ title, text, url: shareUrl });
-  } catch (e) {
+  } catch (e: any) {
     if (e?.name === 'AbortError') return;
     toastError('공유 실패: ' + (e?.message ?? e));
   }
@@ -1330,7 +1330,7 @@ export function openImageModal(nodeId: string) {
       if (outBytes > 2 * 1024 * 1024) {
         toastSuccess(`📎 첨부 완료 (${outMB}MB) — 자동 저장 5MB 한도 주의`);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.warn('이미지 처리 실패:', err);
       toastError(`이미지를 불러올 수 없습니다 — ${err.message || '브라우저가 이 포맷을 지원하지 않음'}\n💡 갤러리에서 사진 공유 → "JPEG로 변환" 후 첨부해 주세요`);
       if (box) box.innerHTML = `<span class="img-preview-empty">아직 미디어가 없습니다</span>`;

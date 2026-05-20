@@ -27,12 +27,12 @@ const NODE_H_EST = 50;
 function findRootId() {
   return Object.keys(state.nodes).find((k) => !state.nodes[k].parentId);
 }
-function childrenOf(parentId) {
+function childrenOf(parentId: string) {
   return Object.values(state.nodes).filter((n) => n.parentId === parentId);
 }
 
 /** 서브트리의 'extent'(가로 또는 세로 펼친 폭) 계산 */
-function subtreeExtent(nodeId, axis) {
+function subtreeExtent(nodeId: string, axis: 'x' | 'y'): number {
   const children = childrenOf(nodeId);
   if (children.length === 0) return axis === 'y' ? NODE_H_EST : NODE_W_EST;
   let total = 0;
@@ -44,7 +44,7 @@ function subtreeExtent(nodeId, axis) {
 }
 
 // ── 로직 (수평 펼침) ─────────────────────────────────────
-function layoutLogic(rootId, ax, ay, dirRight) {
+function layoutLogic(rootId: string, ax: number, ay: number, dirRight: boolean) {
   const root = state.nodes[rootId];
   root.x = ax;
   root.y = ay;
@@ -64,7 +64,7 @@ function layoutLogic(rootId, ax, ay, dirRight) {
 }
 
 // ── 조직도 (수직 펼침) ──────────────────────────────────
-function layoutOrg(rootId, ax, ay, dirDown) {
+function layoutOrg(rootId: string, ax: number, ay: number, dirDown: boolean) {
   const root = state.nodes[rootId];
   root.x = ax;
   root.y = ay;
@@ -84,7 +84,7 @@ function layoutOrg(rootId, ax, ay, dirDown) {
 }
 
 // ── 타임라인 (BFS 평면화) ───────────────────────────────
-function layoutTimeline(rootId, ax, ay) {
+function layoutTimeline(rootId: string, ax: number, ay: number) {
   const order: string[] = [];
   const queue: string[] = [rootId];
   while (queue.length) {
@@ -100,11 +100,11 @@ function layoutTimeline(rootId, ax, ay) {
 }
 
 // ── Tree Chart (수직 들여쓰기, 파일 탐색기 스타일) ─────
-function subtreeNodeCount(id) {
+function subtreeNodeCount(id: string): number {
   const cs = childrenOf(id);
   return 1 + cs.reduce((s, c) => s + subtreeNodeCount(c.id), 0);
 }
-function layoutTree(rootId, ax, ay, indent = 60, vSpace = 60) {
+function layoutTree(rootId: string, ax: number, ay: number, indent = 60, vSpace = 60) {
   const root = state.nodes[rootId];
   root.x = ax;
   root.y = ay;
@@ -118,7 +118,7 @@ function layoutTree(rootId, ax, ay, indent = 60, vSpace = 60) {
 
 // ── Fishbone (이시카와) ─────────────────────────────────
 // 루트가 좌측, 자식들은 수평 spine 위/아래 교대 배치
-function layoutFishbone(rootId, ax, ay) {
+function layoutFishbone(rootId: string, ax: number, ay: number) {
   const root = state.nodes[rootId];
   root.x = ax;
   root.y = ay;
@@ -141,7 +141,7 @@ function layoutFishbone(rootId, ax, ay) {
 }
 
 // ── Matrix (격자 — 모든 노드를 sqrt 행렬로) ─────────────
-function layoutMatrix(rootId, ax, ay) {
+function layoutMatrix(rootId: string, ax: number, ay: number) {
   const ids = Object.keys(state.nodes);
   const N = ids.length;
   if (N === 0) return;
@@ -162,7 +162,7 @@ function layoutMatrix(rootId, ax, ay) {
  * 트리 전체 재배치. 루트 노드의 현재 위치를 앵커로 그대로 유지.
  * @param {string} type — LAYOUT_LABELS의 키
  */
-export function applyLayout(type) {
+export function applyLayout(type: string) {
   const rootId = findRootId();
   if (!rootId) return;
   const root = state.nodes[rootId];

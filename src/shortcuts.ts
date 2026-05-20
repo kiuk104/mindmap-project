@@ -40,10 +40,10 @@ export const ACTIONS = {
 };
 
 /** 액션 → 핸들러 콜백 (main.js에서 등록) */
-const handlers = {};
+const handlers: Record<string, (e?: any) => any> = {};
 
 /** 액션 핸들러 등록. main.js에서 registerShortcuts({ 'undo': () => undo(), ... }) */
-export function registerShortcuts(map) {
+export function registerShortcuts(map: Record<string, (e?: any) => any>) {
   Object.assign(handlers, map);
 }
 
@@ -71,11 +71,11 @@ export function eventToBinding(e: KeyboardEvent): string | null {
 }
 
 /** 사용자 정의 + 기본값을 합쳐 현재 활성 binding 맵 반환: { binding: actionId } */
-function getActiveBindingMap() {
-  const custom = getSettings().shortcuts ?? {};
-  const map = {};
+function getActiveBindingMap(): Record<string, string> {
+  const custom: Record<string, string> = getSettings().shortcuts ?? {};
+  const map: Record<string, string> = {};
   for (const [action, meta] of Object.entries(ACTIONS)) {
-    const binding = (custom[action] !== undefined) ? custom[action] : meta.defaultBinding;
+    const binding = (custom[action] !== undefined) ? custom[action] : (meta as any).defaultBinding;
     if (binding) map[binding] = action;
   }
   return map;
@@ -91,7 +91,7 @@ function isInputFocused() {
  * keydown 이벤트를 받아 해당 액션 핸들러를 호출.
  * @returns {boolean} 핸들러가 실행됐는지 (true면 호출자가 preventDefault할 수 있음)
  */
-export function dispatchKey(e) {
+export function dispatchKey(e: KeyboardEvent): boolean {
   const binding = eventToBinding(e);
   if (!binding) return false;
 
@@ -99,7 +99,7 @@ export function dispatchKey(e) {
   const action = map[binding];
   if (!action) return false;
 
-  const meta = ACTIONS[action];
+  const meta = (ACTIONS as any)[action];
   if (!meta) return false;
 
   // scope 검사
@@ -114,14 +114,14 @@ export function dispatchKey(e) {
 }
 
 /** 현재 액션의 binding 조회 (사용자 커스텀 우선, 없으면 기본) */
-export function getBinding(actionId) {
-  const custom = getSettings().shortcuts ?? {};
+export function getBinding(actionId: string): string {
+  const custom: Record<string, string> = getSettings().shortcuts ?? {};
   if (custom[actionId] !== undefined) return custom[actionId];
-  return ACTIONS[actionId]?.defaultBinding ?? '';
+  return (ACTIONS as any)[actionId]?.defaultBinding ?? '';
 }
 
 /** 액션이 기본값으로부터 변경됐는가 */
-export function isBindingCustomized(actionId) {
-  const custom = getSettings().shortcuts ?? {};
-  return custom[actionId] !== undefined && custom[actionId] !== ACTIONS[actionId]?.defaultBinding;
+export function isBindingCustomized(actionId: string): boolean {
+  const custom: Record<string, string> = getSettings().shortcuts ?? {};
+  return custom[actionId] !== undefined && custom[actionId] !== (ACTIONS as any)[actionId]?.defaultBinding;
 }
