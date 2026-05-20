@@ -693,8 +693,8 @@ function buildNodeEl(n: any, ctx: any): HTMLElement {
       el.appendChild(toggle);
     }
 
-  // 4변 크기 조절 핸들 — 선택된 노드에만 CSS로 표시
-  // 좌/우 = width 조절, 상/하 = height 조절. 각 핸들은 해당 변만 이동(반대 변 고정)
+  // 4변 크기 조절 핸들 — 선택된 노드에만 CSS로 활성. 좌/우 = width, 상/하 = height
+  // dblclick → 자동 사이즈 복귀는 .node의 dblclick 리스너에서 위치 감지로 처리(미선택 케이스 포함)
   const EDGES: Array<'left' | 'right' | 'top' | 'bottom'> = ['left', 'right', 'top', 'bottom'];
   EDGES.forEach((edge) => {
     const h = document.createElement('div');
@@ -705,11 +705,6 @@ function buildNodeEl(n: any, ctx: any): HTMLElement {
     h.addEventListener('pointerdown', (e) => {
       e.stopPropagation();
       H.onNodeResizeDown(e, n.id, edge);
-    });
-    h.addEventListener('dblclick', (e) => {
-      e.stopPropagation();
-      e.preventDefault();
-      H.onNodeResizeReset?.(n.id, edge);
     });
     el.appendChild(h);
   });

@@ -80,12 +80,60 @@ import { initPwa } from './pwa.js';
 const IS_VIEW_MODE = new URLSearchParams(location.search).has('view');
 if (IS_VIEW_MODE) document.body.classList.add('view-mode');
 
+// ── 노드 사이즈 리셋 — 변 핸들 dblclick + 변 가장자리 dblclick 양쪽에서 사용 ──
+// 자동 사이즈 복귀 후 반대 변 좌표가 유지되도록 render 전/후 측정해 중심 x/y 보정
+function resetNodeSize(nodeId: string, edge: 'left' | 'right' | 'top' | 'bottom') {
+  const n = state.nodes[nodeId];
+  if (!n) return;
+  const isHoriz = edge === 'left' || edge === 'right';
+  if (isHoriz && n.width  == null) return;
+  if (!isHoriz && n.height == null) return;
+  pushHistory();
+  const el = document.getElementById('nd-' + nodeId);
+  const sc = view.sc || 1;
+  const before = el?.getBoundingClientRect();
+  if (isHoriz) delete n.width; else delete n.height;
+  // 고정 height 해제 시 has-fixed-height 클래스 정리는 render가 갱신
+  render();
+  const el2 = document.getElementById('nd-' + nodeId);
+  const after = el2?.getBoundingClientRect();
+  if (before && after) {
+    const oldW = before.width  / sc, newW = after.width  / sc;
+    const oldH = before.height / sc, newH = after.height / sc;
+    if (edge === 'right')  n.x -= (oldW - newW) / 2;
+    if (edge === 'left')   n.x += (oldW - newW) / 2;
+    if (edge === 'bottom') n.y -= (oldH - newH) / 2;
+    if (edge === 'top')    n.y += (oldH - newH) / 2;
+    render();
+  }
+}
+
 // ── render.js에 핸들러 주입 ──
 // render.js는 다른 모듈을 직접 import하지 않고
 // 이렇게 main.js가 연결해줍니다.
 registerHandlers({
   onNodeMouseDown,
-  onNodeDblClick:        IS_VIEW_MODE ? () => {} : startEdit,
+  onNodeDblClick:        IS_VIEW_MODE ? () => {} : (e: Event, nodeId: string) => {
+    // 가장자리 영역 더블클릭 → 사이즈 리셋 (변 핸들과 동일 동작, 미선택 노드에서도 안정적으로 작동)
+    const me = e as MouseEvent;
+    const el = document.getElementById('nd-' + nodeId);
+    if (el && typeof me.clientX === 'number') {
+      const r = el.getBoundingClientRect();
+      const T = 12; // 변에서 12px 이내(스크린 px)
+      const dxL = me.clientX - r.left;
+      const dxR = r.right  - me.clientX;
+      const dyT = me.clientY - r.top;
+      const dyB = r.bottom - me.clientY;
+      const minD = Math.min(dxL, dxR, dyT, dyB);
+      if (minD >= 0 && minD < T) {
+        const edge: 'left' | 'right' | 'top' | 'bottom' =
+          minD === dxL ? 'left' : minD === dxR ? 'right' : minD === dyT ? 'top' : 'bottom';
+        resetNodeSize(nodeId, edge);
+        return;
+      }
+    }
+    startEdit(e, nodeId);
+  },
   onNodeContextMenu:     IS_VIEW_MODE ? (e: Event) => e.preventDefault() : showContextMenu,
   onLinkBadgeMouseEnter: showPreview,
   onLinkBadgeMouseLeave: hidePreview,
@@ -109,31 +157,7 @@ registerHandlers({
   onRelationHandleDown,
   onBranchHandleDown,
   onNodeResizeDown: IS_VIEW_MODE ? () => {} : onNodeResizeDown,
-  onNodeResizeReset: IS_VIEW_MODE ? () => {} : (nodeId: string, edge: 'left' | 'right' | 'top' | 'bottom') => {
-    const n = state.nodes[nodeId];
-    if (!n) return;
-    const isHoriz = edge === 'left' || edge === 'right';
-    if (isHoriz && n.width == null) return;
-    if (!isHoriz && n.height == null) return;
-    pushHistory();
-    // 자동 복귀 후 반대 변 위치가 유지되도록 중심 x/y 보정
-    const el = document.getElementById('nd-' + nodeId);
-    const sc = view.sc || 1;
-    const before = el?.getBoundingClientRect();
-    if (isHoriz) delete n.width; else delete n.height;
-    render();
-    const el2 = document.getElementById('nd-' + nodeId);
-    const after = el2?.getBoundingClientRect();
-    if (before && after) {
-      const oldW = before.width / sc, newW = after.width / sc;
-      const oldH = before.height / sc, newH = after.height / sc;
-      if (edge === 'right')  n.x -= (oldW - newW) / 2;
-      if (edge === 'left')   n.x += (oldW - newW) / 2;
-      if (edge === 'bottom') n.y -= (oldH - newH) / 2;
-      if (edge === 'top')    n.y += (oldH - newH) / 2;
-      render();
-    }
-  },
+  onNodeResizeReset: IS_VIEW_MODE ? () => {} : resetNodeSize,
   onToggleCollapse: toggleCollapse,
   onGDocsClick:     openGDocsPreviewModal,
   onNoteClick:      openNoteModal,
