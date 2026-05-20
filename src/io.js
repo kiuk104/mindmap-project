@@ -70,6 +70,8 @@ export function serialize() {
     zones:     state.zones     ?? [],
     style: state.style,
     lineStyle: state.lineStyle,
+    // 맵 제목은 lastSave.name이 truth source — 외부 공유 시 이름 보존용으로 포함
+    title: lastSave?.name ?? '',
     version: 5,
   }, null, 2);
 }
@@ -102,6 +104,11 @@ export function loadFromString(jsonStr) {
       state.lineStyle = data.lineStyle;
     }
     document.body.classList.remove('relation-drafting');
+    // 외부 JSON에 title이 들어있으면 lastSave를 그 이름으로 갱신
+    // (다른 사람이 보낸 파일을 열면 이름이 그쪽으로 따라옴 — Drive 로드는 이후 setLastSave가 덮어씀)
+    if (typeof data.title === 'string' && data.title.trim()) {
+      setLastSave({ kind: 'download', name: data.title.trim() });
+    }
     resetHistory();
     render();
     resetView();

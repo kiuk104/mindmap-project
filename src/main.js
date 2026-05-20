@@ -158,12 +158,19 @@ onSaveStateChange((ts) => {
   el.textContent = `💾 자동저장 ${hh}:${mm}:${ss}`;
 });
 
-// ── 현재 맵 이름 표시 (Drive 저장이면 ☁️) ──
+// ── 현재 맵 이름 표시 (Drive 저장이면 ☁️) + 브라우저 탭/OG 메타 동기화 ──
 onLastSaveChange((ls) => {
   const nameEl = document.querySelector('#btn-map-title .mt-name');
   const iconEl = document.getElementById('mt-icon');
   if (nameEl) nameEl.textContent = ls?.name || '제목 없음';
   if (iconEl) iconEl.hidden = ls?.kind !== 'drive';
+
+  const title = ls?.name?.trim() || '마인드맵';
+  document.title = title === '마인드맵' ? title : `${title} · 마인드맵`;
+  const ogTitle = document.getElementById('og-title');
+  const twTitle = document.getElementById('tw-title');
+  if (ogTitle) ogTitle.setAttribute('content', title);
+  if (twTitle) twTitle.setAttribute('content', title);
 });
 
 // ── 파일명 클릭 → 리네임 모달 ──
