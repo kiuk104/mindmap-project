@@ -160,7 +160,7 @@ function loadPersistedToken() {
     if (!raw) return null;
     const data = JSON.parse(raw);
     if (!data?.token || !data?.expiresAt) return null;
-    if (data.expiresAt <= Date.now()) return null; // 만료
+    if (data.expiresAt <= Date.now()) return { ...data, expired: true }; // 만료됐어도 email 보존
     return data;
   } catch {
     return null;
@@ -230,15 +230,21 @@ export async function initDrive() {
 
     // 저장된 토큰 복구 시도
     const persisted = loadPersistedToken();
-    if (persisted) {
+    if (persisted && !persisted.expired) {
+      // 유효한 토큰 — 그대로 복구
       accessToken     = persisted.token;
       tokenExpiresAt  = persisted.expiresAt;
       currentEmail    = persisted.email ?? null;
       window.gapi.client.setToken({ access_token: accessToken });
-      // 사용자 정보 다시 가져오기 (이메일이 누락됐을 수 있음)
       if (!currentEmail) fetchUserInfo().finally(notify);
       else notify();
       scheduleRefresh();
+    } else if (persisted?.expired) {
+      // 만료된 토큰 — 이메일은 보존하고 silent refresh 시도 (팝업 없음)
+      // Google 브라우저 세션이 살아있으면 사용자 개입 없이 자동 복구됨
+      currentEmail = persisted.email ?? null;
+      notify(); // 일단 로그아웃 상태로 UI 업데이트
+      silentRefresh();
     } else {
       notify();
     }
