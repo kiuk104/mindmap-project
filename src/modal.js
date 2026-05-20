@@ -10,7 +10,7 @@ import { resetView } from './canvas.js';
 import { $, FONT_FAMILIES, FONT_NAMES, currentPalette, linkIcon, linkDefault, resolvePalette, COLOR_THEMES, composeFontFamily, ENGLISH_FONTS, ENGLISH_FONT_NAMES, KOREAN_FONTS, KOREAN_FONT_NAMES, DASH_NAMES, detectLinkType, googleDocsPreviewUrl, isVideoUrl, detectInAppBrowser } from './utils.js';
 import { removeLink } from './nodes.js';
 import { doDownload, copyJsonToClipboard, defaultFilename, serialize, loadFromString, setLastSave, getLastSave } from './io.js';
-import { exportSvgFile, exportPngFile } from './export.js';
+import { exportSvgFile, exportPngFile, exportPngBlob } from './export.js';
 import * as drive from './drive.js';
 import { pushHistory } from './history.js';
 import { getSettings, updateSettings } from './settings.js';
@@ -540,8 +540,17 @@ export function openShareModal() {
     ? '⚠️ Drive 미설정 — DRIVE_SETUP.md 참고'
     : (!drive.isSignedIn() ? '⚠️ 먼저 ☁️ Drive 연결 후 사용 가능' : '');
 
+  const canNativeShare = 'share' in navigator;
+
   $('modal-body').innerHTML = `
     <div class="fg" style="display:grid; grid-template-columns:1fr; gap:8px;">
+      ${canNativeShare ? `
+        <button type="button" class="btn btn-ghost share-opt" data-share="native">
+          📤 <b>휴대폰 공유 시트로 보내기</b>
+          <span class="share-hint">카카오톡·메시지·슬랙 등에 바로 — 맵 데이터가 포함된 링크 + 이미지 첨부</span>
+        </button>
+      ` : ''}
+
       <button type="button" class="btn btn-ghost share-opt" data-share="drive-link" ${driveReady ? '' : 'disabled'}>
         🔗 <b>Drive 공유 링크 복사</b>
         <span class="share-hint">${driveReady
@@ -591,7 +600,62 @@ export function openShareModal() {
   showModal();
 }
 
+/** URL hash로 맵 데이터를 인코딩한 공유 URL — tryLoadFromHash의 inverse */
+function buildShareUrl() {
+  try {
+    const b64 = btoa(unescape(encodeURIComponent(serialize())));
+    return location.origin + location.pathname + '#data=' + b64;
+  } catch {
+    return location.origin + location.pathname;
+  }
+}
+
+/**
+ * Web Share API 사용 — 모바일 네이티브 공유 시트 (iOS Safari, Android Chrome).
+ * URL이 너무 길면 앱 링크만, PNG는 가능하면 첨부.
+ * 사용자가 취소하면 조용히 종료(AbortError), 실제 오류만 토스트.
+ */
+async function handleNativeShare() {
+  const title = (getLastSave()?.name?.trim()) || '마인드맵';
+  const fullUrl = buildShareUrl();
+
+  // 카카오톡 같은 일부 앱은 URL이 매우 길면 잘리거나 거부 → 앱 링크만
+  const TOO_LONG = 6000;
+  const isLong   = fullUrl.length >= TOO_LONG;
+  const shareUrl = isLong ? (location.origin + location.pathname) : fullUrl;
+  const text = isLong
+    ? '맵이 커서 링크에 데이터를 담지 못했습니다 — 앱에서 직접 공유해주세요.'
+    : `${title} 마인드맵`;
+
+  // 파일 첨부 시도 (iOS 15+, Android Chrome 89+)
+  if ('canShare' in navigator) {
+    try {
+      const pngBlob = await exportPngBlob();
+      const file = new File([pngBlob], `${title}.png`, { type: 'image/png' });
+      if (navigator.canShare({ files: [file] })) {
+        await navigator.share({ title, text, url: shareUrl, files: [file] });
+        return;
+      }
+    } catch (e) {
+      if (e?.name === 'AbortError') return;
+      // PNG 첨부 실패는 URL 공유로 폴백 — 사용자에게 굳이 알릴 필요 없음
+    }
+  }
+
+  try {
+    await navigator.share({ title, text, url: shareUrl });
+  } catch (e) {
+    if (e?.name === 'AbortError') return;
+    toastError('공유 실패: ' + (e?.message ?? e));
+  }
+}
+
 function handleShareOption(kind) {
+  if (kind === 'native') {
+    closeModal();
+    handleNativeShare();
+    return;
+  }
   if (kind === 'json') {
     copyJsonToClipboard().then((ok) => {
       if (ok) toastSuccess('📋 JSON이 클립보드에 복사됨');

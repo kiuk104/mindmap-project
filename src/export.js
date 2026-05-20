@@ -212,8 +212,12 @@ export function exportSvgFile(filename) {
   return true;
 }
 
-/** PNG 파일 다운로드 (scale: 출력 해상도 배율) */
-export function exportPngFile(filename, scale = 2) {
+/**
+ * 현재 맵의 PNG Blob 생성 (다운로드·공유 양쪽에서 재사용).
+ * @param {number} [scale=2] 출력 해상도 배율
+ * @returns {Promise<Blob>}
+ */
+export function exportPngBlob(scale = 2) {
   return new Promise((resolve, reject) => {
     const out = buildExportSvg();
     if (!out) { reject(new Error('내보낼 노드가 없습니다.')); return; }
@@ -229,18 +233,11 @@ export function exportPngFile(filename, scale = 2) {
       const canvas = document.createElement('canvas');
       canvas.width  = w;
       canvas.height = h;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, w, h);
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
       URL.revokeObjectURL(url);
       canvas.toBlob((pngBlob) => {
-        if (!pngBlob) { reject(new Error('PNG 변환 실패')); return; }
-        const pngUrl = URL.createObjectURL(pngBlob);
-        const a = document.createElement('a');
-        a.href = pngUrl;
-        a.download = sanitizeFilename(filename) + '.png';
-        a.click();
-        URL.revokeObjectURL(pngUrl);
-        resolve(true);
+        if (pngBlob) resolve(pngBlob);
+        else reject(new Error('PNG 변환 실패'));
       }, 'image/png');
     };
     img.onerror = () => {
@@ -249,4 +246,16 @@ export function exportPngFile(filename, scale = 2) {
     };
     img.src = url;
   });
+}
+
+/** PNG 파일 다운로드 (scale: 출력 해상도 배율) */
+export async function exportPngFile(filename, scale = 2) {
+  const pngBlob = await exportPngBlob(scale);
+  const pngUrl = URL.createObjectURL(pngBlob);
+  const a = document.createElement('a');
+  a.href = pngUrl;
+  a.download = sanitizeFilename(filename) + '.png';
+  a.click();
+  URL.revokeObjectURL(pngUrl);
+  return true;
 }
