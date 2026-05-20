@@ -1,5 +1,5 @@
 /**
- * search.js — 노드 텍스트 검색
+ * search.ts — 노드 텍스트 검색
  */
 
 import { state } from './state.js';
@@ -9,7 +9,7 @@ import { $, setNodeSelection } from './utils.js';
 import { expandAncestors } from './nodes.js';
 
 /** 검색어로 매칭되는 노드 ID 목록을 갱신하고 화면에 반영 */
-export function runSearch(query) {
+export function runSearch(query: string): void {
   const q = (query ?? '').trim().toLowerCase();
   state.searchQuery = q;
 
@@ -34,7 +34,7 @@ export function runSearch(query) {
 }
 
 /** 다음/이전 매치로 이동 */
-export function gotoHit(step) {
+export function gotoHit(step: number): void {
   if (state.searchHits.length === 0) return;
   state.searchIdx = (state.searchIdx + step + state.searchHits.length) % state.searchHits.length;
   updateHitCount();
@@ -42,12 +42,12 @@ export function gotoHit(step) {
 }
 
 /** 검색 종료 */
-export function clearSearch() {
+export function clearSearch(): void {
   state.searchQuery = '';
   state.searchHits  = [];
   state.searchIdx   = 0;
   updateHitCount();
-  const input = $('search-input');
+  const input = $('search-input') as HTMLInputElement | null;
   if (input) input.value = '';
   render();
 }
@@ -71,7 +71,7 @@ function updateHitCount() {
 }
 
 /** 노드를 화면 중앙으로 이동 + 선택 + 조상 접힘 자동 해제 */
-function centerOnNode(nodeId) {
+function centerOnNode(nodeId: string): void {
   const node = state.nodes[nodeId];
   if (!node) return;
 
@@ -79,6 +79,7 @@ function centerOnNode(nodeId) {
   expandAncestors(nodeId);
 
   const wrap = $('canvas-wrap');
+  if (!wrap) return;
   view.px = wrap.clientWidth  / 2 - node.x * view.sc;
   view.py = wrap.clientHeight / 2 - node.y * view.sc;
   applyTransform();

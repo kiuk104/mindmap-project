@@ -16,24 +16,30 @@ import { state } from './state.js';
 import { render } from './render.js';
 import { uid, setNodeSelection } from './utils.js';
 import { pushHistory } from './history.js';
+import type { MindNode, Relation } from './types.js';
 
-let buffer = null;
-/** @typedef {{nodes: Node[], relations: Relation[], sourceIds: string[]}} ClipboardBuffer */
+interface ClipboardBuffer {
+  nodes: MindNode[];
+  relations: Relation[];
+  sourceIds: string[];
+}
 
-export function hasClipboard() { return buffer !== null; }
+let buffer: ClipboardBuffer | null = null;
+
+export function hasClipboard(): boolean { return buffer !== null; }
 
 /** structuredClone이 있으면 그것, 없으면 JSON 복제 (구형 브라우저 대비) */
-function deepClone(o) {
+function deepClone<T>(o: T): T {
   if (typeof structuredClone === 'function') return structuredClone(o);
   return JSON.parse(JSON.stringify(o));
 }
 
 /** 한 노드와 모든 후손 ID 집합 */
-function collectSubtreeIds(rootIds) {
-  const result = new Set();
-  const stack  = [...rootIds];
+function collectSubtreeIds(rootIds: string[]): Set<string> {
+  const result = new Set<string>();
+  const stack: string[] = [...rootIds];
   while (stack.length) {
-    const id = stack.pop();
+    const id = stack.pop() as string;
     if (result.has(id)) continue;
     result.add(id);
     Object.values(state.nodes).forEach((n) => {

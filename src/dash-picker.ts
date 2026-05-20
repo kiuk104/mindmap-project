@@ -42,16 +42,19 @@ function itemContentHTML(value, label) {
   return `${previewSvg(value)}<span class="dp-label">${label}</span>`;
 }
 
-/**
- * <select>에 커스텀 dropdown UI를 입힌다. 이미 처리됐으면 옵션 재빌드만.
- * @param {HTMLSelectElement} selectEl
- */
-export function enhanceDashPicker(selectEl) {
+/** <select>에 커스텀 dropdown UI를 입힌다. 이미 처리됐으면 옵션 재빌드만. */
+export function enhanceDashPicker(selectEl: HTMLSelectElement | null): void {
   if (!selectEl) return;
 
   // 이미 처리됐다면 — 옵션이 바뀌었을 수 있어 미리보기/패널 재구성
   if (selectEl.dataset.enhanced === '1') {
-    refreshTrigger(selectEl);
+    // 이미 처리된 select는 wrap > trigger DOM이 존재. 트리거 텍스트만 갱신.
+    const trig = selectEl.parentElement?.querySelector('.dash-picker-trigger') as HTMLButtonElement | null;
+    if (trig) {
+      const opt = selectEl.options[selectEl.selectedIndex];
+      const label = opt?.text ?? '';
+      trig.innerHTML = itemContentHTML(selectEl.value, label) + `<span class="dp-caret">▾</span>`;
+    }
     return;
   }
   selectEl.dataset.enhanced = '1';
@@ -60,7 +63,7 @@ export function enhanceDashPicker(selectEl) {
   // 래퍼 생성 + 원본 <select>를 안에 둠
   const wrap = document.createElement('div');
   wrap.className = 'dash-picker';
-  selectEl.parentNode.insertBefore(wrap, selectEl);
+  selectEl.parentNode?.insertBefore(wrap, selectEl);
   wrap.appendChild(selectEl);
 
   // 트리거 버튼
@@ -107,10 +110,10 @@ export function enhanceDashPicker(selectEl) {
     document.removeEventListener('mousedown', onDocMouseDown);
     document.removeEventListener('keydown', onKeyDown);
   }
-  function onDocMouseDown(e) {
-    if (!wrap.contains(e.target)) close();
+  function onDocMouseDown(e: MouseEvent) {
+    if (!wrap.contains(e.target as Node)) close();
   }
-  function onKeyDown(e) {
+  function onKeyDown(e: KeyboardEvent) {
     if (e.key === 'Escape') close();
   }
 
@@ -121,9 +124,10 @@ export function enhanceDashPicker(selectEl) {
   });
 
   panel.addEventListener('click', (e) => {
-    const item = e.target.closest('.dash-picker-item');
+    const target = e.target as HTMLElement;
+    const item = target.closest('.dash-picker-item') as HTMLElement | null;
     if (!item) return;
-    const value = item.dataset.value;
+    const value = item.dataset.value ?? '';
     if (selectEl.value !== value) {
       selectEl.value = value;
       selectEl.dispatchEvent(new Event('change', { bubbles: true }));
