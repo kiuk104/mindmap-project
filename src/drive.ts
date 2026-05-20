@@ -26,9 +26,9 @@ const STORAGE_KEY = 'mindmap.drive.token';
 const REFRESH_BEFORE_EXPIRE_MS = 60 * 1000; // 만료 60초 전 미리 갱신
 
 let tokenClient: any = null;
-let accessToken = null;
+let accessToken: string | null = null;
 let tokenExpiresAt = 0;        // ms epoch
-let currentEmail = null;
+let currentEmail: string | null = null;
 let initialized = false;
 let refreshTimer: ReturnType<typeof setTimeout> | null = null;
 // AuthSnapshot은 외부 사용자가 받는 형태이고 type별칭 import 부담을 피해 any로 잡음.
@@ -37,19 +37,19 @@ const listeners = new Set<(snap: any) => void>();
 // ── 재시도 헬퍼 ──
 // 429 (rate limit), 5xx (서버 일시 오류), 네트워크 오류만 자동 재시도.
 // 401/403/404/400 같은 영구적 오류는 즉시 반환/throw (재시도가 무의미).
-const RETRYABLE_STATUS = (s) => s === 429 || (s >= 500 && s < 600);
+const RETRYABLE_STATUS = (s: number) => s === 429 || (s >= 500 && s < 600);
 const MAX_RETRIES = 3;
 const BASE_DELAY_MS = 1000;
 
-function delay(ms) { return new Promise((r) => setTimeout(r, ms)); }
+function delay(ms: number) { return new Promise((r) => setTimeout(r, ms)); }
 
 /** exponential backoff + jitter — attempt: 0,1,2 → 약 1s, 2s, 4s */
-function backoffMs(attempt) {
+function backoffMs(attempt: number): number {
   return BASE_DELAY_MS * Math.pow(2, attempt) + Math.random() * 250;
 }
 
 /** HTTP Retry-After 헤더(초 또는 HTTP-date) → 대기 ms. 파싱 실패 시 null */
-function parseRetryAfter(header) {
+function parseRetryAfter(header: string | null): number | null {
   if (!header) return null;
   const sec = parseInt(header, 10);
   if (!Number.isNaN(sec) && String(sec) === header.trim()) return sec * 1000;
@@ -62,7 +62,7 @@ function parseRetryAfter(header) {
  * fetch wrapper — 일시적 오류 시 자동 재시도. 영구 오류·성공은 그대로 반환.
  * 호출자는 res.ok / res.status로 후속 처리 (기존 fetch 시그니처 호환).
  */
-async function fetchWithRetry(url, opts) {
+async function fetchWithRetry(url: string, opts?: RequestInit): Promise<Response> {
   let attempt = 0;
   while (true) {
     let res;
@@ -88,12 +88,12 @@ async function fetchWithRetry(url, opts) {
 /**
  * gapi 호출 wrapper — promiseFactory를 재시도. gapi reject 시 status를 e.status 또는 e.result.error.code에서 추출.
  */
-async function gapiWithRetry(promiseFactory) {
+async function gapiWithRetry<T>(promiseFactory: () => Promise<T>): Promise<T> {
   let attempt = 0;
   while (true) {
     try {
       return await promiseFactory();
-    } catch (e) {
+    } catch (e: any) {
       const status = e?.status ?? e?.result?.error?.code;
       if (RETRYABLE_STATUS(status) && attempt < MAX_RETRIES) {
         await delay(backoffMs(attempt));
@@ -106,7 +106,7 @@ async function gapiWithRetry(promiseFactory) {
 }
 
 /** 인증 상태 변경 구독 */
-export function onAuthChange(fn) {
+export function onAuthChange(fn: (snap: any) => void): () => void {
   listeners.add(fn);
   fn(authSnapshot());
   return () => listeners.delete(fn);
@@ -237,7 +237,7 @@ export async function initDrive() {
   }
 }
 
-function handleTokenResponse(response) {
+function handleTokenResponse(response: any) {
   if (response.error) {
     console.warn('Drive 인증 거부됨:', response.error);
     // silent refresh 실패면 토큰 정리
@@ -302,9 +302,9 @@ export function signOut() {
 }
 
 /** Drive 파일 목록 검색 (이 앱이 만든 JSON만) */
-async function findFileByName(name) {
+async function findFileByName(name: string) {
   const safe = name.replace(/'/g, "\\'");
-  const res = await gapiWithRetry(() => window.gapi.client.drive.files.list({
+  const res = await gapiWithRetry<any>(() => window.gapi.client.drive.files.list({
     q: `name='${safe}' and mimeType='${MIME}' and trashed=false`,
     fields:   'files(id, name, modifiedTime)',
     pageSize: 1,
@@ -315,7 +315,7 @@ async function findFileByName(name) {
 /**
  * Drive에 JSON 저장. 같은 이름 파일이 있으면 덮어쓰기, 없으면 새로 생성.
  */
-export async function saveToDrive(filename, jsonContent) {
+export async function saveToDrive(filename: string, jsonContent: string) {
   if (!accessToken) throw new Error('Drive에 로그인되지 않았습니다');
 
   const name = filename + '.json';
@@ -363,7 +363,7 @@ export async function saveToDrive(filename, jsonContent) {
 /** 이 앱이 만든 JSON 파일 목록 (최근 수정순) */
 export async function listMindmaps() {
   if (!accessToken) throw new Error('Drive에 로그인되지 않았습니다');
-  const res = await gapiWithRetry(() => window.gapi.client.drive.files.list({
+  const res = await gapiWithRetry<any>(() => window.gapi.client.drive.files.list({
     q: `mimeType='${MIME}' and trashed=false`,
     fields:   'files(id, name, modifiedTime, size)',
     orderBy:  'modifiedTime desc',
@@ -373,9 +373,9 @@ export async function listMindmaps() {
 }
 
 /** 파일 ID로 JSON 내용 가져오기. JSON 문자열 반환. */
-export async function loadFromDrive(fileId) {
+export async function loadFromDrive(fileId: string): Promise<string> {
   if (!accessToken) throw new Error('Drive에 로그인되지 않았습니다');
-  const res = await gapiWithRetry(() => window.gapi.client.drive.files.get({
+  const res = await gapiWithRetry<any>(() => window.gapi.client.drive.files.get({
     fileId,
     alt: 'media',
   }));
@@ -383,7 +383,7 @@ export async function loadFromDrive(fileId) {
 }
 
 /** 파일 이름 변경 */
-export async function renameFile(fileId, newName) {
+export async function renameFile(fileId: string, newName: string) {
   if (!accessToken) throw new Error('Drive에 로그인되지 않았습니다');
   const res = await fetchWithRetry(`https://www.googleapis.com/drive/v3/files/${fileId}`, {
     method: 'PATCH',
@@ -404,7 +404,7 @@ export async function renameFile(fileId, newName) {
  * 파일을 "링크 있는 모든 사용자 읽기"로 공유 권한 설정 + 공유 URL 반환.
  * 이미 같은 권한이 있으면 409 등 무시.
  */
-export async function makePublicLink(fileId) {
+export async function makePublicLink(fileId: string) {
   if (!accessToken) throw new Error('Drive에 로그인되지 않았습니다');
   const res = await fetchWithRetry(`https://www.googleapis.com/drive/v3/files/${fileId}/permissions`, {
     method: 'POST',
@@ -423,7 +423,7 @@ export async function makePublicLink(fileId) {
 }
 
 /** 파일 휴지통으로 이동 */
-export async function trashFile(fileId) {
+export async function trashFile(fileId: string) {
   if (!accessToken) throw new Error('Drive에 로그인되지 않았습니다');
   const res = await fetchWithRetry(`https://www.googleapis.com/drive/v3/files/${fileId}`, {
     method: 'PATCH',

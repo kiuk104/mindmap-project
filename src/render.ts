@@ -48,17 +48,17 @@ let rendering = false;
  * main.js에서 호출해서 핸들러를 등록합니다.
  * @param {Partial<typeof H>} handlers
  */
-export function registerHandlers(handlers) {
+export function registerHandlers(handlers: Partial<typeof H>) {
   Object.assign(H, handlers);
 }
 
 /** 매 render() 끝에 호출될 함수 등록 */
-export function setPostRender(fn) {
+export function setPostRender(fn: (() => void) | null | undefined) {
   postRenderHook = fn ?? (() => {});
 }
 
 /** 한 노드의 후손 수 (자기 자신 제외) — 접힌 노드의 카운트 뱃지에 사용 */
-function countDescendants(nodeId) {
+function countDescendants(nodeId: string): number {
   let n = 0;
   const stack = [nodeId];
   while (stack.length) {
@@ -83,10 +83,10 @@ function escapeXml(s: any): string {
  *
  * 인라인 style 속성으로 출력 — CSS 클래스 규칙보다 우선순위가 높음 (속성 vs CSS 충돌 방지)
  */
-function renderParentLine(p, n, style) {
+function renderParentLine(p: any, n: any, style: string): string {
   const bs = n.branchStyle ?? {};
 
-  const defaultWidth = LINE_WIDTHS[state.style?.lineWidth] ?? LINE_WIDTHS.normal;
+  const defaultWidth = (LINE_WIDTHS as Record<string, number>)[state.style?.lineWidth] ?? LINE_WIDTHS.normal;
   const finalWidth   = bs.width || defaultWidth;
 
   const themeStroke  = state.style?.coloredBranch && n.color ? n.color : null;
@@ -94,9 +94,10 @@ function renderParentLine(p, n, style) {
 
   // dash 처리 — 'wavy'는 필터로, 나머지는 dasharray로
   // linecap: dotted는 round(둥근 점), 그 외는 butt(직각 dash)
-  const dashKey      = bs.dash;
+  const dashKey: string      = bs.dash;
   const isWavy       = dashKey === 'wavy';
-  const dashPattern  = (!isWavy && DASH_PATTERNS[dashKey]) ? DASH_PATTERNS[dashKey] : '';
+  const dp = DASH_PATTERNS as Record<string, string>;
+  const dashPattern  = (!isWavy && dp[dashKey]) ? dp[dashKey] : '';
   const linecap      = dashKey === 'dotted' ? 'round' : 'butt';
 
   let css = `stroke:${finalStroke};stroke-width:${finalWidth};`;
@@ -120,7 +121,7 @@ function renderParentLine(p, n, style) {
 
 // ── SVG 화살표 마커 + 부모-자식 선 + 관계선 path 빌드 ──
 // 색상은 모두 CSS 변수로 처리 — 테마 전환 시 자동 반영됨
-function buildSvgMarkup(hiddenIds) {
+function buildSvgMarkup(hiddenIds: Set<string>): string {
   // 화살표 marker + 물결(wavy) 필터
   // feTurbulence + feDisplacementMap으로 직선 path를 부드럽게 왜곡 → 물결 효과
   let h = `<defs>
@@ -138,10 +139,10 @@ function buildSvgMarkup(hiddenIds) {
   if (Array.isArray(state.zones)) {
     state.zones.forEach((z) => {
       // 멤버 노드 중 숨겨지지 않은 것만 bbox 계산에 포함
-      const visibleMembers = (z.nodeIds ?? []).filter((id) => state.nodes[id] && !hiddenIds.has(id));
+      const visibleMembers = (z.nodeIds ?? []).filter((id: string) => state.nodes[id] && !hiddenIds.has(id));
       if (visibleMembers.length === 0) return;
       const zoneForBbox = { ...z, nodeIds: visibleMembers };
-      const box = getZoneBox(zoneForBbox, (id) => {
+      const box = getZoneBox(zoneForBbox, (id: string) => {
         const el = document.getElementById('nd-' + id);
         return { w: el?.offsetWidth ?? 150, h: el?.offsetHeight ?? 44 };
       });
@@ -156,8 +157,8 @@ function buildSvgMarkup(hiddenIds) {
         ? z.borderColor
         : (sel ? 'var(--accent)' : 'rgba(255,255,255,0.18)');
       const strokeWidth = z.borderWidth ?? (sel ? 2 : 1.5);
-      const dashKey = z.borderDash ?? 'dashed';
-      const dashAttr = sel ? 'none' : (DASH_PATTERNS[dashKey] || '6 4');
+      const dashKey: string = z.borderDash ?? 'dashed';
+      const dashAttr = sel ? 'none' : ((DASH_PATTERNS as Record<string, string>)[dashKey] || '6 4');
       h += `<rect class="zone-box" data-zone="${z.id}"
         x="${box.x}" y="${box.y}" width="${box.w}" height="${box.h}"
         rx="14" ry="14"
@@ -210,7 +211,7 @@ function buildSvgMarkup(hiddenIds) {
     // 점선 패턴 (기본은 dashed) — 'wavy'는 dasharray가 아닌 filter로, dotted는 round 캡
     const dashKey: string = rs.dash ?? 'dashed';
     const isWavyRel = dashKey === 'wavy';
-    const dashAttr = isWavyRel ? '' : (DASH_PATTERNS[dashKey] ?? DASH_PATTERNS.dashed);
+    const dashAttr = isWavyRel ? '' : ((DASH_PATTERNS as Record<string, string>)[dashKey] ?? DASH_PATTERNS.dashed);
     const filterAttrRel = isWavyRel ? `filter="url(#wavy-line)"` : '';
     const linecapRel = dashKey === 'dotted' ? 'round' : 'butt';
 
@@ -300,7 +301,7 @@ function makeRenderCtx() {
   const hitSet = new Set(state.searchHits);
   const activeHitId = hitSet.size > 0 ? state.searchHits[state.searchIdx] : null;
 
-  const numberPrefix = {};
+  const numberPrefix: Record<string, string> = {};
   Object.values(state.nodes).forEach((p) => {
     const fmt = p.numbering;
     if (!fmt || fmt === 'none') return;
@@ -321,7 +322,7 @@ function makeRenderCtx() {
  * @param {string} id
  * @returns {boolean} 성공 여부
  */
-export function patchNode(id) {
+export function patchNode(id: string): boolean {
   const n = state.nodes[id];
   if (!n) return false;
   const ctx = makeRenderCtx();
@@ -431,7 +432,7 @@ export function render() {
  * @param {{ hiddenIds: Set, parentIds: Set, selSet: Set, hitSet: Set, activeHitId: ?string, numberPrefix: Record<string,string> }} ctx
  * @returns {HTMLDivElement}
  */
-function buildNodeEl(n, ctx) {
+function buildNodeEl(n: any, ctx: any): HTMLElement {
   const { parentIds, selSet, hitSet, activeHitId, numberPrefix } = ctx;
   const isRoot = !n.parentId;
   const isSel  = selSet.has(n.id);
@@ -474,15 +475,15 @@ function buildNodeEl(n, ctx) {
     }
 
     // ── 모양 (border-radius) ──
-    el.style.borderRadius = NODE_SHAPES[n.shape] ?? NODE_SHAPES.rounded;
+    el.style.borderRadius = (NODE_SHAPES as Record<string, string>)[n.shape] ?? NODE_SHAPES.rounded;
 
     // ── 테두리 두께 ──
-    const bw = NODE_BORDERS[n.borderWidth] ?? NODE_BORDERS.thin;
+    const bw = (NODE_BORDERS as Record<string, string>)[n.borderWidth] ?? NODE_BORDERS.thin;
     el.style.borderWidth = bw;
     if (n.borderWidth === 'none') el.style.borderColor = 'transparent';
 
     // ── 외곽 스트로크 (box-shadow 후광 링, CSS 변수로 전달) ──
-    const ow = NODE_OUTLINES[n.outlineWidth] ?? 0;
+    const ow = (NODE_OUTLINES as Record<string, number>)[n.outlineWidth] ?? 0;
     if (ow > 0) {
       el.style.setProperty('--stroke-w', ow + 'px');
       el.style.setProperty('--stroke-c', n.outlineColor || lighten(n.color, 40));
@@ -565,7 +566,7 @@ function buildNodeEl(n, ctx) {
     if (Array.isArray(n.tasks) && n.tasks.length > 0) {
       const list = document.createElement('div');
       list.className = 'node-tasks';
-      n.tasks.forEach((t, i) => {
+      n.tasks.forEach((t: any, i: number) => {
         const row = document.createElement('label');
         row.className = 'node-task' + (t.done ? ' done' : '');
         row.addEventListener('click', (e) => e.stopPropagation());
@@ -588,7 +589,7 @@ function buildNodeEl(n, ctx) {
         list.appendChild(row);
       });
       // 진행도 표시 (X / Y)
-      const done = n.tasks.filter((t) => t.done).length;
+      const done = n.tasks.filter((t: any) => t.done).length;
       const summary = document.createElement('div');
       summary.className = 'node-tasks-summary';
       summary.textContent = `${done} / ${n.tasks.length}`;
@@ -616,7 +617,7 @@ function buildNodeEl(n, ctx) {
       const linksDiv = document.createElement('div');
       linksDiv.className = 'node-links';
 
-      n.links.forEach((link, i) => {
+      n.links.forEach((link: any, i: number) => {
         const badge = document.createElement('a');
         badge.className  = 'lbadge ' + link.type;
         badge.href       = link.url;
@@ -697,7 +698,7 @@ function buildNodeEl(n, ctx) {
  * 박스보다 먼저 그려져야(폴리곤의 base 부분이 박스에 가려져) 박스 안쪽 코너에서
  * 자연스럽게 솟아나는 모양이 됨 → svg.prepend로 SVG 맨 앞에 삽입.
  */
-function renderCalloutTails(hiddenIds) {
+function renderCalloutTails(hiddenIds: Set<string>) {
   const svg = $('svg-layer');
   if (!svg || !Array.isArray(state.callouts)) return;
 
@@ -753,51 +754,51 @@ function renderCalloutTails(hiddenIds) {
 }
 
 /** SVG 안의 관계선·라벨·핸들에 이벤트 핸들러를 다시 붙임 */
-function bindRelationHandlers(svg) {
+function bindRelationHandlers(svg: SVGElement) {
   svg.querySelectorAll('.rel-path').forEach((p) => {
-    p.addEventListener('pointerdown', (e) => {
+    p.addEventListener('pointerdown', (e: Event) => {
       e.stopPropagation();
       H.onRelationClick(p.getAttribute('data-rid'));
     });
-    p.addEventListener('dblclick', (e) => {
+    p.addEventListener('dblclick', (e: Event) => {
       e.stopPropagation();
       H.onRelationDblClick(p.getAttribute('data-rid'));
     });
   });
   svg.querySelectorAll('.rel-label').forEach((t) => {
-    t.addEventListener('pointerdown', (e) => {
+    t.addEventListener('pointerdown', (e: Event) => {
       e.stopPropagation();
       H.onRelationClick(t.getAttribute('data-rid'));
     });
-    t.addEventListener('dblclick', (e) => {
+    t.addEventListener('dblclick', (e: Event) => {
       e.stopPropagation();
       H.onRelationDblClick(t.getAttribute('data-rid'));
     });
   });
   svg.querySelectorAll('.rel-handle').forEach((c) => {
-    c.addEventListener('pointerdown', (e) => {
+    c.addEventListener('pointerdown', (e: Event) => {
       e.stopPropagation();
       H.onRelationHandleDown(e, c.getAttribute('data-rid'), c.getAttribute('data-handle'));
     });
   });
   svg.querySelectorAll('.branch-handle').forEach((c) => {
-    c.addEventListener('pointerdown', (e) => {
+    c.addEventListener('pointerdown', (e: Event) => {
       e.stopPropagation();
       H.onBranchHandleDown(e, c.getAttribute('data-node'), c.getAttribute('data-handle'));
     });
   });
   // 존 박스/라벨 — 클릭으로 선택, 우클릭으로 컨텍스트 메뉴
   svg.querySelectorAll('[data-zone]').forEach((el) => {
-    el.addEventListener('pointerdown', (e) => {
+    el.addEventListener('pointerdown', (e: any) => {
       if (e.button !== 0) return;
       e.stopPropagation();
       if (H.onZoneClick) H.onZoneClick(el.getAttribute('data-zone'));
     });
-    el.addEventListener('dblclick', (e) => {
+    el.addEventListener('dblclick', (e: Event) => {
       e.stopPropagation();
       if (H.onZoneRename) H.onZoneRename(el.getAttribute('data-zone'));
     });
-    el.addEventListener('contextmenu', (e) => {
+    el.addEventListener('contextmenu', (e: Event) => {
       e.preventDefault();
       e.stopPropagation();
       if (H.onZoneContextMenu) H.onZoneContextMenu(e, el.getAttribute('data-zone'));

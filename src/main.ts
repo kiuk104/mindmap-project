@@ -84,16 +84,16 @@ if (IS_VIEW_MODE) document.body.classList.add('view-mode');
 registerHandlers({
   onNodeMouseDown,
   onNodeDblClick:        IS_VIEW_MODE ? () => {} : startEdit,
-  onNodeContextMenu:     IS_VIEW_MODE ? (e) => e.preventDefault() : showContextMenu,
+  onNodeContextMenu:     IS_VIEW_MODE ? (e: Event) => e.preventDefault() : showContextMenu,
   onLinkBadgeMouseEnter: showPreview,
   onLinkBadgeMouseLeave: hidePreview,
   onLinkDelete:          removeLink,
-  onRelationClick:       (rid) => {
+  onRelationClick:       (rid: string) => {
     setRelationSelection(state, [rid]);
     clearNodeSelection(state);
     render();
   },
-  onRelationDblClick: (rid) => {
+  onRelationDblClick: (rid: string) => {
     const r = state.relations.find((rr) => rr.id === rid);
     if (!r) return;
     const newLabel = prompt('관계선 라벨 (비워두면 제거):', r.label ?? '');
@@ -109,7 +109,7 @@ registerHandlers({
   onToggleCollapse: toggleCollapse,
   onGDocsClick:     openGDocsPreviewModal,
   onNoteClick:      openNoteModal,
-  onTaskToggle:     (nodeId, idx, checked) => {
+  onTaskToggle:     (nodeId: string, idx: number, checked: boolean) => {
     const n = state.nodes[nodeId];
     if (!n || !Array.isArray(n.tasks) || !n.tasks[idx]) return;
     pushHistory();
@@ -117,7 +117,7 @@ registerHandlers({
     // 단일 노드 patch (자기 자신만 변경) — 실패 시 전체 render fallback
     if (!patchNode(nodeId)) render();
   },
-  onCalloutPointerDown: (e, coId) => onCalloutPointerDown(e, coId, canvasCoord),
+  onCalloutPointerDown: (e: PointerEvent, coId: string) => onCalloutPointerDown(e, coId, canvasCoord),
   onCalloutEdit:        editCalloutInline,
   onCalloutContextMenu: showCalloutMenu,
   onZoneClick:          selectZone,
@@ -126,7 +126,7 @@ registerHandlers({
 });
 
 /** 콜아웃 텍스트를 인라인으로 편집 */
-function editCalloutInline(coId) {
+function editCalloutInline(coId: string) {
   const co = state.callouts?.find((c) => c.id === coId);
   if (!co) return;
   const next = prompt('콜아웃 내용:', co.text ?? '');
@@ -183,7 +183,7 @@ onLastSaveChange((ls) => {
 $('btn-map-title')?.addEventListener('click', () => {
   const cur = getLastSave();
   const currentName = cur?.name || '';
-  openRenameModal(currentName, (newName) => {
+  openRenameModal(currentName, (newName: string) => {
     const prev = getLastSave();
     // 기존 저장이 없었으면 기본 download 종류로 기억
     const kind = prev?.kind || 'download';
@@ -201,7 +201,7 @@ $('btn-map-title')?.addEventListener('click', () => {
 });
 
 // ── 키보드 트리 네비게이션 ──
-function selectAndCenter(id) {
+function selectAndCenter(id: string) {
   setNodeSelection(state, [id]);
   // expandAncestors가 실제로 collapsed를 풀었으면 다른 노드 가시성 변화 → 전체 render
   // 변화 없으면 .selected 클래스만 토글하는 가벼운 updateSelection 사용
@@ -224,7 +224,7 @@ function selectAndCenter(id) {
 }
 
 /** 같은 부모의 형제로 이동 (y좌표 순) */
-function navigateSibling(dir) {
+function navigateSibling(dir: -1 | 1) {
   // 선택 없으면 루트 선택
   if (!state.selectedId) {
     const rootId = Object.keys(state.nodes).find((k) => !state.nodes[k].parentId);
@@ -315,7 +315,7 @@ function clearDriveQuery() {
   u.searchParams.delete('drive');
   history.replaceState(null, '', u.toString());
 }
-async function tryAutoLoadDriveFile(fileId) {
+async function tryAutoLoadDriveFile(fileId: string) {
   try {
     const content = await drive.loadFromDrive(fileId);
     if (loadFromStringFromIO(content)) {
@@ -413,7 +413,7 @@ $('file-in').addEventListener('change',   doImport);
 
 // 모바일 오버플로 메뉴(⋯)에서 트리거되면 원본 버튼이 display:none이라
 // getBoundingClientRect()가 모두 0을 반환한다. 이 경우 ⋯ 버튼 기준으로 위치를 잡는다.
-function anchorDropdown(btn) {
+function anchorDropdown(btn: HTMLElement) {
   const r = btn.getBoundingClientRect();
   if (r.width > 0 || r.height > 0) {
     return { top: r.bottom + 4, left: r.left };
@@ -438,7 +438,7 @@ function initImportDropdown() {
   }
   const dd: HTMLElement = _dd;
   function closeDd() { dd.classList.remove('open'); }
-  btn.addEventListener('click', (e) => {
+  btn.addEventListener('click', (e: Event) => {
     e.stopPropagation();
     const { top, left } = anchorDropdown(btn);
     dd.style.top  = top + 'px';
@@ -541,8 +541,8 @@ const THEME_KEY = 'mindmap.theme';   // 하위호환: 옛 키도 읽음
 const mqlSystemLight = window.matchMedia ? window.matchMedia('(prefers-color-scheme: light)') : null;
 
 /** settings.theme 값을 받아 실제 light/dark을 결정해 DOM에 반영 */
-function applyAppTheme(themePref) {
-  let effective;
+function applyAppTheme(themePref: string) {
+  let effective: 'light' | 'dark';
   if (themePref === 'system') {
     effective = mqlSystemLight && mqlSystemLight.matches ? 'light' : 'dark';
   } else {
@@ -617,7 +617,7 @@ function initToolbarOverflow() {
   }
   const dd: HTMLElement = _dd;
   function closeDd() { dd.classList.remove('open'); }
-  btn.addEventListener('click', (e) => {
+  btn.addEventListener('click', (e: Event) => {
     e.stopPropagation();
     const rect = btn.getBoundingClientRect();
     dd.style.top  = (rect.bottom + 4) + 'px';
@@ -668,7 +668,7 @@ function initDriveUnifiedButton() {
   function closeDd() { dd.classList.remove('open'); }
 
   // 드롭다운 열기/닫기 토글
-  btn.addEventListener('click', (e) => {
+  btn.addEventListener('click', (e: Event) => {
     e.stopPropagation();
     const { top, left } = anchorDropdown(btn);
     dd.style.top  = top + 'px';
@@ -742,7 +742,7 @@ function initDriveUnifiedButton() {
   }
 
   // 인증 상태가 바뀌면 버튼 텍스트 갱신
-  drive.onAuthChange(({ signedIn, email, available }) => {
+  drive.onAuthChange(({ signedIn, email, available }: { signedIn: boolean; email: string | null; available: boolean }) => {
     if (!btn) return;
     if (!available) {
       btn.textContent = '☁️ Drive';
@@ -771,7 +771,7 @@ drive.initDrive()
         // 인앱 브라우저면 별도 가이드 모달이 자동으로 뜨므로 여기선 토스트 생략.
         toastSuccess('🔗 공유된 파일을 열려면 ☁️ Drive 메뉴에서 Google 계정으로 연결해주세요. 연결 후 자동으로 불러옵니다.');
         // 로그인 시점에 자동 로드
-        const off = drive.onAuthChange(({ signedIn }) => {
+        const off = drive.onAuthChange(({ signedIn }: { signedIn: boolean }) => {
           if (signedIn && pendingDriveLoad) {
             off();
             tryAutoLoadDriveFile(pendingDriveLoad);
@@ -791,7 +791,7 @@ drive.initDrive()
         const ok = confirm(`☁️ 최근 Drive 파일 "${ls.name}" 을 불러올까요?\n\n취소하면 현재 자동저장된 상태가 그대로 유지됩니다.`);
         if (!ok) return;
         try {
-          const json = await drive.loadFromDrive(ls.driveFileId);
+          const json = await drive.loadFromDrive(ls.driveFileId!);
           loadFromStringFromIO(json);
           resetView();
           toastSuccess(`☁️ "${ls.name}" 불러옴`);
@@ -804,22 +804,22 @@ drive.initDrive()
   .catch((e) => console.warn('Drive init 실패:', e));
 
 // ── 검색 input ──
-$('search-input').addEventListener('input', (e) => runSearch(e.target.value));
-$('search-input').addEventListener('keydown', (e) => {
+$('search-input').addEventListener('input', (e: Event) => runSearch((e.target as HTMLInputElement).value));
+$('search-input').addEventListener('keydown', (e: KeyboardEvent) => {
   if (e.key === 'Enter') {
     e.preventDefault();
     gotoHit(e.shiftKey ? -1 : 1);
   } else if (e.key === 'Escape') {
     e.preventDefault();
     clearSearch();
-    e.target.blur();
+    (e.target as HTMLElement | null)?.blur();
   }
 });
 
 // ── 모달 버튼 ──
 $('modal-ok').addEventListener('click',     handleModalOK);
 $('modal-cancel').addEventListener('click', closeModal);
-$('modal-bg').addEventListener('click', (e) => {
+$('modal-bg').addEventListener('click', (e: Event) => {
   if (e.target === $('modal-bg')) closeModal();
 });
 
@@ -835,7 +835,7 @@ document.addEventListener('click', (e) => {
 });
 
 // ── 배경 우클릭 → 커스텀 메뉴 (단, 우클릭 드래그 후엔 메뉴 띄우지 않음) ──
-$('canvas-wrap').addEventListener('contextmenu', (e) => {
+$('canvas-wrap').addEventListener('contextmenu', (e: MouseEvent) => {
   // 뷰어 모드면 컨텍스트 메뉴 차단
   if (IS_VIEW_MODE) { e.preventDefault(); return; }
   // 직전에 우클릭 드래그(Pan)가 있었다면 contextmenu는 그 끝맺음일 뿐 → 메뉴 차단
@@ -843,8 +843,8 @@ $('canvas-wrap').addEventListener('contextmenu', (e) => {
     e.preventDefault();
     return;
   }
-  const t = e.target;
-  if (t.id === 'canvas-wrap' || t.id === 'canvas' || t.id === 'svg-layer') {
+  const t = e.target as HTMLElement | null;
+  if (t && (t.id === 'canvas-wrap' || t.id === 'canvas' || t.id === 'svg-layer')) {
     showBgMenu(e);
   }
 });
@@ -856,9 +856,9 @@ $('canvas-wrap').addEventListener('contextmenu', (e) => {
 // 2) 콜아웃/존 위면 무시 (각자 자기 dblclick 핸들러가 처리)
 // 3) 직전 500ms 내 노드 인터랙션이 있었으면 합성 더블클릭 부산물로 간주, 무시
 // 4) 진짜 빈 공간이면 그 위치에 새 노드 추가
-$('canvas-wrap').addEventListener('dblclick', (e) => {
+$('canvas-wrap').addEventListener('dblclick', (e: MouseEvent) => {
   if (IS_VIEW_MODE) return; // 뷰어 모드 — 빈 공간 더블클릭으로 노드 추가/편집 차단
-  const t = e.target;
+  const t = e.target as HTMLElement;
   if (t.id !== 'canvas-wrap' && t.id !== 'canvas' && t.id !== 'svg-layer') return;
 
   const hit = document.elementFromPoint(e.clientX, e.clientY);
@@ -905,8 +905,8 @@ function actionDeleteSelected() {
   }
   if (selNodes.length) {
     const rootId = Object.keys(state.nodes).find((k) => !state.nodes[k].parentId);
-    const removed = new Set();
-    function rm(nodeId) {
+    const removed = new Set<string>();
+    function rm(nodeId: string) {
       if (nodeId === rootId) return;
       Object.keys(state.nodes)
         .filter((k) => state.nodes[k].parentId === nodeId)

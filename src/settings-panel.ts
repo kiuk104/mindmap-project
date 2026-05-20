@@ -59,9 +59,9 @@ function buildBody() {
     </div>
     <div id="stp-tab-body"></div>
   `;
-  body.querySelectorAll('.stp-tab').forEach((btn) => {
+  body.querySelectorAll('.stp-tab').forEach((btn: any) => {
     btn.addEventListener('click', () => {
-      _activeTab = btn.dataset.tab;
+      _activeTab = btn.dataset.tab ?? 'general';
       buildBody();
     });
   });
@@ -78,7 +78,7 @@ function buildGeneralTab() {
 
   const fontOptions = Object.entries(FONT_NAMES).map(([key, name]) =>
     `<option value="${key}" ${key === s.defaultFont ? 'selected' : ''}
-      style="font-family:${FONT_FAMILIES[key]}">${name} — 가나다 ABC</option>`
+      style="font-family:${(FONT_FAMILIES as Record<string, string>)[key]}">${name} — 가나다 ABC</option>`
   ).join('');
 
   body.innerHTML = `
@@ -273,25 +273,25 @@ function buildGeneralTab() {
   // ── 이벤트 바인딩 ──
 
   // 앱 테마
-  body.querySelectorAll('input[name="stp-theme"]').forEach((r) => {
-    r.addEventListener('change', (e) => {
+  body.querySelectorAll('input[name="stp-theme"]').forEach((r: any) => {
+    r.addEventListener('change', (e: any) => {
       if (e.target.checked) updateSettings({ theme: e.target.value });
     });
   });
 
-  $('stp-font').addEventListener('change', (e) => updateSettings({ defaultFont: e.target.value }));
-  $('stp-border').addEventListener('change', (e) => updateSettings({ defaultNodeBorder: e.target.value }));
-  $('stp-line-style')?.addEventListener('change', (e) => updateSettings({ defaultLineStyle: e.target.value }));
-  $('stp-line-width')?.addEventListener('change', (e) => updateSettings({ defaultLineWidth: e.target.value }));
-  $('stp-colored-branch')?.addEventListener('change', (e) => updateSettings({ defaultColoredBranch: e.target.checked }));
-  $('stp-shadow').addEventListener('change', (e) => {
+  $('stp-font').addEventListener('change', (e: any) => updateSettings({ defaultFont: e.target.value }));
+  $('stp-border').addEventListener('change', (e: any) => updateSettings({ defaultNodeBorder: e.target.value }));
+  $('stp-line-style')?.addEventListener('change', (e: any) => updateSettings({ defaultLineStyle: e.target.value }));
+  $('stp-line-width')?.addEventListener('change', (e: any) => updateSettings({ defaultLineWidth: e.target.value }));
+  $('stp-colored-branch')?.addEventListener('change', (e: any) => updateSettings({ defaultColoredBranch: e.target.checked }));
+  $('stp-shadow').addEventListener('change', (e: any) => {
     updateSettings({ nodeShadow: e.target.checked });
     applyNodeShadow();
   });
-  $('stp-hide-title')?.addEventListener('change', (e) => {
+  $('stp-hide-title')?.addEventListener('change', (e: any) => {
     updateSettings({ hideAppTitle: e.target.checked });
   });
-  $('stp-autolink')?.addEventListener('change', (e) => {
+  $('stp-autolink')?.addEventListener('change', (e: any) => {
     updateSettings({ autoDetectLinks: e.target.checked });
   });
 
@@ -303,7 +303,7 @@ function buildGeneralTab() {
       buildBody();   // 목록 재빌드
     }
   });
-  $('stp-add-font-name')?.addEventListener('keydown', (e) => {
+  $('stp-add-font-name')?.addEventListener('keydown', (e: KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       $('stp-add-font-btn').click();
@@ -312,16 +312,16 @@ function buildGeneralTab() {
   // 폰트 찾기 모달 — addCustomFont/이미 추가됐는지 여부 헬퍼를 콜백으로 전달
   $('stp-browse-fonts')?.addEventListener('click', () => {
     openFontBrowserModal(
-      (name) => addCustomFont(name),
-      (name) => ((getSettings().customFonts ?? []) as Array<{ name: string }>).some(
+      (name: string) => addCustomFont(name),
+      (name: string) => ((getSettings().customFonts ?? []) as Array<{ name: string }>).some(
         (f) => f.name.toLowerCase() === name.toLowerCase()
       ),
     );
   });
   // 목록 안 삭제 버튼들
-  $('stp-custom-fonts-list')?.querySelectorAll('.custom-font-del').forEach((btn) => {
+  $('stp-custom-fonts-list')?.querySelectorAll('.custom-font-del').forEach((btn: any) => {
     btn.addEventListener('click', () => {
-      removeCustomFont(btn.dataset.id);
+      removeCustomFont(btn.dataset.id ?? '');
       buildBody();
     });
   });
@@ -375,12 +375,12 @@ function buildGeneralTab() {
   });
 
   // 앱 강제 업데이트 — 캐시·SW 제거 후 reload (localStorage는 유지)
-  $('stp-force-update')?.addEventListener('click', async (e) => {
+  $('stp-force-update')?.addEventListener('click', async (e: Event) => {
     if (!confirm(
       '브라우저 캐시와 Service Worker를 비우고 페이지를 새로고침합니다.\n' +
       '마인드맵 데이터(localStorage)는 유지됩니다.\n\n계속할까요?'
     )) return;
-    const btn = e.currentTarget;
+    const btn = e.currentTarget as HTMLButtonElement;
     btn.disabled = true;
     btn.textContent = '⏳ 캐시 비우는 중…';
     try {
@@ -404,7 +404,7 @@ function buildGeneralTab() {
   });
 
   // 관계선 기본값 — 각 필드 즉시 반영
-  $('stp-rel-color').addEventListener('change', (e) => {
+  $('stp-rel-color').addEventListener('change', (e: any) => {
     delete e.target.dataset.reset;
     updateSettings({ defaultRelation: { color: e.target.value } });
   });
@@ -413,11 +413,11 @@ function buildGeneralTab() {
     $('stp-rel-color').dataset.reset = '1';
     updateSettings({ defaultRelation: { color: null } });
   });
-  $('stp-rel-dash').addEventListener('change', (e) => updateSettings({ defaultRelation: { dash: e.target.value } }));
-  $('stp-rel-width').addEventListener('change', (e) => updateSettings({
+  $('stp-rel-dash').addEventListener('change', (e: any) => updateSettings({ defaultRelation: { dash: e.target.value } }));
+  $('stp-rel-width').addEventListener('change', (e: any) => updateSettings({
     defaultRelation: { width: e.target.value ? Number(e.target.value) : null },
   }));
-  $('stp-rel-arrow').addEventListener('change', (e) => updateSettings({ defaultRelation: { arrow: e.target.value } }));
+  $('stp-rel-arrow').addEventListener('change', (e: any) => updateSettings({ defaultRelation: { arrow: e.target.value } }));
   enhanceDashPicker($('stp-rel-dash'));
 }
 
@@ -436,7 +436,7 @@ function buildShortcutsTab() {
         style="margin-top:8px;">↺ 모든 단축키 초기화</button>
     </section>
   `;
-  body.querySelectorAll('[data-shortcut-action]').forEach((row) => bindShortcutRow(row));
+  body.querySelectorAll('[data-shortcut-action]').forEach((row: any) => bindShortcutRow(row));
   $('stp-reset-all-shortcuts').addEventListener('click', () => {
     if (!confirm('모든 단축키를 기본값으로 되돌릴까요?')) return;
     updateSettings({ shortcuts: {} });
@@ -475,15 +475,15 @@ function buildShortcutsHTML() {
   `).join('');
 }
 
-function formatBinding(b) {
+function formatBinding(b: string): string {
   // "Ctrl+Shift+Z" → 보기 좋게
   return b.replace(/\+/g, ' + ');
 }
 
-function bindShortcutRow(row) {
-  const actionId = row.dataset.shortcutAction;
-  const btn = row.querySelector('[data-bind-btn]');
-  const resetBtn = row.querySelector('[data-reset]');
+function bindShortcutRow(row: HTMLElement) {
+  const actionId = row.dataset.shortcutAction ?? '';
+  const btn = row.querySelector('[data-bind-btn]') as HTMLButtonElement;
+  const resetBtn = row.querySelector('[data-reset]') as HTMLElement | null;
 
   let capturing = false;
   let onKey: ((e: KeyboardEvent) => void) | null = null;
@@ -509,13 +509,13 @@ function bindShortcutRow(row) {
 
       // 다른 액션이 이미 같은 binding을 가지면 경고
       const conflict = findConflict(binding, actionId);
-      if (conflict && !confirm(`"${ACTIONS[conflict].label}" 액션과 겹칩니다. 그래도 할당할까요?`)) {
+      if (conflict && !confirm(`"${(ACTIONS as any)[conflict].label}" 액션과 겹칩니다. 그래도 할당할까요?`)) {
         endCapture();
         return;
       }
 
       // shortcuts 패치 — 사용자가 명시적으로 지정한 값이므로 그대로 저장
-      const next = { ...(getSettings().shortcuts ?? {}), [actionId]: binding };
+      const next: Record<string, string> = { ...(getSettings().shortcuts ?? {}), [actionId]: binding };
       // 충돌 액션은 비활성으로 (빈 문자열 = 단축키 없음)
       if (conflict) next[conflict] = '';
       updateSettings({ shortcuts: next });
@@ -537,7 +537,7 @@ function bindShortcutRow(row) {
 
   if (resetBtn) {
     resetBtn.addEventListener('click', () => {
-      const next = { ...(getSettings().shortcuts ?? {}) };
+      const next: Record<string, string> = { ...(getSettings().shortcuts ?? {}) };
       delete next[actionId];
       updateSettings({ shortcuts: next });
       buildBody();
@@ -545,7 +545,7 @@ function bindShortcutRow(row) {
   }
 }
 
-function findConflict(binding, exceptActionId) {
+function findConflict(binding: string, exceptActionId: string): string | null {
   for (const [aid] of Object.entries(ACTIONS)) {
     if (aid === exceptActionId) continue;
     if (getBinding(aid) === binding) return aid;
