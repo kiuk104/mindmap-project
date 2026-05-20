@@ -37,6 +37,7 @@ export function showContextMenu(e: MouseEvent, nodeId: string) {
 
   hideBgMenu();
   positionMenu($('ctx-menu'), e.clientX, e.clientY);
+  focusFirstItem($('ctx-menu'));
 }
 
 /** 배경 우클릭 메뉴 표시 */
@@ -67,6 +68,7 @@ export function showBgMenu(e: MouseEvent) {
   }
 
   positionMenu($('ctx-bg-menu'), e.clientX, e.clientY);
+  focusFirstItem($('ctx-bg-menu'));
 }
 
 /** 화면 안에 들어오도록 위치 보정 — 모바일에서 메뉴가 viewport보다 길 때 top이 음수로 가지 않도록 clamp */
@@ -134,6 +136,7 @@ export function showZoneMenu(e: MouseEvent, zoneId: string) {
   hideBgMenu();
   hideCalloutMenu();
   positionMenu($('ctx-zone-menu'), e.clientX, e.clientY);
+  focusFirstItem($('ctx-zone-menu'));
 }
 
 /**
@@ -149,6 +152,7 @@ export function showCalloutMenu(e: MouseEvent, coId: string) {
   hideBgMenu();
   hideZoneMenu();
   positionMenu($('ctx-callout-menu'), e.clientX, e.clientY);
+  focusFirstItem($('ctx-callout-menu'));
 }
 
 /** 메뉴 버튼 이벤트 등록 */
@@ -349,4 +353,51 @@ export function initContextMenu() {
     render();
     resetView();
   });
+
+  // ── 키보드 탐색 ──────────────────────────────────────
+  // 열린 메뉴에서 ↑↓로 포커스 이동, Esc로 닫기
+  const MENU_IDS = ['ctx-menu', 'ctx-bg-menu', 'ctx-zone-menu', 'ctx-callout-menu'] as const;
+
+  function getFocusableItems(menu: HTMLElement): HTMLElement[] {
+    return Array.from(
+      menu.querySelectorAll<HTMLElement>('.ctx-item:not([style*="display:none"]), .ctx-quick-btn')
+    ).filter((el) => !el.closest('[style*="display: none"]') && !el.closest('[style*="display:none"]'));
+  }
+
+  document.addEventListener('keydown', (e) => {
+    const openMenu = MENU_IDS.map((id) => document.getElementById(id) as HTMLElement)
+      .find((m) => m && m.style.display !== 'none' && m.style.display !== '');
+    if (!openMenu) return;
+
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      hideAllMenus();
+      return;
+    }
+
+    const items = getFocusableItems(openMenu);
+    if (items.length === 0) return;
+
+    const focused = document.activeElement as HTMLElement;
+    const idx = items.indexOf(focused);
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      const next = idx < items.length - 1 ? items[idx + 1] : items[0];
+      next.focus();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      const prev = idx > 0 ? items[idx - 1] : items[items.length - 1];
+      prev.focus();
+    } else if (e.key === 'Enter' && focused && items.includes(focused)) {
+      e.preventDefault();
+      focused.click();
+    }
+  }, true);  // 캡처 단계 — 다른 핸들러보다 먼저
+}
+
+/** 메뉴가 열릴 때 첫 번째 항목에 포커스 */
+function focusFirstItem(menu: HTMLElement) {
+  const first = menu.querySelector<HTMLElement>('.ctx-item[tabindex], .ctx-quick-btn');
+  if (first) setTimeout(() => first.focus(), 10);
 }

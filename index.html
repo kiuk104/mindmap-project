@@ -166,51 +166,73 @@
   </div>
 
   <!-- ── 노드 우클릭 메뉴 ── -->
-  <div id="ctx-menu">
-    <div class="ctx-item" id="ctx-edit">✏️ 텍스트 편집</div>
-    <div class="ctx-item" id="ctx-add-child">➕ 자식 노드 추가</div>
-    <div class="ctx-item" id="ctx-link">🔗 링크 추가/관리</div>
-    <div class="ctx-item" id="ctx-color">🎨 색상 변경</div>
-    <div class="ctx-item" id="ctx-icon">🙂 아이콘 선택</div>
-    <div class="ctx-item" id="ctx-image">🖼️ 이미지 임베드</div>
-    <div class="ctx-item" id="ctx-note">📝 노트 편집</div>
-    <div class="ctx-item" id="ctx-tasks">✅ 할 일 목록</div>
-    <div class="ctx-item" id="ctx-callout">💬 콜아웃 추가</div>
-    <div class="ctx-item" id="ctx-relation">↬ 관계선 시작</div>
-    <div class="ctx-item" id="ctx-collapse">▾ 접기/펴기 (Space)</div>
+  <div id="ctx-menu" role="menu" aria-label="노드 메뉴">
+    <!-- 빠른 액션 그리드 (자주 쓰는 4개) -->
+    <div class="ctx-quick-grid">
+      <button class="ctx-quick-btn" id="ctx-edit" role="menuitem" title="텍스트 편집 — 더블클릭과 동일">
+        <span class="ctx-qi">✏️</span><span>편집</span>
+      </button>
+      <button class="ctx-quick-btn" id="ctx-add-child" role="menuitem" title="자식 노드 추가 (Tab)">
+        <span class="ctx-qi">➕</span><span>자식 추가</span>
+      </button>
+      <button class="ctx-quick-btn" id="ctx-color" role="menuitem" title="노드 색상 변경">
+        <span class="ctx-qi">🎨</span><span>색상</span>
+      </button>
+      <button class="ctx-quick-btn" id="ctx-icon" role="menuitem" title="이모지 아이콘 선택">
+        <span class="ctx-qi">🙂</span><span>아이콘</span>
+      </button>
+    </div>
     <div class="ctx-sep"></div>
-    <div class="ctx-item danger" id="ctx-del">🗑️ 삭제 (Del)</div>
+    <!-- 일반 항목 -->
+    <div class="ctx-item" id="ctx-link" role="menuitem" tabindex="-1">🔗 링크 추가/관리</div>
+    <div class="ctx-item" id="ctx-image" role="menuitem" tabindex="-1">🖼️ 이미지 임베드</div>
+    <div class="ctx-item" id="ctx-note" role="menuitem" tabindex="-1">📝 노트</div>
+    <div class="ctx-item" id="ctx-tasks" role="menuitem" tabindex="-1">✅ 할 일 목록</div>
+    <div class="ctx-item" id="ctx-callout" role="menuitem" tabindex="-1">💬 콜아웃 추가</div>
+    <div class="ctx-item" id="ctx-relation" role="menuitem" tabindex="-1">↬ 관계선으로 연결</div>
+    <div class="ctx-item" id="ctx-collapse" role="menuitem" tabindex="-1">
+      ▾ 접기/펴기<span class="ctx-kbd">Space</span>
+    </div>
+    <!-- 삭제 — 별도 위험 zone -->
+    <div class="ctx-sep ctx-sep-danger"></div>
+    <div class="ctx-item ctx-item-danger" id="ctx-del" role="menuitem" tabindex="-1">
+      🗑️ 삭제<span class="ctx-kbd">Del</span>
+    </div>
   </div>
 
   <!-- ── 배경 우클릭 메뉴 ── -->
-  <div id="ctx-bg-menu">
-    <div class="ctx-item" id="ctxbg-add">➕ 노드 추가</div>
-    <div class="ctx-item" id="ctxbg-fit">⌖ 화면 맞춤</div>
-    <div class="ctx-item" id="ctxbg-make-zone" style="display:none">📦 선택 노드를 존으로 묶기</div>
+  <div id="ctx-bg-menu" role="menu" aria-label="캔버스 메뉴">
+    <div class="ctx-item" id="ctxbg-add" role="menuitem" tabindex="-1">➕ 노드 추가</div>
+    <div class="ctx-item" id="ctxbg-fit" role="menuitem" tabindex="-1">⌖ 화면 맞춤</div>
+    <div class="ctx-item" id="ctxbg-make-zone" role="menuitem" tabindex="-1" style="display:none">📦 선택 노드를 존으로 묶기</div>
     <div class="ctx-sep"></div>
-    <div class="ctx-item" id="ctxbg-export">💾 저장 (Ctrl+S)</div>
-    <div class="ctx-item" id="ctxbg-export-as">💾 다른 이름으로 저장 (Ctrl+Shift+S)</div>
-    <div class="ctx-item" id="ctxbg-import">📂 불러오기</div>
-    <div class="ctx-sep"></div>
-    <div class="ctx-item danger" id="ctxbg-cancel-rel" style="display:none">✕ 관계선 그리기 취소</div>
-    <div class="ctx-item danger" id="ctxbg-del-rel" style="display:none">🗑️ 선택한 관계선 삭제 (Del)</div>
-    <div class="ctx-item danger" id="ctxbg-clear">🗑️ 모두 지우고 처음 상태로</div>
+    <div class="ctx-item" id="ctxbg-export" role="menuitem" tabindex="-1">
+      💾 저장<span class="ctx-kbd">Ctrl S</span>
+    </div>
+    <div class="ctx-item" id="ctxbg-export-as" role="menuitem" tabindex="-1">
+      💾 다른 이름으로 저장<span class="ctx-kbd">Ctrl⇧S</span>
+    </div>
+    <div class="ctx-item" id="ctxbg-import" role="menuitem" tabindex="-1">📂 불러오기</div>
+    <div class="ctx-sep ctx-sep-danger"></div>
+    <div class="ctx-item ctx-item-danger" id="ctxbg-cancel-rel" role="menuitem" tabindex="-1" style="display:none">✕ 관계선 그리기 취소</div>
+    <div class="ctx-item ctx-item-danger" id="ctxbg-del-rel" role="menuitem" tabindex="-1" style="display:none">🗑️ 선택한 관계선 삭제<span class="ctx-kbd">Del</span></div>
+    <div class="ctx-item ctx-item-danger" id="ctxbg-clear" role="menuitem" tabindex="-1">🗑️ 모두 지우고 처음 상태로</div>
   </div>
 
   <!-- ── 존 우클릭 메뉴 ── -->
-  <div id="ctx-zone-menu">
-    <div class="ctx-item" id="ctxz-rename">✏️ 라벨 편집</div>
-    <div class="ctx-item" id="ctxz-style">🎨 스타일 패널 열기</div>
-    <div class="ctx-sep"></div>
-    <div class="ctx-item danger" id="ctxz-delete">🗑️ 존 삭제 (Del)</div>
+  <div id="ctx-zone-menu" role="menu" aria-label="존 메뉴">
+    <div class="ctx-item" id="ctxz-rename" role="menuitem">✏️ 라벨 편집</div>
+    <div class="ctx-item" id="ctxz-style" role="menuitem">🎨 스타일 패널 열기</div>
+    <div class="ctx-sep ctx-sep-danger"></div>
+    <div class="ctx-item ctx-item-danger" id="ctxz-delete" role="menuitem">🗑️ 존 삭제<span class="ctx-kbd">Del</span></div>
   </div>
 
   <!-- ── 콜아웃(말풍선) 우클릭 메뉴 ── -->
-  <div id="ctx-callout-menu">
-    <div class="ctx-item" id="ctxc-edit">✏️ 텍스트 편집</div>
-    <div class="ctx-item" id="ctxc-style">🎨 스타일 패널 열기</div>
-    <div class="ctx-sep"></div>
-    <div class="ctx-item danger" id="ctxc-delete">🗑️ 콜아웃 삭제 (Del)</div>
+  <div id="ctx-callout-menu" role="menu" aria-label="콜아웃 메뉴">
+    <div class="ctx-item" id="ctxc-edit" role="menuitem">✏️ 텍스트 편집</div>
+    <div class="ctx-item" id="ctxc-style" role="menuitem">🎨 스타일 패널 열기</div>
+    <div class="ctx-sep ctx-sep-danger"></div>
+    <div class="ctx-item ctx-item-danger" id="ctxc-delete" role="menuitem">🗑️ 콜아웃 삭제<span class="ctx-kbd">Del</span></div>
   </div>
 
   <!-- ── 모달 ── -->

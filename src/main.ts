@@ -23,9 +23,10 @@ import { openLinkModal, openColorModal, openSaveModal, openDriveLoadModal, openD
 import { initSettingsPanel, toggleSettingsPanel, openSettingsPanel, closeSettingsPanel, isSettingsPanelOpen, injectCustomFonts } from './settings-panel.js';
 import { registerShortcuts, dispatchKey } from './shortcuts.js';
 import * as drive                            from './drive.js';
+import { initDriveWatch }                    from './drive-watch.js';
 import { showContextMenu, hideContextMenu, hideAllMenus, showBgMenu, initContextMenu, showZoneMenu, showCalloutMenu } from './menu.js';
 import { doImport, schedulePersist, restoreLocal, onSaveStateChange, onLastSaveChange, quickSave, getLastSave, setLastSave, serialize, defaultFilename, loadFromString as loadFromStringFromIO } from './io.js';
-import { toastSuccess, toastError } from './toast.js';
+import { toastSuccess, toastError, showActionToast } from './toast.js';
 import { runSearch, gotoHit, clearSearch }    from './search.js';
 import { initStylePanel, togglePanel, closePanel, isPanelOpen, setOnStyleApplied, syncSelectedNodeSection } from './style-panel.js';
 import { initIconPanel, toggleIconPanel, openIconPanel, closeIconPanel, isIconPanelOpen, syncIconPanel } from './icon-panel.js';
@@ -759,6 +760,43 @@ function initDriveUnifiedButton() {
 }
 
 initDriveUnifiedButton();
+
+// ── Drive 외부 변경 감시 (Step 1 협업) ──
+// 다른 기기/사용자가 같은 Drive 파일을 수정하면 30초 폴링으로 감지 → 토스트 알림.
+// 자체 저장(saveToDrive)은 drive.ts에서 baseline을 즉시 갱신해 false positive 없음.
+initDriveWatch({
+  onExternalChange: (fileId) => {
+    showActionToast(
+      '☁️ 이 파일이 다른 곳에서 수정되었습니다',
+      '다시 불러오기',
+      () => reloadDriveFileInteractive(fileId),
+      { type: 'info', duration: 15000 },
+    );
+  },
+  onFileGone: () => {
+    toastError('☁️ Drive 파일이 삭제되었거나 접근할 수 없습니다 — 💾 저장으로 새 파일을 만드세요');
+  },
+});
+
+async function reloadDriveFileInteractive(fileId: string) {
+  const ok = confirm('외부에서 수정된 내용을 불러옵니다.\n저장되지 않은 로컬 변경사항은 사라집니다.\n\n계속할까요?');
+  if (!ok) return;
+  // loadFromString이 'title' 필드가 있으면 lastSave를 'download'로 덮어씌우는 부작용이 있어
+  // Drive 정보(name + fileId)는 호출 전에 백업했다가 복원.
+  const lsBefore = getLastSave();
+  try {
+    const json = await drive.loadFromDrive(fileId);
+    if (!loadFromStringFromIO(json)) {
+      toastError('파일 형식이 올바르지 않습니다');
+      return;
+    }
+    const name = lsBefore?.name ?? '공유 파일';
+    setLastSave({ kind: 'drive', name, driveFileId: fileId });
+    toastSuccess(`☁️ "${name}" 다시 불러옴`);
+  } catch (e: any) {
+    toastError('다시 불러오기 실패: ' + (e?.message ?? e));
+  }
+}
 
 // Drive 초기화 (스크립트 로드)는 비동기로 진행
 drive.initDrive()

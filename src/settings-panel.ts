@@ -22,6 +22,8 @@ import { applyStyle, openFontBrowserModal } from './modal.js';
 let _initialized = false;
 // 활성 탭 — 'general' | 'shortcuts'
 let _activeTab = 'general';
+// 펼쳐진 그룹 상태 유지 (buildGeneralTab 재호출 시 리셋 방지)
+const _openGroups = new Set<string>(['appearance', 'defaults']);
 
 export function isSettingsPanelOpen() {
   return document.body.classList.contains('settings-panel-open');
@@ -82,191 +84,209 @@ function buildGeneralTab() {
   ).join('');
 
   body.innerHTML = `
-    <section class="sp-section">
-      <div class="sp-section-title">🌓 앱 테마</div>
-      <div class="settings-radio-row">
-        <label class="radio-chip">
-          <input type="radio" name="stp-theme" value="dark"   ${s.theme === 'dark'   ? 'checked' : ''} />
-          <span>🌙 다크</span>
-        </label>
-        <label class="radio-chip">
-          <input type="radio" name="stp-theme" value="light"  ${s.theme === 'light'  ? 'checked' : ''} />
-          <span>☀️ 라이트</span>
-        </label>
-        <label class="radio-chip">
-          <input type="radio" name="stp-theme" value="system" ${s.theme === 'system' ? 'checked' : ''} />
-          <span>🖥️ 시스템</span>
-        </label>
-      </div>
-    </section>
 
-    <section class="sp-section">
-      <div class="sp-section-title">🅰️ 기본 노드 폰트</div>
-      <div class="sp-mini-label">새 마인드맵에 적용됩니다</div>
-      <select class="fi" id="stp-font">${fontOptions}</select>
-    </section>
+    <!-- ── 그룹 1: 외관 ── -->
+    <details class="stp-group" id="stp-g-appearance" ${_openGroups.has('appearance') ? 'open' : ''}>
+      <summary class="stp-group-header">
+        <span class="stp-group-arrow"></span>
+        외관
+      </summary>
+      <div class="stp-group-body">
 
-    <section class="sp-section">
-      <div class="sp-section-title">✨ 사용자 폰트 추가 (Google Fonts)</div>
-      <div style="font-size:11px; color:#8b949e; margin-bottom:6px; line-height:1.5;">
-        Google Fonts의 폰트 이름을 입력하세요 (예: <b>Roboto</b>, <b>Pretendard</b>, <b>Nanum Gothic</b>).
-        앱에서 자동으로 다운로드해 폰트 목록에 추가합니다.
-      </div>
-      <div class="sp-row" style="margin-bottom:6px;">
-        <input type="text" class="fi" id="stp-add-font-name"
-          placeholder="이름 직접 입력 (예: Roboto)" style="flex:1;" />
-        <button type="button" class="btn btn-ghost sp-row-btn" id="stp-add-font-btn">➕</button>
-      </div>
-      <button type="button" class="btn btn-ghost" id="stp-browse-fonts" style="width:100%; margin-bottom:8px;">
-        🔍 인기 폰트 찾아보기 (검색 + 미리보기)
-      </button>
-      <div id="stp-custom-fonts-list" class="custom-fonts-list">
-        ${((s.customFonts ?? []) as Array<{ id: string; name: string; family: string }>).map((cf) => `
-          <div class="custom-font-row" data-id="${cf.id}">
-            <span class="custom-font-name" style="font-family:${cf.family}">${escapeHTML(cf.name)}</span>
-            <button type="button" class="btn btn-ghost custom-font-del" data-id="${cf.id}"
-              title="삭제">✕</button>
+        <section class="sp-section">
+          <div class="sp-section-title">앱 테마</div>
+          <div class="settings-radio-row">
+            <label class="radio-chip">
+              <input type="radio" name="stp-theme" value="dark"   ${s.theme === 'dark'   ? 'checked' : ''} />
+              <span>🌙 다크</span>
+            </label>
+            <label class="radio-chip">
+              <input type="radio" name="stp-theme" value="light"  ${s.theme === 'light'  ? 'checked' : ''} />
+              <span>☀️ 라이트</span>
+            </label>
+            <label class="radio-chip">
+              <input type="radio" name="stp-theme" value="system" ${s.theme === 'system' ? 'checked' : ''} />
+              <span>🖥️ 시스템</span>
+            </label>
           </div>
-        `).join('') || '<div style="font-size:11px; color:#8b949e;">— 추가된 폰트가 없습니다 —</div>'}
+        </section>
+
+        <section class="sp-section">
+          <div class="sp-section-title">드롭 섀도우</div>
+          <label class="sp-check stp-toggle-row">
+            <input type="checkbox" id="stp-shadow" ${s.nodeShadow !== false ? 'checked' : ''} />
+            <span>노드·말풍선에 그림자 표시</span>
+          </label>
+        </section>
+
+        <section class="sp-section">
+          <div class="sp-section-title">상단 로고</div>
+          <label class="sp-check stp-toggle-row">
+            <input type="checkbox" id="stp-hide-title" ${s.hideAppTitle ? 'checked' : ''} />
+            <span>툴바 로고 감추기 <span class="stp-hint">— 좁은 화면에서 폭 확보</span></span>
+          </label>
+        </section>
+
       </div>
-    </section>
+    </details>
 
-    <section class="sp-section">
-      <div class="sp-section-title">▭ 기본 노드 테두리</div>
-      <div class="sp-mini-label">새로 만드는 노드의 테두리 두께</div>
-      <select class="fi" id="stp-border">
-        <option value="none"   ${s.defaultNodeBorder === 'none'   ? 'selected' : ''}>없음</option>
-        <option value="thin"   ${s.defaultNodeBorder === 'thin'   ? 'selected' : ''}>얇게 (1px)</option>
-        <option value="normal" ${s.defaultNodeBorder === 'normal' ? 'selected' : ''}>보통 (2px)</option>
-        <option value="thick"  ${s.defaultNodeBorder === 'thick'  ? 'selected' : ''}>굵게 (4px)</option>
-        <option value="xthick" ${s.defaultNodeBorder === 'xthick' ? 'selected' : ''}>더 굵게 (6px)</option>
-        <option value="huge"   ${s.defaultNodeBorder === 'huge'   ? 'selected' : ''}>아주 굵게 (10px)</option>
-      </select>
-    </section>
+    <!-- ── 그룹 2: 편집 기본값 ── -->
+    <details class="stp-group" id="stp-g-defaults" ${_openGroups.has('defaults') ? 'open' : ''}>
+      <summary class="stp-group-header">
+        <span class="stp-group-arrow"></span>
+        편집 기본값
+        <span class="stp-group-hint">새 마인드맵에 적용</span>
+      </summary>
+      <div class="stp-group-body">
 
-    <section class="sp-section">
-      <div class="sp-section-title">🌳 노드 연결선 기본값</div>
-      <div class="sp-mini-label">새 마인드맵·"모두 지우기" 시점에 적용됩니다</div>
-      <div class="settings-grid">
-        <div>
-          <div class="settings-mini">모양</div>
-          <select class="fi" id="stp-line-style">
-            <option value="straight" ${s.defaultLineStyle === 'straight' ? 'selected' : ''}>━ 직선</option>
-            <option value="curved"   ${s.defaultLineStyle === 'curved'   ? 'selected' : ''}>⌒ 곡선</option>
-            <option value="stepped"  ${s.defaultLineStyle === 'stepped'  ? 'selected' : ''}>⌐ 직각</option>
-          </select>
-        </div>
-        <div>
-          <div class="settings-mini">두께</div>
-          <select class="fi" id="stp-line-width">
-            <option value="thin"   ${s.defaultLineWidth === 'thin'   ? 'selected' : ''}>얇게</option>
-            <option value="normal" ${s.defaultLineWidth === 'normal' ? 'selected' : ''}>보통</option>
-            <option value="thick"  ${s.defaultLineWidth === 'thick'  ? 'selected' : ''}>굵게</option>
-          </select>
-        </div>
-      </div>
-      <label class="sp-check" style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-top:8px;">
-        <input type="checkbox" id="stp-colored-branch" ${s.defaultColoredBranch ? 'checked' : ''} />
-        <span>자식 노드 색상으로 연결선 색</span>
-      </label>
-    </section>
+        <section class="sp-section">
+          <div class="sp-section-title">기본 노드 폰트</div>
+          <select class="fi" id="stp-font">${fontOptions}</select>
+        </section>
 
-    <section class="sp-section">
-      <div class="sp-section-title">✨ 드롭 섀도우</div>
-      <label class="sp-check" style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-        <input type="checkbox" id="stp-shadow" ${s.nodeShadow !== false ? 'checked' : ''} />
-        <span>노드·말풍선에 그림자 표시</span>
-      </label>
-      <div style="font-size:11px; color:#8b949e; margin-top:6px;">
-        모든 노드와 콜아웃(말풍선)에 즉시 적용됩니다. 끄면 미니멀한 플랫 룩.
-      </div>
-    </section>
-
-    <section class="sp-section">
-      <div class="sp-section-title">🗺️ 상단 로고</div>
-      <label class="sp-check" style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-        <input type="checkbox" id="stp-hide-title" ${s.hideAppTitle ? 'checked' : ''} />
-        <span>툴바 "🗺️ 마인드맵" 로고 감추기</span>
-      </label>
-      <div style="font-size:11px; color:#8b949e; margin-top:6px;">
-        툴바 공간이 좁을 때 가로 폭을 확보합니다.
-      </div>
-    </section>
-
-    <section class="sp-section">
-      <div class="sp-section-title">🔗 URL 자동 인식</div>
-      <label class="sp-check" style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-        <input type="checkbox" id="stp-autolink" ${s.autoDetectLinks !== false ? 'checked' : ''} />
-        <span>노드 텍스트의 URL을 자동으로 링크 배지로</span>
-      </label>
-      <div style="font-size:11px; color:#8b949e; margin-top:6px;">
-        텍스트 편집을 마치면 본문에 포함된 https:// URL이 자동으로 감지되어
-        해당 노드의 링크 배지로 추가됩니다 (Drive·YouTube·Notion·Docs·이미지 자동 식별).
-      </div>
-    </section>
-
-    <section class="sp-section">
-      <div class="sp-section-title">📎 새 관계선 기본값</div>
-      <div class="settings-grid">
-        <div>
-          <div class="settings-mini">색상</div>
-          <div class="sp-row">
-            <input type="color" id="stp-rel-color" class="sp-color-input"
-              value="${dr.color ?? '#8b949e'}" ${dr.color ? '' : 'data-reset="1"'} />
-            <button type="button" class="btn btn-ghost sp-row-btn" id="stp-rel-color-reset">기본</button>
+        <section class="sp-section">
+          <div class="sp-section-title">사용자 폰트 <span class="stp-hint">Google Fonts</span></div>
+          <div class="sp-row" style="margin-bottom:6px;">
+            <input type="text" class="fi" id="stp-add-font-name"
+              placeholder="폰트 이름 입력 (예: Roboto)" style="flex:1;" />
+            <button type="button" class="btn btn-ghost sp-row-btn" id="stp-add-font-btn" title="추가">＋</button>
           </div>
-        </div>
-        <div>
-          <div class="settings-mini">선 모양</div>
-          <select class="fi" id="stp-rel-dash">
-            ${Object.entries(DASH_NAMES).map(([k, name]) =>
-              `<option value="${k}" ${dr.dash === k ? 'selected' : ''}>${name}${k === 'dashed' ? ' (기본)' : ''}</option>`
-            ).join('')}
-          </select>
-        </div>
-        <div>
-          <div class="settings-mini">두께</div>
-          <select class="fi" id="stp-rel-width">
-            <option value=""  ${!dr.width ? 'selected' : ''}>기본</option>
-            <option value="1" ${dr.width === 1 ? 'selected' : ''}>1</option>
-            <option value="2" ${dr.width === 2 ? 'selected' : ''}>2</option>
-            <option value="3" ${dr.width === 3 ? 'selected' : ''}>3</option>
-            <option value="5" ${dr.width === 5 ? 'selected' : ''}>5</option>
-          </select>
-        </div>
-        <div>
-          <div class="settings-mini">화살표</div>
-          <select class="fi" id="stp-rel-arrow">
-            <option value="end"   ${dr.arrow === 'end'   ? 'selected' : ''}>→ 끝만</option>
-            <option value="start" ${dr.arrow === 'start' ? 'selected' : ''}>← 시작만</option>
-            <option value="both"  ${dr.arrow === 'both'  ? 'selected' : ''}>↔ 양쪽</option>
-            <option value="none"  ${dr.arrow === 'none'  ? 'selected' : ''}>∅ 없음</option>
-          </select>
-        </div>
-      </div>
-    </section>
+          <button type="button" class="btn btn-ghost" id="stp-browse-fonts" style="width:100%; margin-bottom:8px;">
+            🔍 인기 폰트 찾아보기
+          </button>
+          <div id="stp-custom-fonts-list" class="custom-fonts-list">
+            ${((s.customFonts ?? []) as Array<{ id: string; name: string; family: string }>).map((cf) => `
+              <div class="custom-font-row" data-id="${cf.id}">
+                <span class="custom-font-name" style="font-family:${cf.family}">${escapeHTML(cf.name)}</span>
+                <button type="button" class="btn btn-ghost custom-font-del" data-id="${cf.id}"
+                  title="삭제">✕</button>
+              </div>
+            `).join('') || '<div class="stp-empty">— 추가된 폰트가 없습니다 —</div>'}
+          </div>
+        </section>
 
-    <section class="sp-section">
-      <div class="sp-section-title">🌐 전역 적용</div>
-      <div style="font-size:11px; color:#8b949e; margin-bottom:8px; line-height:1.55;">
-        위에서 정한 기본값을 <b>현재 맵의 모든 기존 콘텐츠</b>에 일괄 적용합니다.
-        개별로 손댄 노드·관계선의 스타일도 덮어쓰니 신중히 사용하세요.
-      </div>
-      <button type="button" class="btn btn-ghost" id="stp-apply-all" style="width:100%;">
-        🌐 모든 노드·관계선에 기본값 적용
-      </button>
-    </section>
+        <section class="sp-section">
+          <div class="sp-section-title">기본 노드 테두리</div>
+          <select class="fi" id="stp-border">
+            <option value="none"   ${s.defaultNodeBorder === 'none'   ? 'selected' : ''}>없음</option>
+            <option value="thin"   ${s.defaultNodeBorder === 'thin'   ? 'selected' : ''}>얇게 (1px)</option>
+            <option value="normal" ${s.defaultNodeBorder === 'normal' ? 'selected' : ''}>보통 (2px)</option>
+            <option value="thick"  ${s.defaultNodeBorder === 'thick'  ? 'selected' : ''}>굵게 (4px)</option>
+            <option value="xthick" ${s.defaultNodeBorder === 'xthick' ? 'selected' : ''}>더 굵게 (6px)</option>
+            <option value="huge"   ${s.defaultNodeBorder === 'huge'   ? 'selected' : ''}>아주 굵게 (10px)</option>
+          </select>
+        </section>
 
-    <section class="sp-section">
-      <div class="sp-section-title">🔄 앱 강제 업데이트</div>
-      <div style="font-size:11px; color:#8b949e; margin-bottom:8px; line-height:1.55;">
-        브라우저 캐시(Cache Storage)와 Service Worker를 비우고 페이지를 다시 불러옵니다.<br>
-        새 배포가 반영되지 않을 때 사용하세요. <b>마인드맵 데이터(localStorage)는 유지됩니다.</b>
+        <section class="sp-section">
+          <div class="sp-section-title">노드 연결선</div>
+          <div class="settings-grid">
+            <div>
+              <div class="settings-mini">모양</div>
+              <select class="fi" id="stp-line-style">
+                <option value="straight" ${s.defaultLineStyle === 'straight' ? 'selected' : ''}>━ 직선</option>
+                <option value="curved"   ${s.defaultLineStyle === 'curved'   ? 'selected' : ''}>⌒ 곡선</option>
+                <option value="stepped"  ${s.defaultLineStyle === 'stepped'  ? 'selected' : ''}>⌐ 직각</option>
+              </select>
+            </div>
+            <div>
+              <div class="settings-mini">두께</div>
+              <select class="fi" id="stp-line-width">
+                <option value="thin"   ${s.defaultLineWidth === 'thin'   ? 'selected' : ''}>얇게</option>
+                <option value="normal" ${s.defaultLineWidth === 'normal' ? 'selected' : ''}>보통</option>
+                <option value="thick"  ${s.defaultLineWidth === 'thick'  ? 'selected' : ''}>굵게</option>
+              </select>
+            </div>
+          </div>
+          <label class="sp-check stp-toggle-row" style="margin-top:8px;">
+            <input type="checkbox" id="stp-colored-branch" ${s.defaultColoredBranch ? 'checked' : ''} />
+            <span>자식 노드 색상으로 연결선 색</span>
+          </label>
+        </section>
+
+        <section class="sp-section">
+          <div class="sp-section-title">URL 자동 인식</div>
+          <label class="sp-check stp-toggle-row">
+            <input type="checkbox" id="stp-autolink" ${s.autoDetectLinks !== false ? 'checked' : ''} />
+            <span>텍스트의 URL을 자동으로 링크 배지로</span>
+          </label>
+        </section>
+
+        <section class="sp-section">
+          <div class="sp-section-title">새 관계선 기본값</div>
+          <div class="settings-grid">
+            <div>
+              <div class="settings-mini">색상</div>
+              <div class="sp-row">
+                <input type="color" id="stp-rel-color" class="sp-color-input"
+                  value="${dr.color ?? '#8b949e'}" ${dr.color ? '' : 'data-reset="1"'} />
+                <button type="button" class="btn btn-ghost sp-row-btn" id="stp-rel-color-reset">기본</button>
+              </div>
+            </div>
+            <div>
+              <div class="settings-mini">선 모양</div>
+              <select class="fi" id="stp-rel-dash">
+                ${Object.entries(DASH_NAMES).map(([k, name]) =>
+                  `<option value="${k}" ${dr.dash === k ? 'selected' : ''}>${name}${k === 'dashed' ? ' (기본)' : ''}</option>`
+                ).join('')}
+              </select>
+            </div>
+            <div>
+              <div class="settings-mini">두께</div>
+              <select class="fi" id="stp-rel-width">
+                <option value=""  ${!dr.width ? 'selected' : ''}>기본</option>
+                <option value="1" ${dr.width === 1 ? 'selected' : ''}>1</option>
+                <option value="2" ${dr.width === 2 ? 'selected' : ''}>2</option>
+                <option value="3" ${dr.width === 3 ? 'selected' : ''}>3</option>
+                <option value="5" ${dr.width === 5 ? 'selected' : ''}>5</option>
+              </select>
+            </div>
+            <div>
+              <div class="settings-mini">화살표</div>
+              <select class="fi" id="stp-rel-arrow">
+                <option value="end"   ${dr.arrow === 'end'   ? 'selected' : ''}>→ 끝만</option>
+                <option value="start" ${dr.arrow === 'start' ? 'selected' : ''}>← 시작만</option>
+                <option value="both"  ${dr.arrow === 'both'  ? 'selected' : ''}>↔ 양쪽</option>
+                <option value="none"  ${dr.arrow === 'none'  ? 'selected' : ''}>∅ 없음</option>
+              </select>
+            </div>
+          </div>
+        </section>
+
       </div>
-      <button type="button" class="btn btn-ghost" id="stp-force-update" style="width:100%;">
-        🔄 앱 강제 업데이트
-      </button>
-    </section>
+    </details>
+
+    <!-- ── 그룹 3: 고급 ── -->
+    <details class="stp-group stp-group-danger" id="stp-g-advanced" ${_openGroups.has('advanced') ? 'open' : ''}>
+      <summary class="stp-group-header">
+        <span class="stp-group-arrow"></span>
+        고급
+      </summary>
+      <div class="stp-group-body">
+
+        <section class="sp-section">
+          <div class="sp-section-title">전역 적용</div>
+          <div class="stp-warn-box">
+            현재 맵의 <b>모든 노드·관계선</b> 스타일을 위의 기본값으로 덮어씁니다.
+            Undo로 되돌릴 수 있습니다.
+          </div>
+          <button type="button" class="btn btn-warn" id="stp-apply-all" style="width:100%; margin-top:8px;">
+            모든 노드·관계선에 기본값 적용
+          </button>
+        </section>
+
+        <section class="sp-section">
+          <div class="sp-section-title">앱 강제 업데이트</div>
+          <div class="stp-hint-block">
+            브라우저 캐시와 Service Worker를 비우고 페이지를 새로고침합니다.
+            마인드맵 데이터(localStorage)는 유지됩니다.
+          </div>
+          <button type="button" class="btn btn-ghost" id="stp-force-update" style="width:100%; margin-top:8px;">
+            🔄 강제 업데이트
+          </button>
+        </section>
+
+      </div>
+    </details>
 
   `;
 
@@ -419,6 +439,16 @@ function buildGeneralTab() {
   }));
   $('stp-rel-arrow').addEventListener('change', (e: any) => updateSettings({ defaultRelation: { arrow: e.target.value } }));
   enhanceDashPicker($('stp-rel-dash'));
+
+  // ── 그룹 열림/닫힘 상태 추적 ──
+  (['appearance', 'defaults', 'advanced'] as const).forEach((id) => {
+    const el = document.getElementById(`stp-g-${id}`) as HTMLDetailsElement | null;
+    if (!el) return;
+    el.addEventListener('toggle', () => {
+      if (el.open) _openGroups.add(id);
+      else _openGroups.delete(id);
+    });
+  });
 }
 
 // ── 단축키 탭 ───────────────────────────────────────────

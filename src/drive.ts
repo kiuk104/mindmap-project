@@ -34,6 +34,19 @@ let refreshTimer: ReturnType<typeof setTimeout> | null = null;
 // AuthSnapshot은 외부 사용자가 받는 형태이고 type별칭 import 부담을 피해 any로 잡음.
 const listeners = new Set<(snap: any) => void>();
 
+// 외부 동기화 감시(drive-watch)용 이벤트 — saveToDrive 성공 시 발생.
+// loadFromDrive는 modifiedTime을 단일 API로 받을 수 없어 emit하지 않음
+// (watcher가 다음 poll에서 baseline을 잡음).
+interface DriveActivity { fileId: string; modifiedTime: string | null }
+const activityListeners = new Set<(ev: DriveActivity) => void>();
+export function onDriveActivity(fn: (ev: DriveActivity) => void): () => void {
+  activityListeners.add(fn);
+  return () => activityListeners.delete(fn);
+}
+function emitActivity(ev: DriveActivity) {
+  activityListeners.forEach((fn) => { try { fn(ev); } catch {} });
+}
+
 // ── 재시도 헬퍼 ──
 // 429 (rate limit), 5xx (서버 일시 오류), 네트워크 오류만 자동 재시도.
 // 401/403/404/400 같은 영구적 오류는 즉시 반환/throw (재시도가 무의미).
@@ -357,7 +370,12 @@ export async function saveToDrive(filename: string, jsonContent: string) {
     }
     throw new Error(`Drive 저장 실패 (HTTP ${res.status}): ${text.slice(0, 200)}`);
   }
-  return res.json();
+  const json = await res.json();
+  // drive-watch가 자체 저장을 외부 변경으로 오인하지 않도록 baseline 갱신.
+  if (json?.id && json?.modifiedTime) {
+    emitActivity({ fileId: json.id, modifiedTime: json.modifiedTime });
+  }
+  return json;
 }
 
 /** 이 앱이 만든 JSON 파일 목록 (최근 수정순) */
@@ -370,6 +388,26 @@ export async function listMindmaps() {
     pageSize: 50,
   }));
   return res.result.files ?? [];
+}
+
+/**
+ * 파일 메타데이터(수정 시각만) 조회 — drive-watch 폴링용.
+ * 파일이 삭제/이동된 경우 null 반환 (404), 그 외 오류는 throw.
+ */
+export async function getFileMeta(fileId: string): Promise<{ modifiedTime: string } | null> {
+  if (!accessToken) throw new Error('Drive에 로그인되지 않았습니다');
+  try {
+    const res = await gapiWithRetry<any>(() => window.gapi.client.drive.files.get({
+      fileId,
+      fields: 'modifiedTime',
+    }));
+    const t = res.result?.modifiedTime;
+    return t ? { modifiedTime: t } : null;
+  } catch (e: any) {
+    const status = e?.status ?? e?.result?.error?.code;
+    if (status === 404) return null;
+    throw e;
+  }
 }
 
 /** 파일 ID로 JSON 내용 가져오기. JSON 문자열 반환. */

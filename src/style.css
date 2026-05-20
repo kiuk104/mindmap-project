@@ -316,18 +316,79 @@ body.no-node-shadow .callout:hover {
 /* ── 우클릭 메뉴 (노드 + 배경 공통) ── */
 #ctx-menu, #ctx-bg-menu, #ctx-zone-menu, #ctx-callout-menu {
   position: fixed; background: var(--bg-elev); border: 1px solid var(--border);
-  border-radius: 10px; padding: 5px 0; min-width: 195px;
+  border-radius: 10px; padding: 5px 0; min-width: 210px;
   z-index: 1000; box-shadow: var(--shadow-menu); display: none;
   max-height: calc(100vh - 16px); overflow-y: auto;
   overscroll-behavior: contain;
 }
 .ctx-item {
-  padding: 9px 15px; cursor: pointer; font-size: 13px;
+  padding: 11px 16px; cursor: pointer; font-size: 13px;
   display: flex; align-items: center; gap: 9px; color: var(--text-menu);
+  user-select: none;
+  outline: none;
 }
-.ctx-item:hover { background: var(--bg-hover-strong); }
-.ctx-item.danger { color: var(--accent); }
+.ctx-item:hover, .ctx-item:focus-visible { background: var(--bg-hover-strong); }
+/* danger 항목 (삭제 등) */
+.ctx-item-danger { color: var(--accent); }
+.ctx-item-danger:hover { background: rgba(248, 81, 73, 0.1); }
+
+/* 단축키 뱃지 */
+.ctx-kbd {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--text-dim);
+  background: var(--bg-input, rgba(255,255,255,0.04));
+  border: 1px solid var(--border-soft, #21262d);
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-family: ui-monospace, monospace;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* 빠른 액션 그리드 (2×2) */
+.ctx-quick-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  padding: 6px;
+}
+.ctx-quick-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 10px 6px;
+  border: none;
+  background: transparent;
+  border-radius: 7px;
+  cursor: pointer;
+  color: var(--text-menu);
+  font-size: 11px;
+  font-weight: 500;
+  transition: background 0.12s;
+  min-height: 58px;
+  user-select: none;
+}
+.ctx-quick-btn:hover, .ctx-quick-btn:focus-visible { background: var(--bg-hover-strong); }
+.ctx-quick-btn:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: -2px; }
+.ctx-qi { font-size: 20px; line-height: 1; }
+
+/* 위험 구분선 — 일반 구분선보다 더 붉은 기미 */
 .ctx-sep { height: 1px; background: var(--border); margin: 4px 0; }
+.ctx-sep-danger {
+  height: 1px;
+  background: rgba(248, 81, 73, 0.25);
+  margin: 4px 0;
+}
+
+/* 모바일 터치 — 항목 높이 확대 */
+@media (max-width: 768px) {
+  .ctx-item { padding: 13px 16px; font-size: 14px; }
+  .ctx-quick-btn { min-height: 64px; padding: 12px 6px; }
+  .ctx-qi { font-size: 22px; }
+}
 
 /* ── 모달 ── */
 #modal-bg {
@@ -540,7 +601,6 @@ body.relation-drafting .node { cursor: crosshair !important; }
     min-width: 220px;
     border-radius: 12px;
   }
-  .ctx-item { padding: 12px 16px; font-size: 14px; }
 
   .fi { padding: 11px 12px; font-size: 14px; }
   #modal { width: 96vw; padding: 20px; }
@@ -690,7 +750,7 @@ body.settings-panel-open #settings-panel { transform: translateX(0); }
   #icon-panel { width: 100%; top: 100px; }
 }
 
-/* sp-header — 제목 제거 후 공간 0, 닫기 X는 floating으로 우상단에 */
+/* sp-header — 스타일/아이콘 패널은 헤더 숨김, 설정 패널만 제목 표시 */
 .sp-header {
   display: block;
   height: 0;
@@ -711,6 +771,31 @@ body.settings-panel-open #settings-panel { transform: translateX(0); }
   z-index: 5;
 }
 .sp-close:hover { background: var(--bg-hover); color: var(--text-bright); }
+
+/* ── 설정 패널 전용 헤더 — 제목 표시 ── */
+#settings-panel .sp-header {
+  height: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  min-height: 48px;
+  border-bottom: 1px solid var(--border);
+  position: relative;
+}
+#settings-panel .sp-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-bright);
+  letter-spacing: 0.2px;
+}
+#settings-panel .sp-close {
+  position: static;
+  flex-shrink: 0;
+}
 
 .sp-body {
   flex: 1; overflow-y: auto;
@@ -738,14 +823,116 @@ body.settings-panel-open #settings-panel { transform: translateX(0); }
   border-bottom-color: var(--accent);
 }
 
+/* ── 설정 그룹 (접기/펴기 details) ── */
+.stp-group {
+  margin-bottom: 6px;
+  border: 1px solid var(--border-soft, #21262d);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.stp-group summary { list-style: none; }
+.stp-group summary::-webkit-details-marker { display: none; }
+.stp-group-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-bright);
+  background: rgba(255,255,255,0.02);
+  transition: background 0.12s;
+}
+.stp-group-header:hover { background: var(--bg-hover, rgba(255,255,255,0.06)); }
+.stp-group-arrow {
+  width: 12px; height: 12px;
+  flex-shrink: 0;
+  border-top: 2px solid var(--text-dim);
+  border-right: 2px solid var(--text-dim);
+  transform: rotate(135deg);   /* 아래 삼각형 ▾ */
+  transition: transform 0.18s;
+  margin-right: 2px;
+  position: relative; top: -1px;
+}
+details.stp-group:not([open]) .stp-group-arrow {
+  transform: rotate(45deg);    /* 오른쪽 삼각형 ▸ */
+  top: 0;
+}
+.stp-group-hint {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--text-dim);
+}
+.stp-group-body {
+  padding: 14px;
+  border-top: 1px solid var(--border-soft, #21262d);
+}
+/* 고급 그룹 — 테두리 색으로 위험 암시 */
+.stp-group.stp-group-danger {
+  border-color: rgba(248, 81, 73, 0.3);
+}
+.stp-group.stp-group-danger .stp-group-header {
+  color: var(--accent);
+}
+.stp-group.stp-group-danger .stp-group-arrow {
+  border-color: var(--accent);
+}
+
+/* ── 설정 내 공통 유틸 ── */
+.stp-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.stp-hint {
+  font-size: 10px;
+  color: var(--text-dim);
+  font-weight: 400;
+}
+.stp-hint-block {
+  font-size: 11px;
+  color: var(--text-dim);
+  line-height: 1.55;
+}
+.stp-empty {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-style: italic;
+}
+.stp-warn-box {
+  font-size: 11px;
+  color: var(--accent);
+  background: rgba(248, 81, 73, 0.08);
+  border: 1px solid rgba(248, 81, 73, 0.25);
+  border-radius: 6px;
+  padding: 8px 10px;
+  line-height: 1.5;
+}
+
+/* ── 위험 액션 버튼 ── */
+.btn-warn {
+  border: 1px solid rgba(248, 81, 73, 0.5);
+  color: var(--accent);
+  background: rgba(248, 81, 73, 0.07);
+  transition: background 0.15s, border-color 0.15s;
+}
+.btn-warn:hover {
+  background: rgba(248, 81, 73, 0.18);
+  border-color: var(--accent);
+}
+
 .sp-section { margin-bottom: 18px; }
 .sp-section:last-child { margin-bottom: 0; }
 .sp-section[hidden] { display: none; }
 .sp-section-title {
-  font-size: 13px; font-weight: 700; color: var(--text-bright);
-  margin-bottom: 10px;
-  padding-bottom: 6px;
-  border-bottom: 1px solid var(--border-soft);
+  font-size: 12px; font-weight: 600; color: var(--text-dim);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
 }
 .sp-label {
   font-size: 11px; color: var(--text-dim);
@@ -1289,6 +1476,30 @@ body.settings-panel-open #settings-panel { transform: translateX(0); }
 .toast.toast-success { border-left-color: #3fb950; }
 .toast.toast-error   { border-left-color: #f85149; }
 .toast.toast-info    { border-left-color: var(--accent, #1f6feb); }
+
+/* 액션 버튼이 달린 토스트 — 메시지 + 버튼 가로 정렬 */
+.toast.toast-action {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-right: 10px;
+}
+.toast.toast-action .toast-message { flex: 1; }
+.toast.toast-action .toast-btn {
+  flex-shrink: 0;
+  background: var(--accent, #1f6feb);
+  color: #fff;
+  border: 0;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: filter 0.15s;
+}
+.toast.toast-action .toast-btn:hover { filter: brightness(1.15); }
+.toast.toast-action .toast-btn:active { filter: brightness(0.9); }
 
 /* ── 존(Zone) 박스 + 라벨 (SVG 요소) ── */
 #svg-layer .zone-box {
