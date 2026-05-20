@@ -34,7 +34,7 @@ function autoDetectLinks(node) {
  * @param {number} [atX] - 지정 시 새 노드의 x 좌표 (캔버스 절대 좌표). 없으면 부모 주변 랜덤 위치.
  * @param {number} [atY] - 지정 시 새 노드의 y 좌표. 없으면 부모 주변 랜덤 위치.
  */
-export function addChild(parentId, atX, atY) {
+export function addChild(parentId?: string | null, atX?: number, atY?: number): string | undefined {
   parentId = parentId
     ?? state.selectedId
     ?? Object.keys(state.nodes).find((k) => !state.nodes[k].parentId);

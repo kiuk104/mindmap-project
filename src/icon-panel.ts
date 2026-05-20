@@ -236,7 +236,7 @@ function renderBody() {
       const node = state.nodes[id];
       if (!node) return;
       node.iconColor = color;
-      const span = document.querySelector(`#nd-${id} .node-icon-sticker`);
+      const span = document.querySelector(`#nd-${id} .node-icon-sticker`) as HTMLElement | null;
       if (span) span.style.color = color;
     });
     delete e.target.dataset.reset;

@@ -447,7 +447,7 @@ function buildShortcutsTab() {
 // ── 단축키 섹션 HTML ────────────────────────────────────
 function buildShortcutsHTML() {
   // group별로 묶음
-  const groups = {};
+  const groups: Record<string, Array<{ id: string; label: string; group?: string; defaultBinding?: string; scope?: string }>> = {};
   for (const [id, meta] of Object.entries(ACTIONS)) {
     const g = meta.group || '기타';
     (groups[g] ||= []).push({ id, ...meta });

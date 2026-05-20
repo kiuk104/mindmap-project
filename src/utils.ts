@@ -8,8 +8,10 @@
 
 import type { MindNode, LinkType } from './types.js';
 
-/** ID로 DOM 요소 가져오기 */
-export const $ = (id: string): HTMLElement | null => document.getElementById(id);
+/** ID로 DOM 요소 가져오기. TS-4 단계에서는 호출처마다 input.value / button.disabled 등
+ *  다양한 element 속성을 쓰므로 반환 타입을 any로 두고, strict 강화 단계에서
+ *  제네릭 또는 narrow 캐스팅으로 정밀화한다. */
+export const $ = (id: string): any => document.getElementById(id);
 
 /** 고유 ID 생성 */
 export const uid = (): string =>

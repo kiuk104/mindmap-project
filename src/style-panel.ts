@@ -345,7 +345,7 @@ export function initStylePanel() {
     tabs.innerHTML = buildThemeTabs();
     grid.parentNode.insertBefore(tabs, grid);
 
-    tabs.addEventListener('click', (e) => {
+    tabs.addEventListener('click', (e: any) => {
       const btn = e.target.closest('[data-theme-tab]');
       if (!btn) return;
       activeThemeTab = btn.dataset.themeTab;
@@ -458,7 +458,7 @@ export function initStylePanel() {
     fn(co);
     render();
   }
-  $('co-text')?.addEventListener('input', (e) => {
+  $('co-text')?.addEventListener('input', (e: any) => {
     // 텍스트 입력은 라이브 미리보기 (history는 별도 — blur에서 처리)
     const co = state.callouts?.find((c) => c.id === state.selectedCalloutId);
     if (!co) return;
@@ -477,19 +477,19 @@ export function initStylePanel() {
     else cancelPending();
   });
 
-  $('co-color')?.addEventListener('input', (e) => {
+  $('co-color')?.addEventListener('input', (e: any) => {
     withCallout((c) => { c.color = e.target.value; }, /*hist*/ false);
   });
-  $('co-color')?.addEventListener('change', (e) => {
+  $('co-color')?.addEventListener('change', (e: any) => {
     pushHistory();
     withCallout((c) => { c.color = e.target.value; }, /*hist*/ false);
   });
 
-  $('co-text-color')?.addEventListener('input', (e) => {
+  $('co-text-color')?.addEventListener('input', (e: any) => {
     withCallout((c) => { c.textColor = e.target.value; }, /*hist*/ false);
     delete e.target.dataset.reset;
   });
-  $('co-text-color')?.addEventListener('change', (e) => {
+  $('co-text-color')?.addEventListener('change', (e: any) => {
     pushHistory();
     withCallout((c) => { c.textColor = e.target.value; }, /*hist*/ false);
   });
@@ -516,7 +516,7 @@ export function initStylePanel() {
     zoneLabelDraft = z?.label ?? '';
     beginPending();
   });
-  $('zone-label')?.addEventListener('input', (e) => {
+  $('zone-label')?.addEventListener('input', (e: any) => {
     withZone((z) => { z.label = e.target.value; }, /*hist*/ false);
   });
   $('zone-label')?.addEventListener('blur', () => {
@@ -525,25 +525,25 @@ export function initStylePanel() {
     else cancelPending();
   });
 
-  $('zone-color')?.addEventListener('input', (e) => {
+  $('zone-color')?.addEventListener('input', (e: any) => {
     withZone((z) => { z.color = e.target.value; }, /*hist*/ false);
   });
-  $('zone-color')?.addEventListener('change', (e) => {
+  $('zone-color')?.addEventListener('change', (e: any) => {
     pushHistory();
     withZone((z) => { z.color = e.target.value; }, /*hist*/ false);
   });
-  $('zone-opacity')?.addEventListener('input', (e) => {
+  $('zone-opacity')?.addEventListener('input', (e: any) => {
     const pct = Number(e.target.value);
     $('zone-opacity-val').textContent = pct + '%';
     withZone((z) => { z.opacity = pct / 100; }, /*hist*/ false);
   });
   $('zone-opacity')?.addEventListener('change', () => { pushHistory(); });
 
-  $('zone-border-color')?.addEventListener('input', (e) => {
+  $('zone-border-color')?.addEventListener('input', (e: any) => {
     withZone((z) => { z.borderColor = e.target.value; }, /*hist*/ false);
     delete e.target.dataset.reset;
   });
-  $('zone-border-color')?.addEventListener('change', (e) => {
+  $('zone-border-color')?.addEventListener('change', (e: any) => {
     pushHistory();
     withZone((z) => { z.borderColor = e.target.value; }, /*hist*/ false);
   });
@@ -551,10 +551,10 @@ export function initStylePanel() {
     withZone((z) => { z.borderColor = null; });
     $('zone-border-color').dataset.reset = '1';
   });
-  $('zone-border-dash')?.addEventListener('change', (e) => {
+  $('zone-border-dash')?.addEventListener('change', (e: any) => {
     withZone((z) => { z.borderDash = e.target.value; });
   });
-  $('zone-border-width')?.addEventListener('change', (e) => {
+  $('zone-border-width')?.addEventListener('change', (e: any) => {
     withZone((z) => { z.borderWidth = Number(e.target.value); });
   });
 
@@ -566,7 +566,7 @@ export function initStylePanel() {
   syncControlsFromState();
 
   // ── 이벤트: 테마 그리드 클릭 — 일반 선택 / + 새 테마 / 커스텀 편집 분기 ──
-  $('sp-themes').addEventListener('click', (e) => {
+  $('sp-themes').addEventListener('click', (e: any) => {
     // 1) 커스텀 테마 편집(✎) 버튼
     const editBtn = e.target.closest('[data-edit]');
     if (editBtn) {
@@ -598,12 +598,12 @@ export function initStylePanel() {
 
   // ── 배경 색 ──
   // input 이벤트는 슬라이드마다 발생 → history는 change에서만 push
-  $('sp-bgcolor').addEventListener('input', (e) => {
+  $('sp-bgcolor').addEventListener('input', (e: any) => {
     state.style.bgColor = e.target.value;
     delete e.target.dataset.reset;
     applyVisuals();
   });
-  $('sp-bgcolor').addEventListener('change', (e) => {
+  $('sp-bgcolor').addEventListener('change', (e: any) => {
     pushHistory();
     state.style.bgColor = e.target.value;
     delete e.target.dataset.reset;
@@ -620,7 +620,7 @@ export function initStylePanel() {
   });
 
   // ── 폰트 (단일 프리셋) ──
-  $('sp-font').addEventListener('change', (e) => {
+  $('sp-font').addEventListener('change', (e: any) => {
     pushHistory();
     state.style.font = e.target.value;
     // 단일 프리셋을 고르면 언어별 분리는 무효화 — 우선순위 명확화
@@ -633,7 +633,7 @@ export function initStylePanel() {
   });
 
   // ── 언어별 분리 폰트 ──
-  $('sp-font-bylang')?.addEventListener('change', (e) => {
+  $('sp-font-bylang')?.addEventListener('change', (e: any) => {
     const on = e.target.checked;
     $('sp-font-lang').hidden = !on;
     if (on) {
@@ -652,13 +652,13 @@ export function initStylePanel() {
     applyVisuals();
     persist();
   });
-  $('sp-font-en')?.addEventListener('change', (e) => {
+  $('sp-font-en')?.addEventListener('change', (e: any) => {
     pushHistory();
     state.style.fontEn = e.target.value;
     applyVisuals();
     persist();
   });
-  $('sp-font-kr')?.addEventListener('change', (e) => {
+  $('sp-font-kr')?.addEventListener('change', (e: any) => {
     pushHistory();
     state.style.fontKr = e.target.value;
     applyVisuals();
@@ -666,7 +666,7 @@ export function initStylePanel() {
   });
 
   // ── 라인 스타일 ──
-  $('sp-linestyle').addEventListener('change', (e) => {
+  $('sp-linestyle').addEventListener('change', (e: any) => {
     pushHistory();
     state.lineStyle = e.target.value;
     // 커브 강도 행은 'curved'일 때만 표시
@@ -678,26 +678,26 @@ export function initStylePanel() {
 
   // ── 커브 강도 (curved일 때만 의미) ──
   // 드래그 중에는 미리보기, change에서 history push (style-panel의 다른 컬러 슬라이더와 동일 패턴)
-  $('sp-curve-strength')?.addEventListener('input', (e) => {
+  $('sp-curve-strength')?.addEventListener('input', (e: any) => {
     const v = Number(e.target.value);
     state.style.curveStrength = v;
     if ($('sp-curve-val')) $('sp-curve-val').textContent = v.toFixed(2);
     render();
   });
-  $('sp-curve-strength')?.addEventListener('change', (e) => {
+  $('sp-curve-strength')?.addEventListener('change', (e: any) => {
     pushHistory();
     state.style.curveStrength = Number(e.target.value);
     persist();
   });
 
   // ── 커브 수정 핸들 표시 토글 ──
-  $('sp-curve-handles')?.addEventListener('change', (e) => {
+  $('sp-curve-handles')?.addEventListener('change', (e: any) => {
     updateSettings({ showCurveHandles: e.target.checked });
     render();
   });
 
   // ── 라인 두께 ──
-  $('sp-linewidth').addEventListener('change', (e) => {
+  $('sp-linewidth').addEventListener('change', (e: any) => {
     pushHistory();
     state.style.lineWidth = e.target.value;
     persist();
@@ -705,7 +705,7 @@ export function initStylePanel() {
   });
 
   // ── 자식 색상 연결선 ──
-  $('sp-colored').addEventListener('change', (e) => {
+  $('sp-colored').addEventListener('change', (e: any) => {
     pushHistory();
     state.style.coloredBranch = e.target.checked;
     persist();
@@ -763,9 +763,9 @@ export function initStylePanel() {
     (n, v) => { n.textStyle.strikethrough = v; },
   ));
 
-  $('nd-size').addEventListener('change', (e) => withNodes((n) => { n.textStyle.size = e.target.value; }));
+  $('nd-size').addEventListener('change', (e: any) => withNodes((n) => { n.textStyle.size = e.target.value; }));
   // 스트로크 폭 — 슬라이더: input은 미리보기, change에서 history push
-  $('nd-stroke-w')?.addEventListener('input', (e) => {
+  $('nd-stroke-w')?.addEventListener('input', (e: any) => {
     const v = Number(e.target.value);
     if ($('nd-stroke-w-val')) $('nd-stroke-w-val').textContent = v.toFixed(2) + 'px';
     withNodes((n) => { n.textStyle.strokeWidth = v; }, /*hist*/ false);
@@ -773,11 +773,11 @@ export function initStylePanel() {
   $('nd-stroke-w')?.addEventListener('change', () => pushHistory());
 
   // 스트로크 색 — null이면 폰트 색 그대로 (auto)
-  $('nd-stroke-color')?.addEventListener('input', (e) => {
+  $('nd-stroke-color')?.addEventListener('input', (e: any) => {
     withNodes((n) => { n.textStyle.strokeColor = e.target.value; }, /*hist*/ false);
     delete e.target.dataset.reset;
   });
-  $('nd-stroke-color')?.addEventListener('change', (e) => {
+  $('nd-stroke-color')?.addEventListener('change', (e: any) => {
     pushHistory();
     withNodes((n) => { n.textStyle.strokeColor = e.target.value; }, /*hist*/ false);
   });
@@ -790,16 +790,16 @@ export function initStylePanel() {
     $('nd-align-' + a).addEventListener('click', () => withNodes((n) => { n.textStyle.align = a; }));
   });
 
-  $('nd-shape') .addEventListener('change', (e) => withNodes((n) => { n.shape       = e.target.value; }));
-  $('nd-border').addEventListener('change', (e) => withNodes((n) => { n.borderWidth = e.target.value; }));
-  $('nd-numbering')?.addEventListener('change', (e) => withNodes((n) => { n.numbering = e.target.value; }));
+  $('nd-shape') .addEventListener('change', (e: any) => withNodes((n) => { n.shape       = e.target.value; }));
+  $('nd-border').addEventListener('change', (e: any) => withNodes((n) => { n.borderWidth = e.target.value; }));
+  $('nd-numbering')?.addEventListener('change', (e: any) => withNodes((n) => { n.numbering = e.target.value; }));
 
   // ── 노드 글자 색 (명시 / 자동) ──
-  $('nd-text-color')?.addEventListener('input', (e) => {
+  $('nd-text-color')?.addEventListener('input', (e: any) => {
     withNodes((n) => { n.textColor = e.target.value; }, /*hist*/ false);
     delete e.target.dataset.reset;
   });
-  $('nd-text-color')?.addEventListener('change', (e) => {
+  $('nd-text-color')?.addEventListener('change', (e: any) => {
     pushHistory();
     withNodes((n) => { n.textColor = e.target.value; }, /*hist*/ false);
   });
@@ -809,12 +809,12 @@ export function initStylePanel() {
   });
 
   // ── 외곽 스트로크 ──
-  $('nd-outline').addEventListener('change', (e) => withNodes((n) => { n.outlineWidth = e.target.value; }));
-  $('nd-outline-color').addEventListener('input', (e) => {
+  $('nd-outline').addEventListener('change', (e: any) => withNodes((n) => { n.outlineWidth = e.target.value; }));
+  $('nd-outline-color').addEventListener('input', (e: any) => {
     withNodes((n) => { n.outlineColor = e.target.value; }, /*hist*/ false);
     delete e.target.dataset.reset;
   });
-  $('nd-outline-color').addEventListener('change', (e) => {
+  $('nd-outline-color').addEventListener('change', (e: any) => {
     pushHistory();
     withNodes((n) => { n.outlineColor = e.target.value; }, /*hist*/ false);
   });
@@ -824,12 +824,12 @@ export function initStylePanel() {
   });
 
   // ── 부모 연결선 (branchStyle) — 색상 input은 슬라이드 도중 history 누적 방지하려고 change만 push ──
-  $('nd-branch-color').addEventListener('input', (e) => {
+  $('nd-branch-color').addEventListener('input', (e: any) => {
     // 슬라이더 도중에는 history 없이 미리보기
     withNodes((n) => { n.branchStyle.color = e.target.value; }, /*hist*/ false);
     delete e.target.dataset.reset;
   });
-  $('nd-branch-color').addEventListener('change', (e) => {
+  $('nd-branch-color').addEventListener('change', (e: any) => {
     pushHistory();
     withNodes((n) => { n.branchStyle.color = e.target.value; }, /*hist*/ false);
   });
@@ -837,10 +837,10 @@ export function initStylePanel() {
     withNodes((n) => { n.branchStyle.color = null; });
     $('nd-branch-color').dataset.reset = '1';
   });
-  $('nd-branch-dash').addEventListener('change', (e) => {
+  $('nd-branch-dash').addEventListener('change', (e: any) => {
     withNodes((n) => { n.branchStyle.dash = e.target.value || null; });
   });
-  $('nd-branch-width').addEventListener('change', (e) => {
+  $('nd-branch-width').addEventListener('change', (e: any) => {
     withNodes((n) => { n.branchStyle.width = e.target.value ? Number(e.target.value) : null; });
   });
   // 곡률 초기화 — 수동 조정한 핸들 제거, 전역 curveStrength 기반 기본값으로 복귀
@@ -861,11 +861,11 @@ export function initStylePanel() {
     });
     render();
   }
-  $('rel-color').addEventListener('input', (e) => {
+  $('rel-color').addEventListener('input', (e: any) => {
     withRelations((r) => { r.style.color = e.target.value; }, /*hist*/ false);
     delete e.target.dataset.reset;
   });
-  $('rel-color').addEventListener('change', (e) => {
+  $('rel-color').addEventListener('change', (e: any) => {
     pushHistory();
     withRelations((r) => { r.style.color = e.target.value; }, /*hist*/ false);
   });
@@ -873,28 +873,28 @@ export function initStylePanel() {
     withRelations((r) => { r.style.color = null; });
     $('rel-color').dataset.reset = '1';
   });
-  $('rel-dash').addEventListener('change', (e) => {
+  $('rel-dash').addEventListener('change', (e: any) => {
     withRelations((r) => { r.style.dash = e.target.value; });
   });
-  $('rel-width').addEventListener('change', (e) => {
+  $('rel-width').addEventListener('change', (e: any) => {
     withRelations((r) => { r.style.width = e.target.value ? Number(e.target.value) : null; });
   });
-  $('rel-arrow').addEventListener('change', (e) => {
+  $('rel-arrow').addEventListener('change', (e: any) => {
     withRelations((r) => { r.style.arrow = e.target.value; });
   });
   // 라벨 편집은 한 번의 편집 세션 = 한 번의 history 엔트리
   let labelInitial = '';
   let labelDirty   = false;
-  $('rel-label').addEventListener('focus', (e) => {
+  $('rel-label').addEventListener('focus', (e: any) => {
     labelInitial = e.target.value;
     labelDirty   = false;
     beginPending();
   });
-  $('rel-label').addEventListener('input', (e) => {
+  $('rel-label').addEventListener('input', (e: any) => {
     labelDirty = true;
     withRelations((r) => { r.label = e.target.value; }, /*hist*/ false);
   });
-  $('rel-label').addEventListener('blur', (e) => {
+  $('rel-label').addEventListener('blur', (e: any) => {
     if (labelDirty && e.target.value !== labelInitial) commitPending();
     else                                                cancelPending();
     labelDirty = false;
