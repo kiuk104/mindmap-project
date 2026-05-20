@@ -1,10 +1,10 @@
 # 마인드맵 프로젝트
 
 ## 문서 목록
-- 📖 [USER_GUIDE.md](USER_GUIDE.md) — 사용자 매뉴얼 (단축키·제스처·기능 사용법·FAQ)
-- 🛠️ [DEVELOPMENT.md](DEVELOPMENT.md) — 개발 노트 (아키텍처·모듈·새 기능 추가법)
-- ☁️ [DRIVE_SETUP.md](DRIVE_SETUP.md) — 구글 드라이브 OAuth 설정 가이드
-- 🚀 [SETUP_GUIDE.md](SETUP_GUIDE.md) — 신규 클론 시 초기 셋업
+- 📖 [USER_GUIDE.md](docs/USER_GUIDE.md) — 사용자 매뉴얼 (단축키·제스처·기능 사용법·FAQ)
+- 🛠️ [DEVELOPMENT.md](docs/DEVELOPMENT.md) — 개발 노트 (아키텍처·모듈·새 기능 추가법)
+- ☁️ [DRIVE_SETUP.md](docs/DRIVE_SETUP.md) — 구글 드라이브 OAuth 설정 가이드
+- 🚀 [SETUP_GUIDE.md](docs/SETUP_GUIDE.md) — 신규 클론 시 초기 셋업
 
 ## 프로젝트 개요
 구글 드라이브 직접 연동 + 로컬스토리지 자동 저장을 지원하는 공동 편집 마인드맵 도구.
@@ -29,9 +29,8 @@ mindmap-project/
 ├── index.html          # HTML 구조 + 테마 사전 적용 스크립트
 ├── package.json        # Vite 의존성
 ├── vite.config.js      # base 경로 설정 (Pages 서브경로)
-├── CLAUDE.md           # 이 파일
-├── DRIVE_SETUP.md      # 구글 드라이브 OAuth 설정 가이드
-├── SETUP_GUIDE.md      # 초기 셋업 가이드
+├── CLAUDE.md           # 이 파일 (Claude Code 자동 로드 — 루트에 유지)
+├── docs/               # USER_GUIDE / DEVELOPMENT / DRIVE_SETUP / SETUP_GUIDE / IMPROVEMENT / PROMPTS
 ├── .gitignore
 ├── .github/workflows/  # GitHub Pages 자동 배포
 └── src/
@@ -172,7 +171,7 @@ main.js
 1. **☁️ Drive 연결** → 구글 로그인
 2. **💾 저장** → 위치 = "구글 드라이브"
 3. 팀원이 같은 OAuth 클라이언트로 인증 → **☁️ 드라이브 불러오기**
-4. 설정 방법은 [DRIVE_SETUP.md](DRIVE_SETUP.md)
+4. 설정 방법은 [DRIVE_SETUP.md](docs/DRIVE_SETUP.md)
 
 ### 옵션 C: JSON 파일
 - **💾 저장** → 다운로드 → 공유 폴더 → 팀원이 **📂 불러오기**

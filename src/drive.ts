@@ -299,7 +299,7 @@ export function getEmail()      { return currentEmail; }
 /** 사용자에게 OAuth 동의 팝업 표시 (이미 로그인된 경우 silent refresh) */
 export function signIn() {
   if (!tokenClient) {
-    toastError('Drive 연동이 설정되지 않았습니다 (DRIVE_SETUP.md 참고).');
+    toastError('Drive 연동이 설정되지 않았습니다 (docs/DRIVE_SETUP.md 참고).');
     return;
   }
   tokenClient.requestAccessToken({ prompt: accessToken ? '' : 'consent' });

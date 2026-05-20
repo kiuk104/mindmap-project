@@ -239,7 +239,7 @@ export function openSaveModal() {
     ? `☁️ 구글 드라이브 (${drive.getEmail() ?? '연결됨'})`
     : (drive.isAvailable()
         ? '☁️ 구글 드라이브 (먼저 연결 필요)'
-        : '☁️ 구글 드라이브 (DRIVE_SETUP.md 참고)');
+        : '☁️ 구글 드라이브 (docs/DRIVE_SETUP.md 참고)');
 
   // 이전에 저장한 적 있으면 그 이름으로 시작 (Save As 복제 편의), 없으면 오늘 날짜 기반
   const initialName = getLastSave()?.name || defaultFilename();
@@ -275,7 +275,7 @@ export function openSaveModal() {
 /** Drive에서 불러오기 모달 — 파일 목록 표시 */
 export async function openDriveLoadModal() {
   if (!drive.isAvailable()) {
-    alert('Drive 연동이 설정되지 않았습니다.\nDRIVE_SETUP.md를 참고해 클라이언트 ID를 설정해주세요.');
+    alert('Drive 연동이 설정되지 않았습니다.\ndocs/DRIVE_SETUP.md를 참고해 클라이언트 ID를 설정해주세요.');
     return;
   }
   if (!drive.isSignedIn()) {
@@ -537,7 +537,7 @@ export function openShareModal() {
 
   const driveReady = drive.isAvailable() && drive.isSignedIn();
   const driveHint = !drive.isAvailable()
-    ? '⚠️ Drive 미설정 — DRIVE_SETUP.md 참고'
+    ? '⚠️ Drive 미설정 — docs/DRIVE_SETUP.md 참고'
     : (!drive.isSignedIn() ? '⚠️ 먼저 ☁️ Drive 연결 후 사용 가능' : '');
 
   const canNativeShare = 'share' in navigator;

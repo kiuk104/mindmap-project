@@ -46,11 +46,14 @@ mindmap-project/
 ├── index.html              # HTML 루트 + 테마 사전 적용 인라인 스크립트
 ├── package.json
 ├── vite.config.js          # base: '/mindmap-project/' (Pages 서브경로)
-├── CLAUDE.md               # AI 어시스턴트 오리엔테이션
-├── USER_GUIDE.md           # 사용자 매뉴얼
-├── DEVELOPMENT.md          # 이 문서
-├── DRIVE_SETUP.md          # Google OAuth 설정 가이드
-├── SETUP_GUIDE.md          # 신규 클론 시 초기 셋업
+├── CLAUDE.md               # AI 어시스턴트 오리엔테이션 (루트 — Claude Code 자동 로드)
+├── docs/
+│   ├── USER_GUIDE.md       # 사용자 매뉴얼
+│   ├── DEVELOPMENT.md      # 이 문서
+│   ├── DRIVE_SETUP.md      # Google OAuth 설정 가이드
+│   ├── SETUP_GUIDE.md      # 신규 클론 시 초기 셋업
+│   ├── IMPROVEMENT.md      # 개선 진행 현황
+│   └── PROMPTS.md          # 구현 프롬프트 아카이브
 ├── .github/workflows/
 │   └── deploy.yml          # GitHub Pages 자동 배포
 ├── .gitignore

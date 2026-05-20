@@ -119,7 +119,7 @@ function initDriveUnifiedButton() {
         <div class="dd-header">Drive OAuth 미설정</div>
         <div class="dd-item" id="dd-setup">📖 설정 방법 보기</div>`;
       dd.querySelector('#dd-setup')?.addEventListener('click', () => {
-        window.open('https://github.com/kiuk104/mindmap-project/blob/main/DRIVE_SETUP.md', '_blank');
+        window.open('https://github.com/kiuk104/mindmap-project/blob/main/docs/DRIVE_SETUP.md', '_blank');
         closeDd();
       });
       return;
