@@ -19,7 +19,7 @@ function newId() {
 }
 
 /** 부모 노드 옆에 새 콜아웃 추가 */
-export function addCallout(parentId) {
+export function addCallout(parentId: string) {
   const node = state.nodes[parentId];
   if (!node) return;
   pushHistory();
@@ -39,7 +39,7 @@ export function addCallout(parentId) {
 }
 
 /** 콜아웃 삭제 */
-export function deleteCallout(coId) {
+export function deleteCallout(coId: string) {
   const idx = state.callouts?.findIndex((c) => c.id === coId);
   if (idx === undefined || idx < 0) return;
   pushHistory();
@@ -49,7 +49,7 @@ export function deleteCallout(coId) {
 }
 
 /** 콜아웃 선택 */
-export function selectCallout(coId) {
+export function selectCallout(coId: string) {
   state.selectedCalloutId = coId;
   state.selectedIds = [];
   state.selectedId = null;
@@ -60,7 +60,7 @@ export function selectCallout(coId) {
 }
 
 /** 부모 노드 삭제 시 그에 매달린 콜아웃도 같이 제거 (deleteNode에서 호출) */
-export function removeCalloutsByParents(removedNodeIds) {
+export function removeCalloutsByParents(removedNodeIds: string[]) {
   if (!state.callouts) return;
   const removed = new Set(removedNodeIds);
   state.callouts = state.callouts.filter((c) => !removed.has(c.parentId));
@@ -71,13 +71,13 @@ export function removeCalloutsByParents(removedNodeIds) {
 
 // ── 드래그 ─────────────────────────────────────────────
 let dragging = false;
-let dragId   = null;
+let dragId: string | null = null;
 let dragMoved = false;
 let dragStartCanvas = { x: 0, y: 0 };
 let dragStartOffset = { dx: 0, dy: 0 };
 
 /** 콜아웃 박스에 pointerdown — 드래그 시작 */
-export function onCalloutPointerDown(e, coId, canvasCoord) {
+export function onCalloutPointerDown(e: PointerEvent, coId: string, canvasCoord: (x: number, y: number) => { x: number; y: number }) {
   if (e.button !== 0) return;
   e.stopPropagation();
   selectCallout(coId);
@@ -93,7 +93,7 @@ export function onCalloutPointerDown(e, coId, canvasCoord) {
   beginPending();
 }
 
-export function onCalloutPointerMove(e, canvasCoord) {
+export function onCalloutPointerMove(e: PointerEvent, canvasCoord: (x: number, y: number) => { x: number; y: number }) {
   if (!dragging || !dragId) return false;
   const co = state.callouts.find((c) => c.id === dragId);
   if (!co) return false;

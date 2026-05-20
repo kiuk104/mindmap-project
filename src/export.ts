@@ -25,7 +25,7 @@ function sanitizeFilename(name?: string): string {
 }
 
 /** 노드 텍스트 폭 대략 추정 — 한글 1.7px 가중 (시각 정렬용 근사) */
-function estimateNodeWidth(n, fontSize) {
+function estimateNodeWidth(n: any, fontSize: number): number {
   const text = (n.icon ? n.icon + ' ' : '') + (n.text ?? '');
   let w = 0;
   for (const ch of text) {
@@ -35,7 +35,7 @@ function estimateNodeWidth(n, fontSize) {
 }
 
 /** 출력 대상 노드들의 캔버스 좌표 bounding box (숨김 노드 제외) */
-function getBoundingBox(hiddenIds) {
+function getBoundingBox(hiddenIds: Set<string>) {
   const IMG_W = 180, IMG_H = 100;
   let xMin = Infinity, yMin = Infinity, xMax = -Infinity, yMax = -Infinity;
   let count = 0;
@@ -199,7 +199,7 @@ export function buildExportSvg() {
 }
 
 /** SVG 파일 다운로드 */
-export function exportSvgFile(filename) {
+export function exportSvgFile(filename?: string) {
   const out = buildExportSvg();
   if (!out) { alert('내보낼 노드가 없습니다.'); return false; }
   const blob = new Blob([out.svg], { type: 'image/svg+xml;charset=utf-8' });
@@ -249,7 +249,7 @@ export function exportPngBlob(scale = 2): Promise<Blob> {
 }
 
 /** PNG 파일 다운로드 (scale: 출력 해상도 배율) */
-export async function exportPngFile(filename, scale = 2) {
+export async function exportPngFile(filename?: string, scale = 2): Promise<boolean> {
   const pngBlob = await exportPngBlob(scale);
   const pngUrl = URL.createObjectURL(pngBlob);
   const a = document.createElement('a');

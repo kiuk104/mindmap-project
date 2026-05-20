@@ -46,7 +46,7 @@ const DEFAULT = {
 let settings = clone(DEFAULT);
 const listeners = new Set<(settings: any) => void>();
 
-function clone(o) { return JSON.parse(JSON.stringify(o)); }
+function clone<T>(o: T): T { return JSON.parse(JSON.stringify(o)); }
 
 /** localStorage에서 로드 — 앱 시작 시 1회 호출 */
 export function loadSettings() {
@@ -76,7 +76,7 @@ export function getSettings() { return settings; }
  *   - defaultRelation은 머지 (필드 단위 부분 업데이트 가능)
  *   - shortcuts는 patch.shortcuts가 명시되면 통째 교체 (개별 액션 reset이 가능하도록)
  */
-export function updateSettings(patch) {
+export function updateSettings(patch: any) {
   settings = {
     ...settings,
     ...patch,
@@ -92,7 +92,7 @@ export function updateSettings(patch) {
 }
 
 /** 설정 변경 리스너 — 즉시 한 번 콜백 호출 */
-export function onSettingsChange(fn) {
+export function onSettingsChange(fn: (settings: any) => void) {
   listeners.add(fn);
   fn(settings);
   return () => listeners.delete(fn);

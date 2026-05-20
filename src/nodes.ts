@@ -12,13 +12,13 @@ import { getSettings } from './settings.js';
  * 노드 텍스트에서 새 URL을 추출해 n.links에 추가.
  * 이미 같은 URL이 있으면 스킵. 추가됐으면 true 반환.
  */
-function autoDetectLinks(node) {
+function autoDetectLinks(node: any): boolean {
   if (!node?.text) return false;
   if (getSettings().autoDetectLinks === false) return false;   // 기능 끔
   const urls = findUrlsInText(node.text);
   if (!urls.length) return false;
   if (!node.links) node.links = [];
-  const existing = new Set(node.links.map((l) => l.url));
+  const existing = new Set(node.links.map((l: any) => l.url));
   let added = false;
   urls.forEach((url) => {
     if (existing.has(url)) return;
@@ -60,7 +60,7 @@ export function addChild(parentId?: string | null, atX?: number, atY?: number): 
   }
 
   const newNode = makeNode(id, '새 노드', x, y, parentId, color);
-  if (settings.defaultNodeBorder) newNode.borderWidth = settings.defaultNodeBorder;
+  if (settings.defaultNodeBorder) newNode.borderWidth = settings.defaultNodeBorder as any;
   state.nodes[id] = newNode;
 
   setNodeSelection(state, [id]);
@@ -77,7 +77,7 @@ export function addChild(parentId?: string | null, atX?: number, atY?: number): 
  * 노드와 그 자식들 재귀적으로 삭제
  * @param {string} id
  */
-export function deleteNode(id) {
+export function deleteNode(id: string) {
   const rootId = Object.keys(state.nodes).find((k) => !state.nodes[k].parentId);
   if (id === rootId) {
     alert('루트 노드는 삭제할 수 없습니다.');
@@ -86,8 +86,8 @@ export function deleteNode(id) {
 
   pushHistory();
 
-  const removed = new Set();
-  function removeRecursive(nodeId) {
+  const removed = new Set<string>();
+  function removeRecursive(nodeId: string) {
     Object.keys(state.nodes)
       .filter((k) => state.nodes[k].parentId === nodeId)
       .forEach(removeRecursive);
@@ -123,14 +123,14 @@ export function deleteNode(id) {
  * @param {string} nodeId
  * @param {number} linkIndex
  */
-export function removeLink(nodeId, linkIndex) {
+export function removeLink(nodeId: string, linkIndex: number) {
   pushHistory();
   state.nodes[nodeId].links.splice(linkIndex, 1);
   render();
 }
 
 /** 접기/펴기 토글 — 자식 노드가 있을 때만 의미 있음. history 1엔트리. */
-export function toggleCollapse(nodeId) {
+export function toggleCollapse(nodeId: string) {
   const n = state.nodes[nodeId];
   if (!n) return;
   pushHistory();
@@ -143,7 +143,7 @@ export function toggleCollapse(nodeId) {
  * 검색 매치 이동·키보드 네비게이션에서 호출. history는 push하지 않음 (네비게이션 부수효과).
  * @returns {boolean} 실제로 펴진 노드가 있었으면 true
  */
-export function expandAncestors(nodeId) {
+export function expandAncestors(nodeId: string): boolean {
   let changed = false;
   let cur = state.nodes[nodeId];
   while (cur && cur.parentId) {
@@ -164,7 +164,7 @@ export function expandAncestors(nodeId) {
  * @param {MouseEvent} e
  * @param {string} id
  */
-export function startEdit(e, id) {
+export function startEdit(e: Event, id: string) {
   e.stopPropagation();
   const el = $('nd-' + id);
   if (!el) return;

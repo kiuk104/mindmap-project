@@ -191,7 +191,7 @@ export function initContextMenu() {
 
   $('ctx-callout').addEventListener('click', () => {
     hideContextMenu();
-    addCallout(state.ctxTargetId);
+    if (state.ctxTargetId) addCallout(state.ctxTargetId);
   });
 
   $('ctx-relation').addEventListener('click', () => {
@@ -203,7 +203,7 @@ export function initContextMenu() {
 
   $('ctx-collapse').addEventListener('click', () => {
     hideContextMenu();
-    toggleCollapse(state.ctxTargetId);
+    if (state.ctxTargetId) toggleCollapse(state.ctxTargetId);
   });
 
   // 다중 선택 시 "선택 노드 모두 삭제" — deleteNode가 자체적으로 pushHistory
@@ -212,7 +212,7 @@ export function initContextMenu() {
 
   $('ctx-del').addEventListener('click', () => {
     hideContextMenu();
-    deleteNode(state.ctxTargetId);
+    if (state.ctxTargetId) deleteNode(state.ctxTargetId);
   });
 
   // ── 배경 메뉴 ──
@@ -320,7 +320,7 @@ export function initContextMenu() {
     const border = s?.defaultNodeBorder;
     const rootId = uid();
     const root = makeNode(rootId, '중심 주제', 2500, 2500, null, '#f85149');
-    if (border) root.borderWidth = border;
+    if (border) root.borderWidth = border as any;
     state.nodes[rootId] = root;
     const samples = [
       { text: '📄 자료 링크',   dx: -230, dy: -160, color: '#1f6feb' },
@@ -331,7 +331,7 @@ export function initContextMenu() {
     samples.forEach(({ text, dx, dy, color }) => {
       const id = uid();
       const n = makeNode(id, text, 2500 + dx, 2500 + dy, rootId, color);
-      if (border) n.borderWidth = border;
+      if (border) n.borderWidth = border as any;
       state.nodes[id] = n;
     });
 

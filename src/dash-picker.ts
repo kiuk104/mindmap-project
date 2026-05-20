@@ -15,7 +15,7 @@ let _wavyFilterCounter = 0;
  * @param {string} dashKey - DASH_PATTERNS 키, 빈 문자열이면 라벨만
  * @returns {string} SVG markup
  */
-function previewSvg(dashKey) {
+function previewSvg(dashKey: string): string {
   if (!dashKey) {
     return `<svg class="dp-line" viewBox="0 0 120 12" preserveAspectRatio="none">
       <line x1="2" y1="6" x2="118" y2="6" stroke="currentColor" stroke-width="1.5" opacity="0.4" stroke-dasharray="3 3"/>
@@ -30,7 +30,7 @@ function previewSvg(dashKey) {
     </svg>`;
   }
 
-  const dashAttr = DASH_PATTERNS[dashKey] || 'none';
+  const dashAttr = (DASH_PATTERNS as Record<string, string>)[dashKey] || 'none';
   const linecap  = dashKey === 'dotted' ? 'round' : 'butt';
   return `<svg class="dp-line" viewBox="0 0 120 12" preserveAspectRatio="none">
     <line x1="2" y1="6" x2="118" y2="6" stroke="currentColor" stroke-width="2"
@@ -38,7 +38,7 @@ function previewSvg(dashKey) {
   </svg>`;
 }
 
-function itemContentHTML(value, label) {
+function itemContentHTML(value: string, label: string): string {
   return `${previewSvg(value)}<span class="dp-label">${label}</span>`;
 }
 

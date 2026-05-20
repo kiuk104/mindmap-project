@@ -1434,8 +1434,8 @@ export function openCustomThemeModal(themeId = null) {
   state.modalKind = 'customTheme';
   _ctEditingId = themeId;
 
-  const s = getSettings();
-  const existing = themeId ? s.customThemes.find((t) => t.id === themeId) : null;
+  const s: any = getSettings();
+  const existing: any = themeId ? (s.customThemes ?? []).find((t: any) => t.id === themeId) : null;
 
   $('modal-title').textContent = existing ? '🎨 테마 편집' : '🎨 새 커스텀 테마';
 
@@ -1506,12 +1506,12 @@ function handleCustomThemeOK() {
     colors[Number(el.dataset.idx)] = el.value;
   });
 
-  const s = getSettings();
-  let nextThemes;
-  let savedId;
+  const s: any = getSettings();
+  let nextThemes: any;
+  let savedId: string;
 
   if (_ctEditingId) {
-    nextThemes = s.customThemes.map((t) =>
+    nextThemes = (s.customThemes ?? []).map((t: any) =>
       t.id === _ctEditingId ? { ...t, name, palette: colors } : t
     );
     savedId = _ctEditingId;

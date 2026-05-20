@@ -10,7 +10,7 @@ import { markVisited } from './onboarding.js';
  * @param {Function} onStart    - "시작하기" 콜백
  * @param {Function} onTemplate - "템플릿 선택" 콜백 (null이면 버튼 숨김)
  */
-export function showWelcome(onStart, onTemplate) {
+export function showWelcome(onStart?: () => void, onTemplate?: (() => void) | null): void {
   const overlay = document.createElement('div');
   overlay.id = 'welcome-overlay';
   overlay.innerHTML = `

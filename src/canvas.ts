@@ -362,7 +362,7 @@ export function onNodeMouseDown(e, nodeId) {
       state.relations.push({
         id: 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
         fromId, toId: nodeId, label: '',
-        style: newRelationStyle(),
+        style: newRelationStyle() as any,
       });
     }
     state.relationDraft = null;

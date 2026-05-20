@@ -121,7 +121,7 @@ function buildGeneralTab() {
         🔍 인기 폰트 찾아보기 (검색 + 미리보기)
       </button>
       <div id="stp-custom-fonts-list" class="custom-fonts-list">
-        ${(s.customFonts ?? []).map((cf) => `
+        ${((s.customFonts ?? []) as Array<{ id: string; name: string; family: string }>).map((cf) => `
           <div class="custom-font-row" data-id="${cf.id}">
             <span class="custom-font-name" style="font-family:${cf.family}">${escapeHTML(cf.name)}</span>
             <button type="button" class="btn btn-ghost custom-font-del" data-id="${cf.id}"
@@ -313,7 +313,7 @@ function buildGeneralTab() {
   $('stp-browse-fonts')?.addEventListener('click', () => {
     openFontBrowserModal(
       (name) => addCustomFont(name),
-      (name) => (getSettings().customFonts ?? []).some(
+      (name) => ((getSettings().customFonts ?? []) as Array<{ name: string }>).some(
         (f) => f.name.toLowerCase() === name.toLowerCase()
       ),
     );
@@ -350,24 +350,24 @@ function buildGeneralTab() {
       state.style = { ...state.style, font: s.defaultFont, fontEn: null, fontKr: null };
     }
     // 2) 노드 연결선 (모양·두께·자식색상) + 각 노드의 branchStyle 오버라이드 제거
-    if (s.defaultLineStyle) state.lineStyle = s.defaultLineStyle;
+    if (s.defaultLineStyle) state.lineStyle = s.defaultLineStyle as any;
     state.style = {
       ...state.style,
-      lineWidth:     s.defaultLineWidth ?? state.style?.lineWidth ?? 'normal',
+      lineWidth:     (s.defaultLineWidth ?? state.style?.lineWidth ?? 'normal') as any,
       coloredBranch: !!s.defaultColoredBranch,
     };
     Object.values(state.nodes).forEach((n) => { delete n.branchStyle; });
     // 3) 모든 노드의 borderWidth
     if (s.defaultNodeBorder) {
-      Object.values(state.nodes).forEach((n) => { n.borderWidth = s.defaultNodeBorder; });
+      Object.values(state.nodes).forEach((n) => { n.borderWidth = s.defaultNodeBorder as any; });
     }
     // 4) 모든 관계선의 스타일
     (state.relations ?? []).forEach((r) => {
       if (!r.style) r.style = {};
       r.style.color = dr.color ?? null;
-      r.style.dash  = dr.dash  ?? 'dashed';
+      r.style.dash  = (dr.dash  ?? 'dashed') as any;
       r.style.width = dr.width ?? null;
-      r.style.arrow = dr.arrow ?? 'end';
+      r.style.arrow = (dr.arrow ?? 'end') as any;
     });
 
     applyStyle();   // 폰트 즉시 반영
@@ -564,7 +564,7 @@ export function applyNodeShadow() {
  * 앱 시작 시 1회 + 새 폰트 추가될 때마다 호출.
  */
 export function injectCustomFonts() {
-  const cf = getSettings().customFonts ?? [];
+  const cf: Array<{ id: string; name: string; family: string; googleLink?: string }> = getSettings().customFonts ?? [];
   cf.forEach((f) => {
     if (!f.googleLink) return;
     const id = 'gf-link-' + f.id;
@@ -578,20 +578,20 @@ export function injectCustomFonts() {
 }
 
 /** Google Fonts 이름 → CSS URL */
-function googleFontsUrl(name) {
+function googleFontsUrl(name: string): string {
   const enc = encodeURIComponent(name).replace(/%20/g, '+');
   return `https://fonts.googleapis.com/css2?family=${enc}&display=swap`;
 }
 
 /** 새 사용자 폰트 추가 */
-function addCustomFont(name) {
+function addCustomFont(name: string): boolean {
   name = (name || '').trim();
   if (!name) return false;
   const id = 'cf_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
   // family — 이름에 공백 있으면 따옴표, fallback은 sans-serif
   const family = `'${name.replace(/'/g, "\\'")}', system-ui, sans-serif`;
   const googleLink = googleFontsUrl(name);
-  const cur = getSettings().customFonts ?? [];
+  const cur: Array<{ id: string; name: string; family: string; googleLink?: string }> = getSettings().customFonts ?? [];
   // 같은 이름 중복 방지
   if (cur.some((f) => f.name.toLowerCase() === name.toLowerCase())) {
     alert('같은 이름의 폰트가 이미 추가돼 있습니다.');
@@ -603,8 +603,8 @@ function addCustomFont(name) {
 }
 
 /** 사용자 폰트 삭제 */
-function removeCustomFont(id) {
-  const cur = getSettings().customFonts ?? [];
+function removeCustomFont(id: string) {
+  const cur: Array<{ id: string; name: string; family: string; googleLink?: string }> = getSettings().customFonts ?? [];
   // 주입된 <link>도 제거
   const linkEl = document.getElementById('gf-link-' + id);
   if (linkEl) linkEl.remove();

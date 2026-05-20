@@ -287,7 +287,7 @@ function buildThemeTabs() {
 
 /** 테마 그리드 HTML 빌드 — 현재 탭 빌트인 + (항상) 커스텀 + "새 테마" 추가 타일 */
 function buildThemeGrid() {
-  const customThemes = getSettings().customThemes ?? [];
+  const customThemes: Array<{ id: string; name: string; palette: string[] }> = getSettings().customThemes ?? [];
   const currentKey   = state.style?.theme;
 
   // 현재 탭에 속하는 빌트인만 노출
@@ -367,9 +367,9 @@ export function initStylePanel() {
 
   // 폰트 셀렉트 빌드 — 빌트인 + 사용자 추가 폰트
   function buildFontSelect() {
-    const cf = getSettings().customFonts ?? [];
+    const cf: Array<{ id: string; name: string; family: string }> = getSettings().customFonts ?? [];
     const builtIn = Object.entries(FONT_NAMES).map(([key, name]) => `
-      <option value="${key}" style="font-family: ${FONT_FAMILIES[key]}">${name} — 가나다 ABC</option>
+      <option value="${key}" style="font-family: ${(FONT_FAMILIES as Record<string, string>)[key]}">${name} — 가나다 ABC</option>
     `).join('');
     const custom = cf.length === 0 ? '' :
       `<optgroup label="사용자 추가">` +

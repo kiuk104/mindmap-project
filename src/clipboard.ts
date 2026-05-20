@@ -77,8 +77,8 @@ export function cutClipboard() {
 
   pushHistory();
 
-  const removed = new Set();
-  function rm(id) {
+  const removed = new Set<string>();
+  function rm(id: string) {
     Object.values(state.nodes)
       .filter((n) => n.parentId === id)
       .forEach((n) => rm(n.id));
@@ -105,13 +105,13 @@ export function pasteClipboard() {
 
   // 붙여넣기 대상 부모 결정
   const rootId = Object.keys(state.nodes).find((k) => !state.nodes[k].parentId);
-  let targetParent;
+  let targetParent: string | null;
   if (state.selectedId && state.nodes[state.selectedId]) {
     const sel = state.nodes[state.selectedId];
     // 루트면 그 자식으로, 아니면 형제로
     targetParent = sel.parentId ?? sel.id;
   } else {
-    targetParent = rootId;
+    targetParent = rootId ?? null;
   }
 
   // 원본 ID → 새 ID 매핑

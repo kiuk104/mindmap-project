@@ -281,13 +281,13 @@ function createSamples() {
   if (s?.defaultFont) state.style = { ...state.style, font: s.defaultFont };
   const border = s?.defaultNodeBorder;
   // 노드 연결선 기본값 (모양·두께·자식 색상 사용)
-  if (s?.defaultLineStyle)        state.lineStyle = s.defaultLineStyle;
-  if (s?.defaultLineWidth)        state.style = { ...state.style, lineWidth: s.defaultLineWidth };
+  if (s?.defaultLineStyle)        state.lineStyle = s.defaultLineStyle as any;
+  if (s?.defaultLineWidth)        state.style = { ...state.style, lineWidth: s.defaultLineWidth as any };
   if (s?.defaultColoredBranch !== undefined) state.style = { ...state.style, coloredBranch: !!s.defaultColoredBranch };
 
   const rootId = uid();
   const root = makeNode(rootId, '중심 주제', 2500, 2500, null, '#f85149');
-  if (border) root.borderWidth = border;
+  if (border) root.borderWidth = border as any;
   state.nodes[rootId] = root;
 
   const samples = [
@@ -299,7 +299,7 @@ function createSamples() {
   samples.forEach(({ text, dx, dy, color }) => {
     const id = uid();
     const n = makeNode(id, text, 2500 + dx, 2500 + dy, rootId, color);
-    if (border) n.borderWidth = border;
+    if (border) n.borderWidth = border as any;
     state.nodes[id] = n;
   });
 }
