@@ -72,13 +72,19 @@ import { exportPngFile, exportSvgFile } from './export.js';
   // 자동 탈출 불가 — init 후 가이드 모달이 자동으로 뜬다.
 })();
 
+// ── 뷰어 모드 (?view=1) ──
+// 공유 링크 수신자가 실수로 편집하지 않도록 편집 UI/단축키/드래그를 차단.
+// truth source: body.view-mode 클래스 (canvas.js 등 다른 모듈도 이걸로 판정)
+const IS_VIEW_MODE = new URLSearchParams(location.search).has('view');
+if (IS_VIEW_MODE) document.body.classList.add('view-mode');
+
 // ── render.js에 핸들러 주입 ──
 // render.js는 다른 모듈을 직접 import하지 않고
 // 이렇게 main.js가 연결해줍니다.
 registerHandlers({
   onNodeMouseDown,
-  onNodeDblClick:        startEdit,
-  onNodeContextMenu:     showContextMenu,
+  onNodeDblClick:        IS_VIEW_MODE ? () => {} : startEdit,
+  onNodeContextMenu:     IS_VIEW_MODE ? (e) => e.preventDefault() : showContextMenu,
   onLinkBadgeMouseEnter: showPreview,
   onLinkBadgeMouseLeave: hidePreview,
   onLinkDelete:          removeLink,
@@ -823,6 +829,8 @@ document.addEventListener('click', (e) => {
 
 // ── 배경 우클릭 → 커스텀 메뉴 (단, 우클릭 드래그 후엔 메뉴 띄우지 않음) ──
 $('canvas-wrap').addEventListener('contextmenu', (e) => {
+  // 뷰어 모드면 컨텍스트 메뉴 차단
+  if (IS_VIEW_MODE) { e.preventDefault(); return; }
   // 직전에 우클릭 드래그(Pan)가 있었다면 contextmenu는 그 끝맺음일 뿐 → 메뉴 차단
   if (consumePanDragFlag()) {
     e.preventDefault();
@@ -842,6 +850,7 @@ $('canvas-wrap').addEventListener('contextmenu', (e) => {
 // 3) 직전 500ms 내 노드 인터랙션이 있었으면 합성 더블클릭 부산물로 간주, 무시
 // 4) 진짜 빈 공간이면 그 위치에 새 노드 추가
 $('canvas-wrap').addEventListener('dblclick', (e) => {
+  if (IS_VIEW_MODE) return; // 뷰어 모드 — 빈 공간 더블클릭으로 노드 추가/편집 차단
   const t = e.target;
   if (t.id !== 'canvas-wrap' && t.id !== 'canvas' && t.id !== 'svg-layer') return;
 
@@ -947,6 +956,17 @@ registerShortcuts({
   'nav-right':       () => navigateToChild(),
   'escape':          actionEscape,
 });
+
+// 뷰어 모드 — 편집·파일·클립보드 단축키는 무력화. nav/search/palette/escape/toggle-collapse는 유지.
+if (IS_VIEW_MODE) {
+  const noop = () => {};
+  registerShortcuts({
+    'add-child': noop, 'delete': noop, 'delete-alt': noop,
+    'undo': noop, 'redo': noop, 'redo-alt': noop,
+    'copy': noop, 'cut': noop, 'paste': noop,
+    'save': noop, 'save-as': noop,
+  });
+}
 
 // 단일 keydown 리스너 — shortcuts.js의 dispatcher가 액션을 찾아 호출
 document.addEventListener('keydown', (e) => {
@@ -1068,6 +1088,22 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') {
       installBtn.hidden = true;
     });
   }
+}
+
+// ── 뷰어 모드 — 우상단 "편집하기" 버튼 동적 삽입 ──
+// (편집 관련 다른 버튼들은 CSS body.view-mode 룰로 숨겨짐)
+if (IS_VIEW_MODE) {
+  const editBtn = document.createElement('button');
+  editBtn.id = 'vm-edit';
+  editBtn.className = 'btn btn-red view-mode-only';
+  editBtn.textContent = '✏️ 편집하기';
+  editBtn.title = '편집 모드로 전환 (?view 파라미터 제거)';
+  editBtn.addEventListener('click', () => {
+    const u = new URL(location.href);
+    u.searchParams.delete('view');
+    location.href = u.toString();
+  });
+  document.getElementById('toolbar')?.appendChild(editBtn);
 }
 
 // ── 시작 ──

@@ -600,13 +600,14 @@ export function openShareModal() {
   showModal();
 }
 
-/** URL hash로 맵 데이터를 인코딩한 공유 URL — tryLoadFromHash의 inverse */
+/** URL hash로 맵 데이터를 인코딩한 공유 URL — tryLoadFromHash의 inverse.
+ *  ?view=1을 함께 붙여 수신자는 뷰어 모드로 진입. */
 function buildShareUrl() {
   try {
     const b64 = btoa(unescape(encodeURIComponent(serialize())));
-    return location.origin + location.pathname + '#data=' + b64;
+    return location.origin + location.pathname + '?view=1#data=' + b64;
   } catch {
-    return location.origin + location.pathname;
+    return location.origin + location.pathname + '?view=1';
   }
 }
 
@@ -677,8 +678,8 @@ function handleShareOption(kind) {
         drive.makePublicLink(file.id).then(() => file.id)
       )
       .then((fileId) => {
-        // 받는 사람이 클릭하면 우리 앱이 열리고 자동으로 Drive 파일 로드
-        const url = `${location.origin}${location.pathname}?drive=${fileId}`;
+        // 받는 사람이 클릭하면 우리 앱이 열리고 자동으로 Drive 파일 로드 + 뷰어 모드 진입
+        const url = `${location.origin}${location.pathname}?drive=${fileId}&view=1`;
         return navigator.clipboard.writeText(url).then(() => url);
       })
       .then((url) => {

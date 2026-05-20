@@ -2065,3 +2065,42 @@ body.settings-panel-open #settings-panel { transform: translateX(0); }
 }
 .cmd-hint { font-size: 11px; color: var(--text-dim); white-space: nowrap; }
 .cmd-empty { padding: 24px; text-align: center; color: var(--text-dim); font-size: 13px; }
+
+/* ── 뷰어 모드 (?view=1) ── */
+/* 편집 관련 툴바 버튼·맵 제목 버튼·앱 로고/구분선 숨김 — 유지: btn-reset, search-box, btn-theme */
+body.view-mode #btn-settings,
+body.view-mode #btn-map-title,
+body.view-mode #btn-undo,
+body.view-mode #btn-redo,
+body.view-mode #btn-export,
+body.view-mode #btn-share,
+body.view-mode #btn-import,
+body.view-mode #btn-drive-unified,
+body.view-mode #btn-line-style,
+body.view-mode #btn-style,
+body.view-mode #btn-icon,
+body.view-mode #btn-install,
+body.view-mode #btn-tb-more,
+body.view-mode #btn-help { display: none !important; }
+
+/* 우측 패널/컨텍스트 메뉴 차단 */
+body.view-mode #style-panel,
+body.view-mode #icon-panel,
+body.view-mode #settings-panel,
+body.view-mode #ctx-menu,
+body.view-mode #ctx-bg-menu,
+body.view-mode #ctx-zone-menu,
+body.view-mode #ctx-callout-menu { display: none !important; }
+
+/* 노드 hover 커서 — 뷰어는 default (드래그 불가) */
+body.view-mode .node { cursor: default !important; }
+
+/* 우상단 "편집하기" 버튼을 toolbar 오른쪽 끝으로 밀어붙임 */
+body.view-mode #vm-edit { margin-left: auto; }
+
+/* hint-bar에 뷰어 모드 안내 prefix */
+body.view-mode #hint-bar::before {
+  content: '👁️ 읽기 전용 모드 — 수정하려면 오른쪽 위 [✏️ 편집하기] 클릭  ·  ';
+  color: #f0883e;
+  font-weight: 600;
+}

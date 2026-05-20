@@ -323,6 +323,8 @@ export function onBranchHandleDown(e, nodeId, handle) {
 // ── 노드 포인터다운 (드래그 시작 / 관계선 완성 / 다중 선택) ──
 export function onNodeMouseDown(e, nodeId) {
   if (e.button !== 0) return;
+  // 뷰어 모드 — 노드 드래그·다중 선택·관계선 그리기 모두 차단 (선택만 별도 click 핸들러에서 처리)
+  if (document.body.classList.contains('view-mode')) return;
   if (
     e.target.tagName === 'A' ||
     e.target.tagName === 'TEXTAREA' ||
