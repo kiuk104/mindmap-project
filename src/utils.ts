@@ -1,13 +1,18 @@
 /**
- * utils.js — 순수 유틸리티 함수 모음
+ * utils.ts — 순수 유틸리티 함수 모음
  * 다른 모듈에 의존하지 않습니다.
+ *
+ * 점진 마이그레이션 — TS-3 단계에서 핵심 함수 시그니처만 어노테이션.
+ * 나머지(폰트 매핑, 색상 유틸 등 큰 부분)는 TS-4 strict 강화 시 정리.
  */
 
+import type { MindNode, LinkType } from './types.js';
+
 /** ID로 DOM 요소 가져오기 */
-export const $ = (id) => document.getElementById(id);
+export const $ = (id: string): HTMLElement | null => document.getElementById(id);
 
 /** 고유 ID 생성 */
-export const uid = () =>
+export const uid = (): string =>
   'n' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
 
 /** 컬러 테마 프리셋 — 노드 색상 팔레트 (각 8색) */
@@ -242,19 +247,19 @@ export function defaultStyle() {
 }
 
 /** 링크 타입별 이모지 아이콘 */
-export function linkIcon(type) {
-  return {
+export function linkIcon(type: string): string {
+  return ({
     drive: '📁', gdocs: '📄', gphotos: '📷', youtube: '▶️',
     image: '🖼️', notion: 'N', url: '🔗',
-  }[type] ?? '🔗';
+  } as Record<string, string>)[type] ?? '🔗';
 }
 
 /** 링크 타입별 기본 라벨 */
-export function linkDefault(type) {
-  return {
+export function linkDefault(type: string): string {
+  return ({
     drive: 'Drive', gdocs: 'Google Docs', gphotos: 'Google Photos',
     youtube: 'YouTube', image: '이미지', notion: 'Notion', url: '링크',
-  }[type] ?? '링크';
+  } as Record<string, string>)[type] ?? '링크';
 }
 
 /**
@@ -364,7 +369,14 @@ export function ytThumb(url) {
 }
 
 /** 새 노드 객체 생성 */
-export function makeNode(id, text, x, y, parentId, color) {
+export function makeNode(
+  id: string,
+  text: string,
+  x: number,
+  y: number,
+  parentId: string | null,
+  color?: string,
+): MindNode {
   return {
     id, text, x, y, parentId,
     color: color ?? '#1f6feb',
@@ -401,25 +413,24 @@ export function makeNode(id, text, x, y, parentId, color) {
  * 어떤 노드의 조상 중 하나라도 collapsed면 그 노드는 hidden.
  * 외부 사용처: render(접힌 노드 후손 스킵), search(검색 매치 이동 시 조상 펴기).
  *
- * @param {Object.<string,Node>} nodes
- * @returns {Set<string>} 숨겨진 노드 ID 집합 (접힌 부모 자신은 포함되지 않음)
+ * @returns 숨겨진 노드 ID 집합 (접힌 부모 자신은 포함되지 않음)
  */
-export function computeHiddenIds(nodes) {
+export function computeHiddenIds(nodes: Record<string, MindNode>): Set<string> {
   // 부모ID → 자식 ID 배열 캐시 (한 번만 순회)
-  const childrenOf = {};
+  const childrenOf: Record<string, string[]> = {};
   Object.values(nodes).forEach((n) => {
     if (n.parentId) {
       (childrenOf[n.parentId] ||= []).push(n.id);
     }
   });
 
-  const hidden = new Set();
-  const stack = [];
+  const hidden = new Set<string>();
+  const stack: string[] = [];
   Object.values(nodes).forEach((n) => {
     if (n.collapsed) (childrenOf[n.id] ?? []).forEach((cid) => stack.push(cid));
   });
   while (stack.length) {
-    const id = stack.pop();
+    const id = stack.pop() as string;
     if (hidden.has(id)) continue;
     hidden.add(id);
     (childrenOf[id] ?? []).forEach((cid) => stack.push(cid));
@@ -427,13 +438,9 @@ export function computeHiddenIds(nodes) {
   return hidden;
 }
 
-/**
- * 어떤 노드가 자식을 가지는지 빠르게 알기 위한 Set 생성.
- * @param {Object.<string,Node>} nodes
- * @returns {Set<string>} 자식을 가진 부모 노드 ID 집합
- */
-export function parentIdsSet(nodes) {
-  const s = new Set();
+/** 자식을 가진 부모 노드 ID 집합 */
+export function parentIdsSet(nodes: Record<string, MindNode>): Set<string> {
+  const s = new Set<string>();
   Object.values(nodes).forEach((n) => {
     if (n.parentId) s.add(n.parentId);
   });
@@ -450,9 +457,9 @@ export const NUMBERING_FORMATS = {
 };
 
 /** 정수 → 로마 숫자 (1~3999) */
-function toRoman(n) {
+function toRoman(n: number): string {
   if (n <= 0) return '';
-  const map = [
+  const map: Array<[string, number]> = [
     ['M', 1000], ['CM', 900], ['D', 500], ['CD', 400],
     ['C', 100], ['XC', 90], ['L', 50], ['XL', 40],
     ['X', 10], ['IX', 9], ['V', 5], ['IV', 4], ['I', 1],
