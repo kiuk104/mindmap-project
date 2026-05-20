@@ -2214,10 +2214,14 @@ details.stp-group:not([open]) .stp-group-arrow {
 }
 .mm-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 3px 8px;
+  padding: 5px 8px;
   border-bottom: 1px solid var(--border);
   font-size: 10px; color: var(--text-dim);
+  cursor: grab;
+  touch-action: none;
 }
+.mm-header.dragging { cursor: grabbing; }
+.mm-header .mm-label { flex: 1; }
 .mm-header button {
   background: none; border: none; cursor: pointer;
   color: var(--text-dim); padding: 0 2px; font-size: 11px;
@@ -2296,7 +2300,6 @@ body.view-mode #btn-drive-unified,
 body.view-mode #btn-line-style,
 body.view-mode #btn-style,
 body.view-mode #btn-icon,
-body.view-mode #btn-install,
 body.view-mode #btn-tb-more,
 body.view-mode #btn-help { display: none !important; }
 

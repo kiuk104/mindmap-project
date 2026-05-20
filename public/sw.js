@@ -13,7 +13,7 @@
  *  - POST/PATCH 등 비-GET: 손대지 않음
  */
 
-const VERSION = 'v1';
+const VERSION = 'v0.5.0';
 const CACHE = `mindmap-${VERSION}`;
 // 상대 경로 — SW의 scope를 기준으로 해석된다 (GitHub Pages 서브경로 호환).
 const APP_SHELL = ['./', './favicon.svg', './icon-512.svg', './manifest.webmanifest'];

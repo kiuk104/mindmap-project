@@ -18,12 +18,61 @@ let ctx: CanvasRenderingContext2D | null = null;
 let isDark = false;
 let visible = true;
 
+const POS_KEY = 'mindmap.minimap.pos';
+type Pos = { left: number; top: number };
+
+function loadPos(): Pos | null {
+  try {
+    const raw = localStorage.getItem(POS_KEY);
+    if (!raw) return null;
+    const p = JSON.parse(raw);
+    if (typeof p?.left === 'number' && typeof p?.top === 'number') return p;
+  } catch {}
+  return null;
+}
+function savePos(p: Pos) {
+  try { localStorage.setItem(POS_KEY, JSON.stringify(p)); } catch {}
+}
+function clampPos(p: Pos, wrap: HTMLElement): Pos {
+  const w = wrap.offsetWidth;
+  const h = wrap.offsetHeight;
+  const maxLeft = Math.max(0, window.innerWidth - w);
+  const maxTop  = Math.max(0, window.innerHeight - h);
+  return {
+    left: Math.max(0, Math.min(maxLeft, p.left)),
+    top:  Math.max(0, Math.min(maxTop,  p.top)),
+  };
+}
+function applyPos(wrap: HTMLElement, p: Pos) {
+  wrap.style.left = `${p.left}px`;
+  wrap.style.top  = `${p.top}px`;
+  wrap.style.right  = 'auto';
+  wrap.style.bottom = 'auto';
+}
+
+function setVisible(next: boolean, wrap: HTMLElement | null) {
+  visible = next;
+  wrap?.classList.toggle('hidden-map', !visible);
+  const toggle = document.getElementById('minimap-toggle');
+  if (toggle) toggle.textContent = visible ? '▾' : '▴';
+  if (visible) drawMinimap();
+}
+
 export function initMinimap() {
   canvas = document.getElementById('minimap-canvas') as HTMLCanvasElement | null;
   if (!canvas) return;
   ctx = canvas.getContext('2d');
   canvas.width  = W;
   canvas.height = H;
+
+  const wrap = document.getElementById('minimap-wrap') as HTMLElement | null;
+  const header = wrap?.querySelector('.mm-header') as HTMLElement | null;
+
+  // 저장된 위치 복원
+  if (wrap) {
+    const saved = loadPos();
+    if (saved) applyPos(wrap, clampPos(saved, wrap));
+  }
 
   // 클릭 → 해당 캔버스 좌표로 이동
   canvas.addEventListener('click', (e: MouseEvent) => {
@@ -43,22 +92,80 @@ export function initMinimap() {
     const cx = bb.minX + (mx * W - offX) / sc;
     const cy = bb.minY + (my * H - offY) / sc;
 
-    const wrap = document.getElementById('canvas-wrap');
-    const vpW = wrap?.clientWidth  ?? window.innerWidth;
-    const vpH = wrap?.clientHeight ?? window.innerHeight;
+    const wrapEl = document.getElementById('canvas-wrap');
+    const vpW = wrapEl?.clientWidth  ?? window.innerWidth;
+    const vpH = wrapEl?.clientHeight ?? window.innerHeight;
     view.px = vpW / 2 - cx * view.sc;
     view.py = vpH / 2 - cy * view.sc;
     applyTransform();
     drawMinimap();
   });
 
-  // 토글 버튼
+  // 토글 버튼 (▾/▴) — 버튼 단독 클릭도 그대로 동작
   const toggle = document.getElementById('minimap-toggle');
-  toggle?.addEventListener('click', () => {
-    visible = !visible;
-    canvas?.parentElement?.classList.toggle('hidden-map', !visible);
-    if (toggle) toggle.textContent = visible ? '▾' : '▴';
+  toggle?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    setVisible(!visible, wrap);
   });
+
+  // 헤더 = 드래그 핸들 + 클릭 시 토글
+  if (header && wrap) {
+    const DRAG_THRESHOLD = 4;
+    let pointerId: number | null = null;
+    let startX = 0, startY = 0;
+    let baseLeft = 0, baseTop = 0;
+    let dragging = false;
+    let moved = false;
+
+    header.addEventListener('pointerdown', (e: PointerEvent) => {
+      // 버튼 자체 클릭은 헤더 핸들러 무시
+      if ((e.target as HTMLElement).closest('button')) return;
+      pointerId = e.pointerId;
+      startX = e.clientX; startY = e.clientY;
+      const rect = wrap.getBoundingClientRect();
+      baseLeft = rect.left; baseTop = rect.top;
+      dragging = false; moved = false;
+      try { header.setPointerCapture(e.pointerId); } catch {}
+      e.preventDefault();
+    });
+
+    header.addEventListener('pointermove', (e: PointerEvent) => {
+      if (pointerId !== e.pointerId) return;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      if (!dragging && Math.hypot(dx, dy) > DRAG_THRESHOLD) {
+        dragging = true;
+        moved = true;
+        header.classList.add('dragging');
+      }
+      if (dragging) {
+        applyPos(wrap, clampPos({ left: baseLeft + dx, top: baseTop + dy }, wrap));
+      }
+    });
+
+    const finish = (e: PointerEvent) => {
+      if (pointerId !== e.pointerId) return;
+      try { header.releasePointerCapture(e.pointerId); } catch {}
+      pointerId = null;
+      header.classList.remove('dragging');
+      if (dragging) {
+        const rect = wrap.getBoundingClientRect();
+        savePos({ left: rect.left, top: rect.top });
+      } else if (!moved) {
+        setVisible(!visible, wrap);
+      }
+      dragging = false;
+    };
+    header.addEventListener('pointerup', finish);
+    header.addEventListener('pointercancel', finish);
+
+    // 윈도우 리사이즈 시 화면 밖으로 나가지 않도록 재클램프
+    window.addEventListener('resize', () => {
+      if (!loadPos()) return; // 사용자가 위치를 옮긴 적 없으면 기본 CSS 유지
+      const rect = wrap.getBoundingClientRect();
+      applyPos(wrap, clampPos({ left: rect.left, top: rect.top }, wrap));
+    });
+  }
 }
 
 function getNodeBounds() {

@@ -18,6 +18,7 @@ import { enhanceDashPicker } from './dash-picker.js';
 import { ACTIONS, getBinding, isBindingCustomized, eventToBinding } from './shortcuts.js';
 import { pushHistory } from './history.js';
 import { applyStyle, openFontBrowserModal } from './modal.js';
+import { canInstall, isStandalone, triggerInstall, onInstallStateChange } from './pwa.js';
 
 let _initialized = false;
 // 활성 탭 — 'general' | 'shortcuts'
@@ -275,6 +276,16 @@ function buildGeneralTab() {
         </section>
 
         <section class="sp-section">
+          <div class="sp-section-title">앱 설치</div>
+          <div class="stp-hint-block" id="stp-install-hint">
+            이 마인드맵을 앱으로 설치합니다. 현재 데이터는 그대로 유지됩니다.
+          </div>
+          <button type="button" class="btn btn-ghost" id="stp-install" style="width:100%; margin-top:8px;">
+            📱 앱 설치
+          </button>
+        </section>
+
+        <section class="sp-section">
           <div class="sp-section-title">앱 강제 업데이트</div>
           <div class="stp-hint-block">
             브라우저 캐시와 Service Worker를 비우고 페이지를 새로고침합니다.
@@ -392,6 +403,38 @@ function buildGeneralTab() {
 
     applyStyle();   // 폰트 즉시 반영
     render();
+  });
+
+  // 앱 설치 — beforeinstallprompt 잡힌 상태에서만 prompt 동작
+  // 이미 설치된 PWA(standalone)거나 브라우저가 설치 미지원이면 안내로 대체
+  const installBtn = $('stp-install') as HTMLButtonElement | null;
+  const installHint = $('stp-install-hint');
+  const refreshInstallUI = () => {
+    if (!installBtn) return;
+    if (isStandalone()) {
+      installBtn.disabled = true;
+      installBtn.textContent = '✓ 이미 설치됨';
+      if (installHint) installHint.textContent = '이미 앱으로 설치된 상태에서 실행 중입니다.';
+    } else if (canInstall()) {
+      installBtn.disabled = false;
+      installBtn.textContent = '📱 앱 설치';
+      if (installHint) installHint.textContent = '이 마인드맵을 앱으로 설치합니다. 현재 데이터는 그대로 유지됩니다.';
+    } else {
+      installBtn.disabled = false;
+      installBtn.textContent = '📱 홈 화면에 추가';
+      if (installHint) {
+        installHint.textContent = '이 브라우저는 자동 설치를 지원하지 않습니다. 브라우저의 공유 메뉴에서 "홈 화면에 추가"를 사용하세요.';
+      }
+    }
+  };
+  refreshInstallUI();
+  onInstallStateChange(refreshInstallUI);
+  installBtn?.addEventListener('click', async () => {
+    const result = await triggerInstall();
+    if (result === 'unsupported') {
+      alert('이 브라우저는 자동 설치를 지원하지 않습니다.\n공유 메뉴 → "홈 화면에 추가"로 설치해 주세요.');
+    }
+    refreshInstallUI();
   });
 
   // 앱 강제 업데이트 — 캐시·SW 제거 후 reload (localStorage는 유지)

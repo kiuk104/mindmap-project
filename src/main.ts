@@ -38,6 +38,7 @@ import { isFirstVisit, markVisited, initHintBar } from './onboarding.js';
 import { initMinimap, drawMinimap } from './minimap.js';
 import { initCommandPalette, openPalette, registerCommands } from './command-palette.js';
 import { exportPngFile, exportSvgFile } from './export.js';
+import { initPwa } from './pwa.js';
 
 // ── 인앱 브라우저 자동 탈출 ──
 // Google이 임베디드 웹뷰의 OAuth를 차단하므로, 카카오톡·라인·FB 등에서
@@ -162,7 +163,7 @@ onSaveStateChange((ts) => {
   const hh = String(t.getHours()).padStart(2, '0');
   const mm = String(t.getMinutes()).padStart(2, '0');
   const ss = String(t.getSeconds()).padStart(2, '0');
-  el.textContent = `💾 자동저장 ${hh}:${mm}:${ss}`;
+  el.textContent = `자동저장 ${hh}:${mm}:${ss}`;
 });
 
 // ── 현재 맵 이름 표시 (Drive 저장이면 ☁️) + 브라우저 탭/OG 메타 동기화 ──
@@ -1085,55 +1086,9 @@ registerCommands([
 // 도움말 버튼
 $('btn-help')?.addEventListener('click', () => openHelpModal());
 
-// ── PWA: Service Worker 등록 + 앱 설치 버튼 ──
-// SW가 있어야 Chrome이 "앱 설치"를 제안한다. 같은 origin이므로 설치된 앱은
-// 브라우저와 localStorage를 공유해서 — 작업 중인 마인드맵·Drive 토큰·설정이
-// 그대로 이어진다. (manifest.start_url의 쿼리스트링은 사라지므로 ?drive= 공유 링크는
-// 미리 자동 로드되어 localStorage에 저장된 뒤 설치하면 됨.)
-//
-// 개발(localhost·5173)에서는 SW를 등록하지 않아 Vite HMR 충돌을 방지.
-if ('serviceWorker' in navigator && location.protocol === 'https:') {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register(import.meta.env.BASE_URL + 'sw.js')
-      .catch((e) => console.warn('SW 등록 실패:', e));
-  });
-}
-
-// beforeinstallprompt 이벤트를 잡아두었다가 사용자가 "앱 설치" 버튼 누르면 띄움.
-// 이미 설치된 앱(standalone)에서 실행 중이면 버튼 자체를 숨긴다.
-{
-  const installBtn = $('btn-install');
-  const isStandalone =
-    window.matchMedia?.('(display-mode: standalone)').matches ||
-    window.navigator.standalone === true; // iOS Safari 전용
-  let deferredPrompt: any = null;
-
-  if (installBtn && !isStandalone) {
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-      installBtn.hidden = false;
-    });
-    installBtn.addEventListener('click', async () => {
-      if (!deferredPrompt) {
-        // iOS Safari 등 prompt 미지원 — 안내 모달 또는 토스트
-        toastSuccess('홈 화면 추가 방법: 공유 메뉴 → "홈 화면에 추가"');
-        return;
-      }
-      deferredPrompt.prompt();
-      const choice = await deferredPrompt.userChoice;
-      deferredPrompt = null;
-      installBtn.hidden = true;
-      if (choice.outcome === 'accepted') {
-        toastSuccess('📱 앱이 설치되었습니다. 홈 화면에서 실행하세요.');
-      }
-    });
-    window.addEventListener('appinstalled', () => {
-      deferredPrompt = null;
-      installBtn.hidden = true;
-    });
-  }
-}
+// ── PWA: SW 등록 + 설치 프롬프트는 src/pwa.ts에서 관리 ──
+// (설치 버튼은 툴바에서 제거되어 설정 패널 → 고급 → "앱 설치"로 이동)
+initPwa();
 
 // ── 뷰어 모드 — 우상단 "편집하기" 버튼 동적 삽입 ──
 // (편집 관련 다른 버튼들은 CSS body.view-mode 룰로 숨겨짐)
