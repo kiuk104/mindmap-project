@@ -831,7 +831,7 @@ export function openHelpModal() {
   $('modal-title').textContent = '❓ 도움말';
 
   // 단축키를 그룹별로 묶음
-  const groups = {};
+  const groups: Record<string, Array<{ label: string; binding: string }>> = {};
   for (const [id, meta] of Object.entries(ACTIONS)) {
     const g = meta.group || '기타';
     const binding = getBinding(id);
@@ -978,7 +978,8 @@ export async function openFontBrowserModal(addFn, isAddedFn) {
   const { POPULAR_FONTS } = await import('./popular-fonts.js');
 
   // 카테고리별 그룹
-  const groups = {};
+  type FontInfo = (typeof POPULAR_FONTS)[number];
+  const groups: Record<string, FontInfo[]> = {};
   POPULAR_FONTS.forEach((f) => {
     (groups[f.cat] ||= []).push(f);
   });
@@ -1351,10 +1352,10 @@ export function openImageModal(nodeId) {
 }
 
 /** File → data URL Promise */
-function fileToDataUrl(file) {
-  return new Promise((resolve, reject) => {
+function fileToDataUrl(file: Blob): Promise<string> {
+  return new Promise<string>((resolve, reject) => {
     const r = new FileReader();
-    r.onload  = () => resolve(r.result);
+    r.onload  = () => resolve(String(r.result ?? ''));
     r.onerror = () => reject(new Error('파일 읽기 실패'));
     r.readAsDataURL(file);
   });
@@ -1372,7 +1373,7 @@ function fileToDataUrl(file) {
  */
 async function downscaleImageFile(file, maxSide = 1600, quality = 0.85) {
   const src = await fileToDataUrl(file);
-  const img = await new Promise((resolve, reject) => {
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
     const i = new Image();
     i.onload  = () => resolve(i);
     i.onerror = () => reject(new Error('브라우저가 이 이미지 포맷을 디코딩하지 못합니다 (HEIC 등)'));
@@ -1648,7 +1649,7 @@ export function handleModalOK() {
     if (ids.length) {
       pushHistory();
       const newImage = imageDraft.url
-        ? { url: imageDraft.url, type: imageDraft.type ?? 'auto' }
+        ? { url: imageDraft.url, type: (imageDraft.type ?? 'auto') as 'image' | 'video' | 'auto' }
         : null;
       ids.forEach((id) => {
         if (state.nodes[id]) state.nodes[id].image = newImage;

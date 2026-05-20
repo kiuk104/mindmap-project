@@ -492,11 +492,14 @@ applyStyle();
 
 // ── 연결선 스타일 (직선/곡선/직각) — 툴바 토글 + 패널 sync ──
 const LINE_STYLE_KEY = 'mindmap.lineStyle';
-const LINE_STYLES    = ['straight', 'curved', 'stepped'];
-const LINE_LABELS    = { straight: '━ 직선', curved: '⌒ 곡선', stepped: '⌐ 직각' };
+const LINE_STYLES = ['straight', 'curved', 'stepped'] as const;
+const LINE_LABELS: Record<string, string> = { straight: '━ 직선', curved: '⌒ 곡선', stepped: '⌐ 직각' };
+type LineStyleKey = typeof LINE_STYLES[number];
 
 const savedLineStyle = localStorage.getItem(LINE_STYLE_KEY);
-state.lineStyle = LINE_STYLES.includes(savedLineStyle) ? savedLineStyle : 'straight';
+state.lineStyle = (LINE_STYLES as readonly string[]).includes(savedLineStyle ?? '')
+  ? (savedLineStyle as LineStyleKey)
+  : 'straight';
 function updateLineStyleBtn() {
   $('btn-line-style').textContent = LINE_LABELS[state.lineStyle];
 }
@@ -504,7 +507,7 @@ updateLineStyleBtn();
 
 $('btn-line-style').addEventListener('click', () => {
   pushHistory();
-  const idx = LINE_STYLES.indexOf(state.lineStyle);
+  const idx = LINE_STYLES.indexOf(state.lineStyle as LineStyleKey);
   state.lineStyle = LINE_STYLES[(idx + 1) % LINE_STYLES.length];
   localStorage.setItem(LINE_STYLE_KEY, state.lineStyle);
   updateLineStyleBtn();
@@ -625,13 +628,13 @@ function initToolbarOverflow() {
 
   function renderMore() {
     // data-tb-extra 라벨이 있는 hidden 보조 버튼들을 메뉴로
-    const buttons = document.querySelectorAll('[data-tb-extra]');
+    const buttons = document.querySelectorAll<HTMLElement>('[data-tb-extra]');
     dd.innerHTML = [...buttons].map((b) => {
       const id = b.id;
       const label = b.dataset.tbExtra;
       return `<div class="dd-item" data-target="${id}">${label}</div>`;
     }).join('');
-    dd.querySelectorAll('.dd-item').forEach((el) => {
+    dd.querySelectorAll<HTMLElement>('.dd-item').forEach((el) => {
       el.addEventListener('click', (e) => {
         // 원본 버튼이 또 다른 드롭다운(예: Drive)을 여는 경우, 원본 클릭이
         // document로 버블되면 그 드롭다운의 document-click-close 핸들러가
@@ -639,7 +642,7 @@ function initToolbarOverflow() {
         e.stopPropagation();
         closeDd();
         // 원본 버튼의 click 핸들러를 그대로 trigger (DRY)
-        document.getElementById(el.dataset.target)?.click();
+        document.getElementById(el.dataset.target ?? '')?.click();
       });
     });
   }
@@ -819,10 +822,11 @@ $('modal-bg').addEventListener('click', (e) => {
 
 // ── 전역 클릭 → 메뉴 닫기 ──
 document.addEventListener('click', (e) => {
-  if (!e.target.closest('#ctx-menu') &&
-      !e.target.closest('#ctx-bg-menu') &&
-      !e.target.closest('#ctx-zone-menu') &&
-      !e.target.closest('#ctx-callout-menu')) {
+  const t = e.target as HTMLElement | null;
+  if (!t?.closest('#ctx-menu') &&
+      !t?.closest('#ctx-bg-menu') &&
+      !t?.closest('#ctx-zone-menu') &&
+      !t?.closest('#ctx-callout-menu')) {
     hideAllMenus();
   }
 });

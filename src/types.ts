@@ -7,7 +7,7 @@
  */
 
 // ── 링크 ──
-export type LinkType = 'drive' | 'youtube' | 'image' | 'url' | 'gphotos';
+export type LinkType = 'drive' | 'youtube' | 'image' | 'url' | 'gphotos' | 'gdocs' | 'notion';
 export interface Link {
   type: LinkType;
   url: string;
@@ -44,7 +44,8 @@ export interface NodeMedia {
   url: string;
   fit?: 'cover' | 'contain';
   height?: number;
-  type?: 'image' | 'video';
+  /** 'auto'는 URL 확장자로 video/image 자동 판별 (effectiveType) */
+  type?: 'image' | 'video' | 'auto';
 }
 
 // ── 노드 내부 체크박스 할 일 ──
@@ -191,13 +192,21 @@ export interface LastSave {
   driveFileId?: string;
 }
 
-// ── Google API 글로벌 (drive.ts) ──
-// gapi.client.drive 및 google.accounts.oauth2는 외부 스크립트로 로드되므로
-// 자세한 타입을 강제하지 않고 any로 두되 typecheck를 통과시키기 위해 선언만 추가.
+// ── 외부/플랫폼 글로벌 ──
 declare global {
   interface Window {
+    /** Google Drive API (외부 스크립트로 로드) */
     gapi: any;
+    /** Google Identity Services (외부 스크립트로 로드) */
     google: any;
+  }
+  interface Navigator {
+    /** iOS Safari "홈 화면에 추가" PWA 모드 감지 (비표준) */
+    standalone?: boolean;
+  }
+  interface ImportMeta {
+    /** Vite 환경 변수 */
+    env: Record<string, string | undefined>;
   }
 }
 export {};

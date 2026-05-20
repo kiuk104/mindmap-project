@@ -105,7 +105,7 @@ export function resolvePalette(themeKey, customThemes = []) {
 }
 
 /** 현재 활성 팔레트 반환 (state 참조, customThemes는 선택적 인자) */
-export function currentPalette(state, customThemes) {
+export function currentPalette(state: any, customThemes?: any) {
   return resolvePalette(state?.style?.theme, customThemes);
 }
 
