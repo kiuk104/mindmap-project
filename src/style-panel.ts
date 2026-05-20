@@ -31,7 +31,7 @@ const THEMES_TAB_KEY = 'mindmap.themes.tab';
 let activeThemeTab = (() => {
   try {
     const saved = localStorage.getItem(THEMES_TAB_KEY);
-    return saved && THEME_CATEGORIES[saved] ? saved : 'Colorful';
+    return saved && (THEME_CATEGORIES as Record<string, string[]>)[saved] ? saved : 'Colorful';
   } catch { return 'Colorful'; }
 })();
 
@@ -39,7 +39,7 @@ let _onStyleApplied: (() => void) | null = null;
 let _initialized = false;
 
 /** 라인 스타일 변경 시 호출될 콜백 (main.js의 toolbar 라벨 동기화용) */
-export function setOnStyleApplied(fn) { _onStyleApplied = fn; }
+export function setOnStyleApplied(fn: (() => void) | null) { _onStyleApplied = fn; }
 
 /** 패널이 열려있는지 */
 export function isPanelOpen() {
@@ -67,7 +67,7 @@ function syncControlsFromState() {
   const s = state.style;
 
   // 테마 그리드 — 선택 상태만 갱신
-  $('sp-themes').querySelectorAll('.theme-pick').forEach((el) => {
+  $('sp-themes').querySelectorAll('.theme-pick').forEach((el: any) => {
     el.classList.toggle('sel', el.dataset.theme === s.theme);
   });
 
@@ -133,7 +133,7 @@ export function syncSelectedNodeSection() {
       }
 
       const align = ts.align ?? 'center';
-      ['left', 'center', 'right'].forEach((a) => {
+      ['left', 'center', 'right'].forEach((a: string) => {
         $('nd-align-' + a).classList.toggle('on', a === align);
       });
 
@@ -269,10 +269,10 @@ function applyVisuals() {
 }
 
 /** 모든 노드를 현재 테마 팔레트로 다시 칠하기 (즉시 적용용 — 확인 없음) */
-function recolorAllNodes(themeKey) {
+function recolorAllNodes(themeKey: string) {
   const palette = resolvePalette(themeKey, getSettings().customThemes);
   let idx = 0;
-  Object.values(state.nodes).forEach((n) => {
+  Object.values(state.nodes).forEach((n: any) => {
     n.color = palette[idx % palette.length];
     idx++;
   });
@@ -291,16 +291,16 @@ function buildThemeGrid() {
   const currentKey   = state.style?.theme;
 
   // 현재 탭에 속하는 빌트인만 노출
-  const tabKeys = THEME_CATEGORIES[activeThemeTab] ?? [];
-  const builtInHTML = tabKeys.map((key) => {
-    const palette = COLOR_THEMES[key];
+  const tabKeys = (THEME_CATEGORIES as Record<string, string[]>)[activeThemeTab] ?? [];
+  const builtInHTML = tabKeys.map((key: string) => {
+    const palette = (COLOR_THEMES as Record<string, string[]>)[key];
     if (!palette) return '';
     return `
       <div class="theme-pick ${key === currentKey ? 'sel' : ''}" data-theme="${key}">
         <div class="theme-swatches">
-          ${palette.slice(0, 6).map((c) => `<span class="theme-swatch" style="background:${c}"></span>`).join('')}
+          ${palette.slice(0, 6).map((c: string) => `<span class="theme-swatch" style="background:${c}"></span>`).join('')}
         </div>
-        <div class="theme-name">${THEME_NAMES[key] ?? key}</div>
+        <div class="theme-name">${(THEME_NAMES as Record<string, string>)[key] ?? key}</div>
       </div>
     `;
   }).join('');
@@ -384,12 +384,12 @@ export function initStylePanel() {
   onSettingsChange(() => buildFontSelect());
   if ($('sp-font-en')) {
     $('sp-font-en').innerHTML = Object.entries(ENGLISH_FONT_NAMES).map(([key, name]) => `
-      <option value="${key}" style="font-family: ${ENGLISH_FONTS[key]}, sans-serif">${name} — ABC abc 123</option>
+      <option value="${key}" style="font-family: ${(ENGLISH_FONTS as Record<string, string>)[key]}, sans-serif">${name} — ABC abc 123</option>
     `).join('');
   }
   if ($('sp-font-kr')) {
     $('sp-font-kr').innerHTML = Object.entries(KOREAN_FONT_NAMES).map(([key, name]) => `
-      <option value="${key}" style="font-family: ${KOREAN_FONTS[key]}, sans-serif">${name} — 가나다 한글</option>
+      <option value="${key}" style="font-family: ${(KOREAN_FONTS as Record<string, string>)[key]}, sans-serif">${name} — 가나다 한글</option>
     `).join('');
   }
 
@@ -421,7 +421,7 @@ export function initStylePanel() {
   // 노드 텍스트 크기 select 빌드 (6단계)
   if ($('nd-size')) {
     $('nd-size').innerHTML = Object.entries(NODE_SIZE_NAMES).map(([k, name]) =>
-      `<option value="${k}" style="font-size:${NODE_SIZES[k]}">${name}</option>`).join('');
+      `<option value="${k}" style="font-size:${(NODE_SIZES as Record<string, string>)[k]}">${name}</option>`).join('');
   }
 
   // 자식 넘버링 select 빌드 (None / 1.2.3. / A.B.C. / a.b.c. / I.II.III.)
@@ -439,7 +439,7 @@ export function initStylePanel() {
     const box = $('sp-layout-preview');
     if (!box) return;
     const type = $('sp-layout')?.value || '';
-    box.innerHTML = LAYOUT_ICONS[type] || '';
+    box.innerHTML = (LAYOUT_ICONS as Record<string, string>)[type] || '';
   }
   $('sp-layout')?.addEventListener('change', updateLayoutPreview);
   updateLayoutPreview();
@@ -451,7 +451,7 @@ export function initStylePanel() {
   });
 
   // ── 콜아웃 편집 ──
-  function withCallout(fn, hist = true) {
+  function withCallout(fn: (c: any) => void, hist = true) {
     const co = state.callouts?.find((c) => c.id === state.selectedCalloutId);
     if (!co) return;
     if (hist) pushHistory();
@@ -478,23 +478,23 @@ export function initStylePanel() {
   });
 
   $('co-color')?.addEventListener('input', (e: any) => {
-    withCallout((c) => { c.color = e.target.value; }, /*hist*/ false);
+    withCallout((c: any) => { c.color = e.target.value; }, /*hist*/ false);
   });
   $('co-color')?.addEventListener('change', (e: any) => {
     pushHistory();
-    withCallout((c) => { c.color = e.target.value; }, /*hist*/ false);
+    withCallout((c: any) => { c.color = e.target.value; }, /*hist*/ false);
   });
 
   $('co-text-color')?.addEventListener('input', (e: any) => {
-    withCallout((c) => { c.textColor = e.target.value; }, /*hist*/ false);
+    withCallout((c: any) => { c.textColor = e.target.value; }, /*hist*/ false);
     delete e.target.dataset.reset;
   });
   $('co-text-color')?.addEventListener('change', (e: any) => {
     pushHistory();
-    withCallout((c) => { c.textColor = e.target.value; }, /*hist*/ false);
+    withCallout((c: any) => { c.textColor = e.target.value; }, /*hist*/ false);
   });
   $('co-text-color-reset')?.addEventListener('click', () => {
-    withCallout((c) => { c.textColor = null; });
+    withCallout((c: any) => { c.textColor = null; });
     $('co-text-color').dataset.reset = '1';
   });
 
@@ -503,7 +503,7 @@ export function initStylePanel() {
   });
 
   // ── 존 편집 ──
-  function withZone(fn, hist = true) {
+  function withZone(fn: (z: any) => void, hist = true) {
     const z = state.zones?.find((zz) => zz.id === state.selectedZoneId);
     if (!z) return;
     if (hist) pushHistory();
@@ -517,7 +517,7 @@ export function initStylePanel() {
     beginPending();
   });
   $('zone-label')?.addEventListener('input', (e: any) => {
-    withZone((z) => { z.label = e.target.value; }, /*hist*/ false);
+    withZone((z: any) => { z.label = e.target.value; }, /*hist*/ false);
   });
   $('zone-label')?.addEventListener('blur', () => {
     const z = state.zones?.find((zz) => zz.id === state.selectedZoneId);
@@ -526,36 +526,36 @@ export function initStylePanel() {
   });
 
   $('zone-color')?.addEventListener('input', (e: any) => {
-    withZone((z) => { z.color = e.target.value; }, /*hist*/ false);
+    withZone((z: any) => { z.color = e.target.value; }, /*hist*/ false);
   });
   $('zone-color')?.addEventListener('change', (e: any) => {
     pushHistory();
-    withZone((z) => { z.color = e.target.value; }, /*hist*/ false);
+    withZone((z: any) => { z.color = e.target.value; }, /*hist*/ false);
   });
   $('zone-opacity')?.addEventListener('input', (e: any) => {
     const pct = Number(e.target.value);
     $('zone-opacity-val').textContent = pct + '%';
-    withZone((z) => { z.opacity = pct / 100; }, /*hist*/ false);
+    withZone((z: any) => { z.opacity = pct / 100; }, /*hist*/ false);
   });
   $('zone-opacity')?.addEventListener('change', () => { pushHistory(); });
 
   $('zone-border-color')?.addEventListener('input', (e: any) => {
-    withZone((z) => { z.borderColor = e.target.value; }, /*hist*/ false);
+    withZone((z: any) => { z.borderColor = e.target.value; }, /*hist*/ false);
     delete e.target.dataset.reset;
   });
   $('zone-border-color')?.addEventListener('change', (e: any) => {
     pushHistory();
-    withZone((z) => { z.borderColor = e.target.value; }, /*hist*/ false);
+    withZone((z: any) => { z.borderColor = e.target.value; }, /*hist*/ false);
   });
   $('zone-border-color-reset')?.addEventListener('click', () => {
-    withZone((z) => { z.borderColor = null; });
+    withZone((z: any) => { z.borderColor = null; });
     $('zone-border-color').dataset.reset = '1';
   });
   $('zone-border-dash')?.addEventListener('change', (e: any) => {
-    withZone((z) => { z.borderDash = e.target.value; });
+    withZone((z: any) => { z.borderDash = e.target.value; });
   });
   $('zone-border-width')?.addEventListener('change', (e: any) => {
-    withZone((z) => { z.borderWidth = Number(e.target.value); });
+    withZone((z: any) => { z.borderWidth = Number(e.target.value); });
   });
 
   $('zone-delete')?.addEventListener('click', () => {
@@ -588,7 +588,7 @@ export function initStylePanel() {
     pushHistory();
     const themeKey = card.dataset.theme;
     state.style.theme = themeKey;
-    $('sp-themes').querySelectorAll('.theme-pick').forEach((el) => {
+    $('sp-themes').querySelectorAll('.theme-pick').forEach((el: any) => {
       el.classList.toggle('sel', el === card);
     });
     recolorAllNodes(themeKey);
@@ -720,7 +720,7 @@ export function initStylePanel() {
    * @param {(n: object) => void} fn       각 노드에 적용
    * @param {boolean} [hist=true]          true면 호출 시 pushHistory
    */
-  function withNodes(fn, hist = true) {
+  function withNodes(fn: (n: any, v?: any) => void, hist = true) {
     const ids = selectedNodeIds();
     if (!ids.length) return;
     if (hist) pushHistory();
@@ -737,119 +737,119 @@ export function initStylePanel() {
   }
 
   // 토글류 — 첫 번째 선택 노드의 현재 값을 기준으로 반전 후 전체에 적용
-  function toggleNodes(pickCurrent, applyValue) {
+  function toggleNodes(pickCurrent: (n: any) => boolean, applyValue: (n: any, v: any) => void) {
     const ids = selectedNodeIds();
     if (!ids.length) return;
     const primary = state.nodes[ids[0]];
     if (!primary) return;
     const target = !pickCurrent(primary);
-    withNodes((n) => applyValue(n, target));
+    withNodes((n: any) => applyValue(n, target));
   }
 
   $('nd-bold').addEventListener('click', () => toggleNodes(
-    (n) => !!n.textStyle?.bold,
-    (n, v) => { n.textStyle.bold = v; },
+    (n: any) => !!n.textStyle?.bold,
+    (n: any, v: any) => { n.textStyle.bold = v; },
   ));
   $('nd-italic').addEventListener('click', () => toggleNodes(
-    (n) => !!n.textStyle?.italic,
-    (n, v) => { n.textStyle.italic = v; },
+    (n: any) => !!n.textStyle?.italic,
+    (n: any, v: any) => { n.textStyle.italic = v; },
   ));
   $('nd-underline').addEventListener('click', () => toggleNodes(
-    (n) => !!n.textStyle?.underline,
-    (n, v) => { n.textStyle.underline = v; },
+    (n: any) => !!n.textStyle?.underline,
+    (n: any, v: any) => { n.textStyle.underline = v; },
   ));
   $('nd-strike').addEventListener('click', () => toggleNodes(
-    (n) => !!n.textStyle?.strikethrough,
-    (n, v) => { n.textStyle.strikethrough = v; },
+    (n: any) => !!n.textStyle?.strikethrough,
+    (n: any, v: any) => { n.textStyle.strikethrough = v; },
   ));
 
-  $('nd-size').addEventListener('change', (e: any) => withNodes((n) => { n.textStyle.size = e.target.value; }));
+  $('nd-size').addEventListener('change', (e: any) => withNodes((n: any) => { n.textStyle.size = e.target.value; }));
   // 스트로크 폭 — 슬라이더: input은 미리보기, change에서 history push
   $('nd-stroke-w')?.addEventListener('input', (e: any) => {
     const v = Number(e.target.value);
     if ($('nd-stroke-w-val')) $('nd-stroke-w-val').textContent = v.toFixed(2) + 'px';
-    withNodes((n) => { n.textStyle.strokeWidth = v; }, /*hist*/ false);
+    withNodes((n: any) => { n.textStyle.strokeWidth = v; }, /*hist*/ false);
   });
   $('nd-stroke-w')?.addEventListener('change', () => pushHistory());
 
   // 스트로크 색 — null이면 폰트 색 그대로 (auto)
   $('nd-stroke-color')?.addEventListener('input', (e: any) => {
-    withNodes((n) => { n.textStyle.strokeColor = e.target.value; }, /*hist*/ false);
+    withNodes((n: any) => { n.textStyle.strokeColor = e.target.value; }, /*hist*/ false);
     delete e.target.dataset.reset;
   });
   $('nd-stroke-color')?.addEventListener('change', (e: any) => {
     pushHistory();
-    withNodes((n) => { n.textStyle.strokeColor = e.target.value; }, /*hist*/ false);
+    withNodes((n: any) => { n.textStyle.strokeColor = e.target.value; }, /*hist*/ false);
   });
   $('nd-stroke-color-reset')?.addEventListener('click', () => {
-    withNodes((n) => { n.textStyle.strokeColor = null; });
+    withNodes((n: any) => { n.textStyle.strokeColor = null; });
     $('nd-stroke-color').dataset.reset = '1';
   });
 
-  ['left', 'center', 'right'].forEach((a) => {
-    $('nd-align-' + a).addEventListener('click', () => withNodes((n) => { n.textStyle.align = a; }));
+  ['left', 'center', 'right'].forEach((a: string) => {
+    $('nd-align-' + a).addEventListener('click', () => withNodes((n: any) => { n.textStyle.align = a; }));
   });
 
-  $('nd-shape') .addEventListener('change', (e: any) => withNodes((n) => { n.shape       = e.target.value; }));
-  $('nd-border').addEventListener('change', (e: any) => withNodes((n) => { n.borderWidth = e.target.value; }));
-  $('nd-numbering')?.addEventListener('change', (e: any) => withNodes((n) => { n.numbering = e.target.value; }));
+  $('nd-shape') .addEventListener('change', (e: any) => withNodes((n: any) => { n.shape       = e.target.value; }));
+  $('nd-border').addEventListener('change', (e: any) => withNodes((n: any) => { n.borderWidth = e.target.value; }));
+  $('nd-numbering')?.addEventListener('change', (e: any) => withNodes((n: any) => { n.numbering = e.target.value; }));
 
   // ── 노드 글자 색 (명시 / 자동) ──
   $('nd-text-color')?.addEventListener('input', (e: any) => {
-    withNodes((n) => { n.textColor = e.target.value; }, /*hist*/ false);
+    withNodes((n: any) => { n.textColor = e.target.value; }, /*hist*/ false);
     delete e.target.dataset.reset;
   });
   $('nd-text-color')?.addEventListener('change', (e: any) => {
     pushHistory();
-    withNodes((n) => { n.textColor = e.target.value; }, /*hist*/ false);
+    withNodes((n: any) => { n.textColor = e.target.value; }, /*hist*/ false);
   });
   $('nd-text-color-reset')?.addEventListener('click', () => {
-    withNodes((n) => { n.textColor = null; });
+    withNodes((n: any) => { n.textColor = null; });
     $('nd-text-color').dataset.reset = '1';
   });
 
   // ── 외곽 스트로크 ──
-  $('nd-outline').addEventListener('change', (e: any) => withNodes((n) => { n.outlineWidth = e.target.value; }));
+  $('nd-outline').addEventListener('change', (e: any) => withNodes((n: any) => { n.outlineWidth = e.target.value; }));
   $('nd-outline-color').addEventListener('input', (e: any) => {
-    withNodes((n) => { n.outlineColor = e.target.value; }, /*hist*/ false);
+    withNodes((n: any) => { n.outlineColor = e.target.value; }, /*hist*/ false);
     delete e.target.dataset.reset;
   });
   $('nd-outline-color').addEventListener('change', (e: any) => {
     pushHistory();
-    withNodes((n) => { n.outlineColor = e.target.value; }, /*hist*/ false);
+    withNodes((n: any) => { n.outlineColor = e.target.value; }, /*hist*/ false);
   });
   $('nd-outline-color-reset').addEventListener('click', () => {
-    withNodes((n) => { n.outlineColor = null; });
+    withNodes((n: any) => { n.outlineColor = null; });
     $('nd-outline-color').dataset.reset = '1';
   });
 
   // ── 부모 연결선 (branchStyle) — 색상 input은 슬라이드 도중 history 누적 방지하려고 change만 push ──
   $('nd-branch-color').addEventListener('input', (e: any) => {
     // 슬라이더 도중에는 history 없이 미리보기
-    withNodes((n) => { n.branchStyle.color = e.target.value; }, /*hist*/ false);
+    withNodes((n: any) => { n.branchStyle.color = e.target.value; }, /*hist*/ false);
     delete e.target.dataset.reset;
   });
   $('nd-branch-color').addEventListener('change', (e: any) => {
     pushHistory();
-    withNodes((n) => { n.branchStyle.color = e.target.value; }, /*hist*/ false);
+    withNodes((n: any) => { n.branchStyle.color = e.target.value; }, /*hist*/ false);
   });
   $('nd-branch-color-reset').addEventListener('click', () => {
-    withNodes((n) => { n.branchStyle.color = null; });
+    withNodes((n: any) => { n.branchStyle.color = null; });
     $('nd-branch-color').dataset.reset = '1';
   });
   $('nd-branch-dash').addEventListener('change', (e: any) => {
-    withNodes((n) => { n.branchStyle.dash = e.target.value || null; });
+    withNodes((n: any) => { n.branchStyle.dash = e.target.value || null; });
   });
   $('nd-branch-width').addEventListener('change', (e: any) => {
-    withNodes((n) => { n.branchStyle.width = e.target.value ? Number(e.target.value) : null; });
+    withNodes((n: any) => { n.branchStyle.width = e.target.value ? Number(e.target.value) : null; });
   });
   // 곡률 초기화 — 수동 조정한 핸들 제거, 전역 curveStrength 기반 기본값으로 복귀
   $('nd-branch-curve-reset')?.addEventListener('click', () => {
-    withNodes((n) => { if (n.branchStyle?.handles) delete n.branchStyle.handles; });
+    withNodes((n: any) => { if (n.branchStyle?.handles) delete n.branchStyle.handles; });
   });
 
   // ── 관계선 스타일 — 다중 선택 시 전체에 일괄 적용 ──
-  function withRelations(fn, hist = true) {
+  function withRelations(fn: (r: any) => void, hist = true) {
     const ids = selectedRelationIds();
     if (!ids.length) return;
     if (hist) pushHistory();
@@ -862,25 +862,25 @@ export function initStylePanel() {
     render();
   }
   $('rel-color').addEventListener('input', (e: any) => {
-    withRelations((r) => { r.style.color = e.target.value; }, /*hist*/ false);
+    withRelations((r: any) => { r.style.color = e.target.value; }, /*hist*/ false);
     delete e.target.dataset.reset;
   });
   $('rel-color').addEventListener('change', (e: any) => {
     pushHistory();
-    withRelations((r) => { r.style.color = e.target.value; }, /*hist*/ false);
+    withRelations((r: any) => { r.style.color = e.target.value; }, /*hist*/ false);
   });
   $('rel-color-reset').addEventListener('click', () => {
-    withRelations((r) => { r.style.color = null; });
+    withRelations((r: any) => { r.style.color = null; });
     $('rel-color').dataset.reset = '1';
   });
   $('rel-dash').addEventListener('change', (e: any) => {
-    withRelations((r) => { r.style.dash = e.target.value; });
+    withRelations((r: any) => { r.style.dash = e.target.value; });
   });
   $('rel-width').addEventListener('change', (e: any) => {
-    withRelations((r) => { r.style.width = e.target.value ? Number(e.target.value) : null; });
+    withRelations((r: any) => { r.style.width = e.target.value ? Number(e.target.value) : null; });
   });
   $('rel-arrow').addEventListener('change', (e: any) => {
-    withRelations((r) => { r.style.arrow = e.target.value; });
+    withRelations((r: any) => { r.style.arrow = e.target.value; });
   });
   // 라벨 편집은 한 번의 편집 세션 = 한 번의 history 엔트리
   let labelInitial = '';
@@ -892,7 +892,7 @@ export function initStylePanel() {
   });
   $('rel-label').addEventListener('input', (e: any) => {
     labelDirty = true;
-    withRelations((r) => { r.label = e.target.value; }, /*hist*/ false);
+    withRelations((r: any) => { r.label = e.target.value; }, /*hist*/ false);
   });
   $('rel-label').addEventListener('blur', (e: any) => {
     if (labelDirty && e.target.value !== labelInitial) commitPending();

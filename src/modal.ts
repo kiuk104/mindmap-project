@@ -20,7 +20,7 @@ import { toastSuccess, toastError } from './toast.js';
 // popular-fonts는 폰트 찾기 모달이 열릴 때만 동적 import (초기 번들에서 제외)
 
 /** 현재 다중 선택을 포함한 대상 노드 ID 목록을 반환 (없으면 단일 ctx 대상) */
-function targetNodeIds(fallback) {
+function targetNodeIds(fallback: string | null | undefined): string[] {
   const sel = state.selectedIds ?? [];
   if (sel.length > 1 && fallback && sel.includes(fallback)) return sel;
   if (sel.length === 1) return sel;
@@ -57,7 +57,7 @@ let editLinkIdx = -1;
  *   - 확인 = 편집 중이면 그 링크를 update, 아니면 새 push
  * @param {string} nodeId
  */
-export function openLinkModal(nodeId) {
+export function openLinkModal(nodeId: string | null | undefined) {
   if (!nodeId) { alert('노드를 먼저 선택하세요.'); return; }
 
   state.ctxTargetId = nodeId;
@@ -127,7 +127,7 @@ export function openLinkModal(nodeId) {
     updateLinkPlaceholder();
   });
   // URL 입력 자동 감지 (사용자가 type을 직접 안 바꿨을 때만)
-  $('lk-url').addEventListener('input', (e) => {
+  $('lk-url').addEventListener('input', (e: any) => {
     if (typeManuallySet) return;
     const detected = detectLinkType(e.target.value.trim());
     if (detected && detected !== 'url' && $('lk-type').value !== detected) {
@@ -137,8 +137,8 @@ export function openLinkModal(nodeId) {
   });
 
   // 행 클릭 → 그 링크를 편집 대상으로 (입력란 채움)
-  $('modal-body').querySelectorAll('.link-row').forEach((row) => {
-    row.addEventListener('click', (e) => {
+  $('modal-body').querySelectorAll('.link-row').forEach((row: any) => {
+    row.addEventListener('click', (e: any) => {
       if (e.target.closest('.link-row-del')) return;   // 삭제 버튼이면 무시
       const idx = Number(row.dataset.idx);
       const lk  = existingLinks[idx];
@@ -150,7 +150,7 @@ export function openLinkModal(nodeId) {
       $('lk-label').value = lk.label || '';
       updateLinkPlaceholder();
       // 활성 행 표시
-      $('modal-body').querySelectorAll('.link-row').forEach((r) => {
+      $('modal-body').querySelectorAll('.link-row').forEach((r: any) => {
         r.classList.toggle('active', Number(r.dataset.idx) === idx);
       });
       const note = $('lk-mode-note');
@@ -162,10 +162,10 @@ export function openLinkModal(nodeId) {
   });
 
   // 삭제 버튼
-  $('modal-body').querySelectorAll('.link-row-del').forEach((btn) => {
-    btn.addEventListener('click', (e) => {
+  $('modal-body').querySelectorAll('.link-row-del').forEach((btn: any) => {
+    btn.addEventListener('click', (e: Event) => {
       e.stopPropagation();
-      removeLink(nodeId, Number(btn.dataset.delIdx));
+      removeLink(nodeId!, Number(btn.dataset.delIdx));
       // 모달 다시 열어 목록 갱신 (편집 인덱스 초기화)
       openLinkModal(nodeId);
     });
@@ -179,7 +179,7 @@ export function openLinkModal(nodeId) {
     $('lk-url').value  = '';
     $('lk-label').value = '';
     updateLinkPlaceholder();
-    $('modal-body').querySelectorAll('.link-row').forEach((r) => r.classList.remove('active'));
+    $('modal-body').querySelectorAll('.link-row').forEach((r: any) => r.classList.remove('active'));
     const note = $('lk-mode-note');
     if (note) {
       note.innerHTML = '✨ <b>추가 모드</b> — 새 링크가 목록에 추가됩니다.';
@@ -216,12 +216,12 @@ function updateLinkPlaceholder() {
     youtube: '💡 호버 시 영상 thumbnail 미리보기가 뜹니다.',
     gdocs:   '💡 클릭하면 iframe 미리보기 모달이 열립니다.',
   };
-  const type = $('lk-type').value;
-  $('lk-url').placeholder = placeholders[type] ?? '';
+  const type = $('lk-type').value as string;
+  $('lk-url').placeholder = (placeholders as Record<string, string>)[type] ?? '';
   const hintEl = $('lk-type-hint');
   if (hintEl) {
-    if (hints[type]) {
-      hintEl.innerHTML = hints[type];
+    if ((hints as Record<string, string>)[type]) {
+      hintEl.innerHTML = (hints as Record<string, string>)[type];
       hintEl.style.display = '';
     } else {
       hintEl.style.display = 'none';
@@ -303,7 +303,7 @@ export async function openDriveLoadModal() {
         ${files.length}개 파일 (최근 수정순)
       </div>
       <div class="drive-list">
-        ${files.map((f) => `
+        ${files.map((f: any) => `
           <div class="drive-item" data-fid="${f.id}">
             <div class="drive-name">📄 ${escapeHTML(f.name)}</div>
             <div class="drive-meta">${formatTime(f.modifiedTime)}${f.size ? ' · ' + Math.round(+f.size / 1024) + ' KB' : ''}</div>
@@ -312,7 +312,7 @@ export async function openDriveLoadModal() {
       </div>
     `;
 
-    $('modal-body').querySelectorAll('.drive-item').forEach((row) => {
+    $('modal-body').querySelectorAll('.drive-item').forEach((row: any) => {
       row.addEventListener('click', async () => {
         const fid = row.dataset.fid;
         row.style.opacity = '0.5';
@@ -371,7 +371,7 @@ export async function openDriveManageModal() {
     return;
   }
 
-  function relTime(iso) {
+  function relTime(iso: string): string {
     const diff = Date.now() - new Date(iso).getTime();
     const m = Math.floor(diff / 60000);
     if (m < 1) return '방금';
@@ -381,7 +381,7 @@ export async function openDriveManageModal() {
     return `${Math.floor(h / 24)}일 전`;
   }
 
-  const rows = files.map((f) => `
+  const rows = files.map((f: any) => `
     <div class="dm-row" data-id="${escapeHTML(f.id)}" data-name="${escapeHTML(f.name)}">
       <span class="dm-name">📄 ${escapeHTML(f.name.replace(/\.json$/, ''))}</span>
       <span class="dm-time">${relTime(f.modifiedTime)}</span>
@@ -403,7 +403,7 @@ export async function openDriveManageModal() {
     <div>${rows}</div>`;
 
   // 열기
-  $('modal-body').querySelectorAll('.dm-open').forEach((btn) => {
+  $('modal-body').querySelectorAll('.dm-open').forEach((btn: any) => {
     btn.addEventListener('click', async () => {
       try {
         const json = await drive.loadFromDrive(btn.dataset.id);
@@ -414,14 +414,14 @@ export async function openDriveManageModal() {
         } else {
           toastError('올바른 마인드맵 JSON이 아닙니다.');
         }
-      } catch (e) {
+      } catch (e: any) {
         toastError('불러오기 실패: ' + e.message);
       }
     });
   });
 
   // 이름 변경
-  $('modal-body').querySelectorAll('.dm-rename').forEach((btn) => {
+  $('modal-body').querySelectorAll('.dm-rename').forEach((btn: any) => {
     btn.addEventListener('click', async () => {
       const current = btn.dataset.name.replace(/\.json$/, '');
       const newName = prompt('새 이름:', current);
@@ -430,14 +430,14 @@ export async function openDriveManageModal() {
         await drive.renameFile(btn.dataset.id, newName + '.json');
         toastSuccess(`✏️ "${newName}"으로 이름 변경됨`);
         openDriveManageModal(); // 새로고침
-      } catch (e) {
+      } catch (e: any) {
         toastError('이름 변경 실패: ' + e.message);
       }
     });
   });
 
   // 삭제
-  $('modal-body').querySelectorAll('.dm-delete').forEach((btn) => {
+  $('modal-body').querySelectorAll('.dm-delete').forEach((btn: any) => {
     btn.addEventListener('click', async () => {
       const name = btn.dataset.name.replace(/\.json$/, '');
       if (!confirm(`"${name}" 파일을 휴지통으로 이동할까요?`)) return;
@@ -445,7 +445,7 @@ export async function openDriveManageModal() {
         await drive.trashFile(btn.dataset.id);
         toastSuccess(`🗑️ "${name}" 삭제됨`);
         openDriveManageModal(); // 새로고침
-      } catch (e) {
+      } catch (e: any) {
         toastError('삭제 실패: ' + e.message);
       }
     });
@@ -474,7 +474,7 @@ function escapeHTML(s: any): string {
   } as Record<string, string>)[c]));
 }
 
-function formatTime(iso) {
+function formatTime(iso: string): string {
   try {
     const d = new Date(iso);
     return d.toLocaleString('ko-KR', { dateStyle: 'medium', timeStyle: 'short' });
@@ -492,7 +492,7 @@ function formatTime(iso) {
  * /preview URL을 임베드 — 읽기 전용이지만 본문이 그대로 보임.
  * "새 탭에서 열기" 버튼으로 원본 URL을 새 창에서 띄울 수 있음.
  */
-export function openGDocsPreviewModal(url) {
+export function openGDocsPreviewModal(url: string) {
   const previewUrl = googleDocsPreviewUrl(url);
   if (!previewUrl) {
     // 폴백 — 그냥 새 탭으로
@@ -587,7 +587,7 @@ export function openShareModal() {
     </div>
   `;
 
-  $('modal-body').querySelectorAll('.share-opt').forEach((btn) => {
+  $('modal-body').querySelectorAll('.share-opt').forEach((btn: any) => {
     btn.addEventListener('click', () => handleShareOption(btn.dataset.share));
   });
 
@@ -651,7 +651,7 @@ async function handleNativeShare() {
   }
 }
 
-function handleShareOption(kind) {
+function handleShareOption(kind: string) {
   if (kind === 'native') {
     closeModal();
     handleNativeShare();
@@ -753,7 +753,7 @@ export function requestDriveSignIn() {
  * 외부 브라우저(Chrome/Safari)에서 다시 열도록 사용자를 안내한다.
  * @param {{name:string, label:string}} inApp
  */
-export function openInAppBrowserGuideModal(inApp) {
+export function openInAppBrowserGuideModal(inApp: { name: string; label: string }) {
   state.modalKind = 'inapp-guide';
   $('modal-title').textContent = '🛑 외부 브라우저에서 열어주세요';
 
@@ -968,7 +968,7 @@ export function tryLoadFromHash() {
  * 폰트 찾기 모달 — Google Fonts 인기 목록에서 검색·클릭으로 settings.customFonts에 추가.
  * 모달 열릴 때 모든 후보 폰트의 <link>를 lazy-inject해서 각 행이 실제 폰트로 미리보임.
  */
-export async function openFontBrowserModal(addFn, isAddedFn) {
+export async function openFontBrowserModal(addFn: (name: string) => boolean, isAddedFn: (name: string) => boolean) {
   state.modalKind = 'font-browser';
   $('modal-title').textContent = '✨ 폰트 찾기 (Google Fonts)';
   $('modal-body').innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-dim);">폰트 목록 불러오는 중…</div>';
@@ -1025,23 +1025,23 @@ export async function openFontBrowserModal(addFn, isAddedFn) {
   });
 
   // 검색 필터
-  $('fb-search').addEventListener('input', (e) => {
+  $('fb-search').addEventListener('input', (e: any) => {
     const q = e.target.value.trim().toLowerCase();
-    $('fb-list').querySelectorAll('.fb-item').forEach((btn) => {
+    $('fb-list').querySelectorAll('.fb-item').forEach((btn: any) => {
       const name = btn.dataset.font.toLowerCase();
       const cat = btn.closest('.fb-cat')?.dataset.cat?.toLowerCase() ?? '';
       const match = !q || name.includes(q) || cat.includes(q);
       btn.style.display = match ? '' : 'none';
     });
     // 빈 카테고리도 숨김
-    $('fb-list').querySelectorAll('.fb-cat').forEach((cat) => {
-      const visible = [...cat.querySelectorAll('.fb-item')].some((b) => b.style.display !== 'none');
+    $('fb-list').querySelectorAll('.fb-cat').forEach((cat: any) => {
+      const visible = [...cat.querySelectorAll('.fb-item')].some((b: any) => b.style.display !== 'none');
       cat.style.display = visible ? '' : 'none';
     });
   });
 
   // 클릭으로 추가
-  $('fb-list').querySelectorAll('.fb-item').forEach((btn) => {
+  $('fb-list').querySelectorAll('.fb-item').forEach((btn: any) => {
     btn.addEventListener('click', () => {
       const name = btn.dataset.font;
       const ok = addFn(name);
@@ -1067,7 +1067,7 @@ export async function openFontBrowserModal(addFn, isAddedFn) {
 // 맵 이름 변경 모달 — onRename 콜백을 module-level에 저장 (handleModalOK에서 사용)
 let _renameCallback: ((next: string) => void) | null = null;
 let _renameCurrent = '';
-export function openRenameModal(currentName, onRename) {
+export function openRenameModal(currentName: string, onRename: (next: string) => void) {
   state.modalKind = 'rename';
   _renameCallback = onRename;
   _renameCurrent  = currentName ?? '';
@@ -1085,7 +1085,7 @@ export function openRenameModal(currentName, onRename) {
   }, 30);
 }
 
-export function openNoteModal(nodeId) {
+export function openNoteModal(nodeId: string) {
   if (!nodeId) { alert('노드를 먼저 선택하세요.'); return; }
   state.ctxTargetId = nodeId;
   state.modalKind   = 'note';
@@ -1112,7 +1112,7 @@ interface TaskDraft { id: string; text: string; done: boolean; }
 let tasksDraft: TaskDraft[] = [];
 
 /** 할 일 목록 편집 모달 */
-export function openTasksModal(nodeId) {
+export function openTasksModal(nodeId: string) {
   if (!nodeId) { alert('노드를 먼저 선택하세요.'); return; }
   state.ctxTargetId = nodeId;
   state.modalKind   = 'tasks';
@@ -1144,17 +1144,17 @@ function renderTasksBody() {
     </div>
   `;
 
-  $('modal-body').querySelectorAll('.task-edit-done').forEach((cb) => {
-    cb.addEventListener('change', (e) => {
+  $('modal-body').querySelectorAll('.task-edit-done').forEach((cb: any) => {
+    cb.addEventListener('change', (e: any) => {
       tasksDraft[Number(e.target.dataset.idx)].done = e.target.checked;
     });
   });
-  $('modal-body').querySelectorAll('.task-edit-text').forEach((inp) => {
-    inp.addEventListener('input', (e) => {
+  $('modal-body').querySelectorAll('.task-edit-text').forEach((inp: any) => {
+    inp.addEventListener('input', (e: any) => {
       tasksDraft[Number(e.target.dataset.idx)].text = e.target.value;
     });
   });
-  $('modal-body').querySelectorAll('.task-edit-del').forEach((btn) => {
+  $('modal-body').querySelectorAll('.task-edit-del').forEach((btn: any) => {
     btn.addEventListener('click', () => {
       tasksDraft.splice(Number(btn.dataset.idx), 1);
       renderTasksBody();
@@ -1189,7 +1189,7 @@ let imageDraft: { url: string | null; sourceTab: string; type: 'image' | 'video'
  *   - "제거" 버튼으로 기존 미디어 비우기
  * @param {string} nodeId
  */
-export function openImageModal(nodeId) {
+export function openImageModal(nodeId: string) {
   if (!nodeId) { alert('노드를 먼저 선택하세요.'); return; }
   state.ctxTargetId = nodeId;
   state.modalKind   = 'image';
@@ -1255,11 +1255,11 @@ export function openImageModal(nodeId) {
   `;
 
   // 탭 전환
-  $('modal-body').querySelectorAll('.icon-tab').forEach((btn) => {
+  $('modal-body').querySelectorAll('.icon-tab').forEach((btn: any) => {
     btn.addEventListener('click', () => {
       const tab = btn.dataset.tab;
       imageDraft.sourceTab = tab;
-      $('modal-body').querySelectorAll('.icon-tab').forEach((b) => {
+      $('modal-body').querySelectorAll('.icon-tab').forEach((b: any) => {
         b.classList.toggle('active', b === btn);
       });
       $('img-tab-url').hidden  = tab !== 'url';
@@ -1268,20 +1268,20 @@ export function openImageModal(nodeId) {
   });
 
   // URL 입력 → 미리보기 즉시 갱신
-  $('img-url').addEventListener('input', (e) => {
+  $('img-url').addEventListener('input', (e: any) => {
     const v = e.target.value.trim();
     imageDraft.url = v || null;
     updateImagePreview(v, imageDraft.type);
   });
 
   // 타입 셀렉트 → 미리보기 갱신
-  $('img-type').addEventListener('change', (e) => {
+  $('img-type').addEventListener('change', (e: any) => {
     imageDraft.type = e.target.value;
     updateImagePreview(imageDraft.url, imageDraft.type);
   });
 
   // 파일 선택 → 이미지: 캔버스 다운스케일 + JPEG 재인코딩 (HEIC 호환), 비디오: 원본 data URL
-  $('img-file').addEventListener('change', async (e) => {
+  $('img-file').addEventListener('change', async (e: any) => {
     const f = e.target.files?.[0];
     if (!f) return;
 
@@ -1374,7 +1374,7 @@ function fileToDataUrl(file: Blob): Promise<string> {
  * @param {number} quality   JPEG 품질 0~1
  * @returns {Promise<string>} data:image/jpeg;base64,...
  */
-async function downscaleImageFile(file, maxSide = 1600, quality = 0.85) {
+async function downscaleImageFile(file: File, maxSide = 1600, quality = 0.85): Promise<string> {
   const src = await fileToDataUrl(file);
   const img = await new Promise<HTMLImageElement>((resolve, reject) => {
     const i = new Image();
@@ -1401,12 +1401,12 @@ async function downscaleImageFile(file, maxSide = 1600, quality = 0.85) {
 }
 
 /** type='auto'면 URL로 video인지 자동 감지. 명시 type은 그대로 반환. */
-function effectiveType(url, type) {
+function effectiveType(url: string, type: string): 'image' | 'video' {
   if (type === 'video' || type === 'image') return type;
   return isVideoUrl(url) ? 'video' : 'image';
 }
 
-function updateImagePreview(url, type = 'auto') {
+function updateImagePreview(url: string | null, type: string = 'auto') {
   const box = $('img-preview');
   if (!box) return;
   if (!url) {
@@ -1424,7 +1424,7 @@ function updateImagePreview(url, type = 'auto') {
 }
 
 // ── 커스텀 테마 모달 ─────────────────────────────────────
-let _ctEditingId = null;   // 편집 모드일 때 기존 ID, 신규면 null
+let _ctEditingId: string | null = null;   // 편집 모드일 때 기존 ID, 신규면 null
 
 /**
  * 커스텀 테마 생성/편집 모달
@@ -1445,7 +1445,7 @@ export function openCustomThemeModal(themeId = null) {
     : resolvePalette(state.style?.theme, s.customThemes).slice(0, 8);
   while (startPalette.length < 8) startPalette.push('#888888');
 
-  const colorPickersHTML = startPalette.map((c, i) => `
+  const colorPickersHTML = startPalette.map((c: string, i: number) => `
     <div class="ct-color-cell">
       <input type="color" class="sp-color-input ct-color" data-idx="${i}" value="${c}" />
       <span class="ct-color-label">${i + 1}</span>
@@ -1477,7 +1477,7 @@ export function openCustomThemeModal(themeId = null) {
   $('ct-delete')?.addEventListener('click', () => {
     if (!existing) return;
     if (!confirm(`"${existing.name}" 테마를 삭제할까요?`)) return;
-    const next = s.customThemes.filter((t) => t.id !== existing.id);
+    const next = (s.customThemes ?? []).filter((t: any) => t.id !== existing.id);
     updateSettings({ customThemes: next });
     // 이 테마를 쓰던 맵이라면 default로 대체
     if (state.style?.theme === existing.id) {
@@ -1533,7 +1533,7 @@ function handleCustomThemeOK() {
  * 색상 변경 모달 열기 — 현재 테마 팔레트 사용
  * @param {string} nodeId
  */
-export function openColorModal(nodeId) {
+export function openColorModal(nodeId: string) {
   state.ctxTargetId = nodeId;
   state.modalKind   = 'color';
   $('modal-title').textContent = '🎨 노드 색상 변경';
@@ -1551,9 +1551,9 @@ export function openColorModal(nodeId) {
   `;
 
   // 색상 dot 클릭
-  $('modal-body').querySelectorAll('.cdot').forEach((dot) => {
+  $('modal-body').querySelectorAll('.cdot').forEach((dot: any) => {
     dot.addEventListener('click', () => {
-      $('modal-body').querySelectorAll('.cdot').forEach((d) => d.classList.remove('sel'));
+      $('modal-body').querySelectorAll('.cdot').forEach((d: any) => d.classList.remove('sel'));
       dot.classList.add('sel');
     });
   });
@@ -1562,7 +1562,7 @@ export function openColorModal(nodeId) {
 }
 
 /** 여러 노드를 patchNode로 갱신하되, 한 노드라도 실패하면 전체 render fallback */
-function patchOrRender(ids) {
+function patchOrRender(ids: string[]) {
   for (const id of ids) {
     if (!patchNode(id)) { render(); return; }
   }
