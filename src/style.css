@@ -242,15 +242,62 @@ body.no-node-shadow .callout:hover {
 }
 .node.root     { font-size: 16px; font-weight: 700; min-width: 120px; border-radius: 16px; }
 .node.selected {
-  border-color: var(--accent) !important;
-  outline: 2px solid var(--accent);
-  outline-offset: 3px;
-  /* 사용자 스트로크 + 선택 ring을 함께 표시 */
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 2px;
+  /* 사용자 스트로크 + 기본 그림자 유지 (강조 ring·glow 제거 — 단선 outline만) */
   box-shadow:
     0 0 0 var(--stroke-w) var(--stroke-c),
-    0 0 0 calc(var(--stroke-w) + 3px) rgba(248,81,73,0.45),
-    0 0 16px 4px rgba(248,81,73,0.3),
     var(--shadow-node) !important;
+}
+
+/* ── 노드 4변 크기 조절 핸들 — 시각적으로 보이지 않고 변에 hit area만 ── */
+/* 호버 시 cursor만 ew-resize/ns-resize로 바뀌어 사용자에게 신호 */
+.node-resize-handle {
+  position: absolute;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  pointer-events: none;
+  touch-action: none;
+  z-index: 2;
+}
+/* 좌/우 변 hit area (10px 두께, 모서리에서 약간 안쪽으로 들어가 코너의 NS/EW 충돌 회피) */
+.nrh-left, .nrh-right {
+  top: 6px; bottom: 6px;
+  width: 10px;
+  cursor: ew-resize;
+}
+.nrh-left  { left: -5px; }
+.nrh-right { right: -5px; }
+/* 상/하 변 hit area */
+.nrh-top, .nrh-bottom {
+  left: 6px; right: 6px;
+  height: 10px;
+  cursor: ns-resize;
+}
+.nrh-top    { top: -5px; }
+.nrh-bottom { bottom: -5px; }
+/* 선택된 노드에만 핸들 활성 */
+.node.selected > .node-resize-handle { pointer-events: auto; }
+/* 인라인 편집 중에는 비활성 */
+.node:has(textarea.node-text-edit) > .node-resize-handle { pointer-events: none; }
+/* 뷰어 모드 — 핸들 차단 */
+body.view-mode .node-resize-handle { display: none !important; }
+
+/* ── 고정 높이 노드 — 임베드 이미지가 남은 공간에 맞춰 스케일 ── */
+.node.has-fixed-height {
+  display: flex;
+  flex-direction: column;
+}
+.node.has-fixed-height .node-image-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.node.has-fixed-height .node-image {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  object-fit: contain;
 }
 
 /* 드래그 중 부모 재연결 잠재 대상 — 다른 노드를 이쪽으로 끌어왔을 때 표시 */

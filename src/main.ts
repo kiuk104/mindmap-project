@@ -14,7 +14,7 @@ import { $, uid, makeNode, COLORS, setNodeSelection, clearNodeSelection, setRela
 import { showPreview, hidePreview }        from './preview.js';
 import { addChild, deleteNode, startEdit, removeLink, toggleCollapse, expandAncestors } from './nodes.js';
 import { initCanvas, view, applyTransform, resetView } from './canvas.js';
-import { onNodeMouseDown, onRelationHandleDown, onBranchHandleDown, consumePanDragFlag, canvasCoord, getLastNodeInteractAt } from './canvas.js';
+import { onNodeMouseDown, onRelationHandleDown, onBranchHandleDown, onNodeResizeDown, consumePanDragFlag, canvasCoord, getLastNodeInteractAt } from './canvas.js';
 import { addCallout, deleteCallout, selectCallout, removeCalloutsByParents,
          onCalloutPointerDown, onCalloutPointerMove, onCalloutPointerUp,
          isCalloutDragging } from './callouts.js';
@@ -108,6 +108,32 @@ registerHandlers({
   },
   onRelationHandleDown,
   onBranchHandleDown,
+  onNodeResizeDown: IS_VIEW_MODE ? () => {} : onNodeResizeDown,
+  onNodeResizeReset: IS_VIEW_MODE ? () => {} : (nodeId: string, edge: 'left' | 'right' | 'top' | 'bottom') => {
+    const n = state.nodes[nodeId];
+    if (!n) return;
+    const isHoriz = edge === 'left' || edge === 'right';
+    if (isHoriz && n.width == null) return;
+    if (!isHoriz && n.height == null) return;
+    pushHistory();
+    // 자동 복귀 후 반대 변 위치가 유지되도록 중심 x/y 보정
+    const el = document.getElementById('nd-' + nodeId);
+    const sc = view.sc || 1;
+    const before = el?.getBoundingClientRect();
+    if (isHoriz) delete n.width; else delete n.height;
+    render();
+    const el2 = document.getElementById('nd-' + nodeId);
+    const after = el2?.getBoundingClientRect();
+    if (before && after) {
+      const oldW = before.width / sc, newW = after.width / sc;
+      const oldH = before.height / sc, newH = after.height / sc;
+      if (edge === 'right')  n.x -= (oldW - newW) / 2;
+      if (edge === 'left')   n.x += (oldW - newW) / 2;
+      if (edge === 'bottom') n.y -= (oldH - newH) / 2;
+      if (edge === 'top')    n.y += (oldH - newH) / 2;
+      render();
+    }
+  },
   onToggleCollapse: toggleCollapse,
   onGDocsClick:     openGDocsPreviewModal,
   onNoteClick:      openNoteModal,

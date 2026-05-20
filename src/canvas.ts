@@ -46,6 +46,23 @@ let branchHandleNodeId:   string | null = null;
 let branchHandleKey:      'c1' | 'c2' | null = null;
 let branchHandleMoved    = false;
 
+// ── 노드 크기 조절(4변 핸들) 드래그 상태 ──
+type ResizeEdge = 'left' | 'right' | 'top' | 'bottom';
+let resizeDragging     = false;
+let resizeNodeId:      string | null = null;
+let resizeEdge:        ResizeEdge | null = null;
+let resizeStartClientX = 0;
+let resizeStartClientY = 0;
+let resizeStartWidth   = 0;
+let resizeStartHeight  = 0;
+let resizeStartX       = 0;
+let resizeStartY       = 0;
+let resizeMoved        = false;
+const NODE_W_MIN = 60;
+const NODE_W_MAX = 800;
+const NODE_H_MIN = 32;
+const NODE_H_MAX = 800;
+
 // ── 핀치 줌 상태 ──
 let pinching      = false;
 let pinchStartDist = 0;
@@ -369,6 +386,43 @@ export function onBranchHandleDown(e: PointerEvent, nodeId: string, handle: 'c1'
   render();
 }
 
+// ── 노드 4변 핸들 포인터다운 — 변 단위 드래그로 width/height 조절 ──
+// 좌/우 변: width 변경 + 중심 x 보정(반대 변 고정 효과). 상/하 변: height 변경 + 중심 y 보정.
+export function onNodeResizeDown(e: PointerEvent, nodeId: string, edge: ResizeEdge) {
+  if (e.button !== 0) return;
+  const n = state.nodes[nodeId];
+  if (!n) return;
+  e.stopPropagation();
+  // preventDefault는 호출하지 않는다 — pointerdown에서 preventDefault하면 후속 click/dblclick 호환 이벤트가
+  // 막혀, 핸들 더블클릭으로 사이즈 리셋이 동작하지 않게 된다.
+
+  // 다른 드래그/핀치/롱프레스/Pan 모두 취소
+  panning = false;
+  dragging = false;
+  dragId = null;
+  cancelLongPress();
+
+  // 현재 너비/높이: state 값이 있으면 그 값, 없으면 실측(view.sc 적용해 캔버스 좌표계로)
+  const el = document.getElementById('nd-' + nodeId);
+  const rect = el?.getBoundingClientRect();
+  let curW = typeof n.width  === 'number' ? n.width  : (rect ? rect.width  / (view.sc || 1) : 0);
+  let curH = typeof n.height === 'number' ? n.height : (rect ? rect.height / (view.sc || 1) : 0);
+  curW = Math.max(NODE_W_MIN, Math.min(NODE_W_MAX, Math.round(curW)));
+  curH = Math.max(NODE_H_MIN, Math.min(NODE_H_MAX, Math.round(curH)));
+
+  resizeDragging     = true;
+  resizeNodeId       = nodeId;
+  resizeEdge         = edge;
+  resizeStartClientX = e.clientX;
+  resizeStartClientY = e.clientY;
+  resizeStartWidth   = curW;
+  resizeStartHeight  = curH;
+  resizeStartX       = n.x;
+  resizeStartY       = n.y;
+  resizeMoved        = false;
+  beginPending();
+}
+
 // ── 노드 포인터다운 (드래그 시작 / 관계선 완성 / 다중 선택) ──
 export function onNodeMouseDown(e: PointerEvent, nodeId: string) {
   if (e.button !== 0) return;
@@ -672,6 +726,73 @@ export function initCanvas() {
         updateLines();
       }
     }
+
+    if (resizeDragging && resizeNodeId && resizeEdge) {
+      const n = state.nodes[resizeNodeId];
+      if (n) {
+        const sc = view.sc || 1;
+        const dxCanvas = (e.clientX - resizeStartClientX) / sc;
+        const dyCanvas = (e.clientY - resizeStartClientY) / sc;
+        let newW = resizeStartWidth;
+        let newH = resizeStartHeight;
+        let newX = resizeStartX;
+        let newY = resizeStartY;
+
+        // 변별 처리 — 반대 변 고정(드래그 변만 이동) → 중심 x/y는 Δ/2만큼 이동
+        if (resizeEdge === 'right') {
+          const wRaw = resizeStartWidth + dxCanvas;
+          newW = Math.max(NODE_W_MIN, Math.min(NODE_W_MAX, wRaw));
+          // 우측만 이동: 좌변 고정 → 새 중심 = 좌변 + W/2 = (oldX - oldW/2) + newW/2
+          newX = (resizeStartX - resizeStartWidth / 2) + newW / 2;
+        } else if (resizeEdge === 'left') {
+          const wRaw = resizeStartWidth - dxCanvas;
+          newW = Math.max(NODE_W_MIN, Math.min(NODE_W_MAX, wRaw));
+          // 좌측만 이동: 우변 고정 → 새 중심 = 우변 - W/2 = (oldX + oldW/2) - newW/2
+          newX = (resizeStartX + resizeStartWidth / 2) - newW / 2;
+        } else if (resizeEdge === 'bottom') {
+          const hRaw = resizeStartHeight + dyCanvas;
+          newH = Math.max(NODE_H_MIN, Math.min(NODE_H_MAX, hRaw));
+          newY = (resizeStartY - resizeStartHeight / 2) + newH / 2;
+        } else if (resizeEdge === 'top') {
+          const hRaw = resizeStartHeight - dyCanvas;
+          newH = Math.max(NODE_H_MIN, Math.min(NODE_H_MAX, hRaw));
+          newY = (resizeStartY + resizeStartHeight / 2) - newH / 2;
+        }
+
+        const wInt = Math.round(newW);
+        const hInt = Math.round(newH);
+        const xInt = Math.round(newX);
+        const yInt = Math.round(newY);
+
+        if (wInt !== resizeStartWidth || hInt !== resizeStartHeight ||
+            xInt !== resizeStartX || yInt !== resizeStartY) {
+          resizeMoved = true;
+        }
+
+        if (resizeEdge === 'left' || resizeEdge === 'right') {
+          n.width = wInt;
+          n.x     = xInt;
+        } else {
+          n.height = hInt;
+          n.y      = yInt;
+        }
+
+        const el = document.getElementById('nd-' + resizeNodeId);
+        if (el) {
+          el.style.left = n.x + 'px';
+          el.style.top  = n.y + 'px';
+          if (resizeEdge === 'left' || resizeEdge === 'right') {
+            el.style.width    = wInt + 'px';
+            el.style.maxWidth = 'none';
+          } else {
+            el.style.height = hInt + 'px';
+            // 드래그 중 이미지가 곧바로 남은 공간에 맞춰 스케일되도록
+            el.classList.add('has-fixed-height');
+          }
+        }
+        updateLines();
+      }
+    }
   });
 
   // 포인터 업 → 드래그/Pan/셀렉트박스 종료
@@ -692,6 +813,15 @@ export function initCanvas() {
       branchHandleNodeId = null;
       branchHandleKey = null;
       branchHandleMoved = false;
+      render();
+    }
+    if (resizeDragging) {
+      if (resizeMoved) commitPending();
+      else cancelPending();
+      resizeDragging = false;
+      resizeNodeId = null;
+      resizeEdge = null;
+      resizeMoved = false;
       render();
     }
     if (dragging) {

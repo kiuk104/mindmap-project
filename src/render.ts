@@ -25,6 +25,8 @@ const H: any = {
   onRelationDblClick:   () => {},
   onRelationHandleDown: () => {},
   onBranchHandleDown:   () => {},
+  onNodeResizeDown:     () => {},
+  onNodeResizeReset:    () => {},
   onToggleCollapse:     () => {},
   onGDocsClick:         null,
   onNoteClick:          null,
@@ -489,6 +491,17 @@ function buildNodeEl(n: any, ctx: any): HTMLElement {
       el.style.setProperty('--stroke-c', n.outlineColor || lighten(n.color, 40));
     }
 
+    // ── 사용자 지정 너비/높이 (변 드래그 핸들로 설정) ──
+    if (typeof n.width === 'number' && n.width > 0) {
+      el.style.width    = n.width + 'px';
+      el.style.maxWidth = 'none';
+    }
+    if (typeof n.height === 'number' && n.height > 0) {
+      el.style.height = n.height + 'px';
+      // 고정 높이 노드는 flex 레이아웃으로 임베드 이미지가 남은 공간을 채우도록 함
+      el.classList.add('has-fixed-height');
+    }
+
     // 임베드 미디어 — 이미지 또는 비디오 (type=video이거나 URL이 비디오 확장자)
     if (n.image?.url) {
       const wrap = document.createElement('div');
@@ -679,6 +692,27 @@ function buildNodeEl(n: any, ctx: any): HTMLElement {
       });
       el.appendChild(toggle);
     }
+
+  // 4변 크기 조절 핸들 — 선택된 노드에만 CSS로 표시
+  // 좌/우 = width 조절, 상/하 = height 조절. 각 핸들은 해당 변만 이동(반대 변 고정)
+  const EDGES: Array<'left' | 'right' | 'top' | 'bottom'> = ['left', 'right', 'top', 'bottom'];
+  EDGES.forEach((edge) => {
+    const h = document.createElement('div');
+    h.className = `node-resize-handle nrh-${edge}`;
+    h.title = (edge === 'left' || edge === 'right')
+      ? '드래그: 너비 조절 / 더블클릭: 자동 너비'
+      : '드래그: 높이 조절 / 더블클릭: 자동 높이';
+    h.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      H.onNodeResizeDown(e, n.id, edge);
+    });
+    h.addEventListener('dblclick', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      H.onNodeResizeReset?.(n.id, edge);
+    });
+    el.appendChild(h);
+  });
 
   // 이벤트
   el.addEventListener('pointerdown', (e) => H.onNodeMouseDown(e, n.id));

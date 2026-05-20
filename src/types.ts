@@ -74,6 +74,10 @@ export interface MindNode {
   numbering?: 'none' | '1' | 'A' | 'a' | 'I';
   textStyle?: NodeTextStyle;
   shape?: 'rounded' | 'sharp' | 'pill';
+  /** 사용자가 핸들로 드래그해 지정한 노드 너비(px). 없거나 null이면 자동 사이즈(min 90/max 220). */
+  width?: number | null;
+  /** 사용자가 핸들로 드래그해 지정한 노드 높이(px). 없거나 null이면 콘텐츠 기준 자동 높이. */
+  height?: number | null;
   borderWidth?: 'none' | 'thin' | 'normal' | 'thick' | 'xthick' | 'huge';
   outlineWidth?: 'none' | 'thin' | 'normal' | 'thick' | 'huge';
   outlineColor?: string | null;

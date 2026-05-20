@@ -51,10 +51,23 @@ function applyPos(wrap: HTMLElement, p: Pos) {
 }
 
 function setVisible(next: boolean, wrap: HTMLElement | null) {
+  if (!wrap || next === visible) return;
+  // 접기/펴기 시 시각 중심이 동일한 위치를 유지하도록 top을 보정
+  const before = wrap.getBoundingClientRect();
+  const cx = before.left + before.width / 2;
+  const cy = before.top  + before.height / 2;
+
   visible = next;
-  wrap?.classList.toggle('hidden-map', !visible);
+  wrap.classList.toggle('hidden-map', !visible);
   const toggle = document.getElementById('minimap-toggle');
   if (toggle) toggle.textContent = visible ? '▾' : '▴';
+
+  // 크기 변경 직후 새 rect를 측정해 중심이 유지되는 새 left/top으로 재배치
+  const after = wrap.getBoundingClientRect();
+  const newLeft = cx - after.width  / 2;
+  const newTop  = cy - after.height / 2;
+  applyPos(wrap, clampPos({ left: newLeft, top: newTop }, wrap));
+
   if (visible) drawMinimap();
 }
 
