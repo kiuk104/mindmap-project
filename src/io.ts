@@ -255,6 +255,11 @@ export async function importFromFile(file: File): Promise<boolean> {
       const { loadFromMarkdown } = await import('./format-markdown.js');
       ok = loadFromMarkdown(text);
       if (ok) toastSuccess('📝 Markdown 불러오기 완료');
+    } else if (ext === 'mm') {
+      const text = await file.text();
+      const { loadFromMM } = await import('./format-mm.js');
+      ok = loadFromMM(text);
+      if (ok) toastSuccess('🧠 FreeMind 불러오기 완료');
     } else {
       // 기본 JSON
       const text = await file.text();
