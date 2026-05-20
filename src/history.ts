@@ -1,5 +1,5 @@
 /**
- * history.js — Undo / Redo (스냅샷 기반)
+ * history.ts — Undo / Redo (스냅샷 기반)
  *
  * 사용법:
  *   - 변형 직전에 pushHistory() 호출 → 현재 상태가 과거 스택에 쌓임, 미래 스택은 비워짐
@@ -17,17 +17,22 @@
 
 import { state } from './state.js';
 import { render } from './render.js';
+import type { AppState } from './types.js';
 
-const past   = [];
-const future = [];
-const MAX    = 80;
+interface HistoryChangeEvent { canUndo: boolean; canRedo: boolean; }
+type ApplyHook = (s: AppState) => void;
+type ChangeListener = (e: HistoryChangeEvent) => void;
 
-let pending  = null;
+const past:   string[] = [];
+const future: string[] = [];
+const MAX = 80;
+
+let pending: string | null = null;
 let suspended = false;
-let applyHook = () => {};
+let applyHook: ApplyHook = () => {};
 
 /** 스냅샷 직렬화 — JSON.stringify로 깊은 복사 */
-function snapshot() {
+function snapshot(): string {
   return JSON.stringify({
     nodes:     state.nodes,
     relations: state.relations ?? [],
@@ -39,7 +44,7 @@ function snapshot() {
 }
 
 /** 스냅샷 복원 — state를 통째로 갈아끼우고 선택 ID는 존재하는 것만 남김 */
-function applySnapshot(snap) {
+function applySnapshot(snap: string): void {
   const d = JSON.parse(snap);
   state.nodes              = d.nodes;
   state.relations          = Array.isArray(d.relations) ? d.relations : [];
@@ -49,8 +54,8 @@ function applySnapshot(snap) {
   // 선택 상태 복원 — 존재하지 않는 ID는 제거
   const validNodeIds = new Set(Object.keys(state.nodes));
   const validRelIds  = new Set(state.relations.map((r) => r.id));
-  state.selectedIds         = (d.selectedIds ?? []).filter((id) => validNodeIds.has(id));
-  state.selectedRelationIds = (d.selectedRelationIds ?? []).filter((id) => validRelIds.has(id));
+  state.selectedIds         = (d.selectedIds ?? []).filter((id: string) => validNodeIds.has(id));
+  state.selectedRelationIds = (d.selectedRelationIds ?? []).filter((id: string) => validRelIds.has(id));
   state.selectedId          = state.selectedIds.length === 1 ? state.selectedIds[0] : null;
   state.selectedRelationId  = state.selectedRelationIds.length === 1 ? state.selectedRelationIds[0] : null;
 
@@ -103,28 +108,28 @@ export function cancelPending() {
 }
 
 /** 일시 중지 (예: undo 자체로 인한 mutate 콜백이 다시 pushHistory를 부르는 것 방지) */
-export function withSuspended(fn) {
+export function withSuspended(fn: () => void): void {
   const prev = suspended;
   suspended = true;
   try { fn(); }
   finally { suspended = prev; }
 }
 
-export function undo() {
+export function undo(): boolean {
   if (past.length === 0) return false;
   // 현재 상태를 future로 저장 후 과거 스냅샷을 적용
   future.push(snapshot());
-  const snap = past.pop();
+  const snap = past.pop() as string;
   withSuspended(() => applySnapshot(snap));
   render();
   notify();
   return true;
 }
 
-export function redo() {
+export function redo(): boolean {
   if (future.length === 0) return false;
   past.push(snapshot());
-  const snap = future.pop();
+  const snap = future.pop() as string;
   withSuspended(() => applySnapshot(snap));
   render();
   notify();
@@ -142,18 +147,18 @@ export function canUndo() { return past.length > 0; }
 export function canRedo() { return future.length > 0; }
 
 /** 적용 후 후크 (main.js에서 visual sync 등록) */
-export function setApplyHook(fn) {
+export function setApplyHook(fn: ApplyHook): void {
   applyHook = typeof fn === 'function' ? fn : () => {};
 }
 
 // ── 버튼 상태 알림 ──
-const listeners = new Set();
-export function onHistoryChange(fn) {
+const listeners = new Set<ChangeListener>();
+export function onHistoryChange(fn: ChangeListener): () => void {
   listeners.add(fn);
   fn({ canUndo: canUndo(), canRedo: canRedo() });
-  return () => listeners.delete(fn);
+  return () => { listeners.delete(fn); };
 }
-function notify() {
+function notify(): void {
   const s = { canUndo: canUndo(), canRedo: canRedo() };
   listeners.forEach((f) => f(s));
 }
