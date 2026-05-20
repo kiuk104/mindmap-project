@@ -31,7 +31,8 @@ let tokenExpiresAt = 0;        // ms epoch
 let currentEmail = null;
 let initialized = false;
 let refreshTimer = null;
-const listeners = new Set();
+// AuthSnapshot은 외부 사용자가 받는 형태이고 type별칭 import 부담을 피해 any로 잡음.
+const listeners = new Set<(snap: any) => void>();
 
 // ── 재시도 헬퍼 ──
 // 429 (rate limit), 5xx (서버 일시 오류), 네트워크 오류만 자동 재시도.
@@ -175,15 +176,15 @@ function silentRefresh() {
   }
 }
 
-function loadScript(src) {
-  return new Promise((resolve, reject) => {
+function loadScript(src: string): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
     if (document.querySelector(`script[data-drive="${src}"]`)) { resolve(); return; }
     const s = document.createElement('script');
     s.src = src;
     s.async = true;
     s.defer = true;
     s.dataset.drive = src;
-    s.onload  = resolve;
+    s.onload  = () => resolve();
     s.onerror = () => reject(new Error('스크립트 로드 실패: ' + src));
     document.head.appendChild(s);
   });

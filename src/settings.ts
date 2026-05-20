@@ -44,7 +44,7 @@ const DEFAULT = {
 };
 
 let settings = clone(DEFAULT);
-const listeners = new Set();
+const listeners = new Set<(settings: any) => void>();
 
 function clone(o) { return JSON.parse(JSON.stringify(o)); }
 

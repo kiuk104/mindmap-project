@@ -46,7 +46,7 @@ export function showWelcome(onStart, onTemplate) {
   document.body.appendChild(overlay);
 
   document.getElementById('wc-start')?.addEventListener('click', () => {
-    if (document.getElementById('wc-nosee-cb')?.checked) markVisited();
+    if ((document.getElementById('wc-nosee-cb') as HTMLInputElement | null)?.checked) markVisited();
     overlay.remove();
     onStart?.();
   });
@@ -59,7 +59,7 @@ export function showWelcome(onStart, onTemplate) {
   // 오버레이 바깥 클릭으로 닫기
   overlay.addEventListener('click', (e) => {
     if (e.target === overlay) {
-      if (document.getElementById('wc-nosee-cb')?.checked) markVisited();
+      if ((document.getElementById('wc-nosee-cb') as HTMLInputElement | null)?.checked) markVisited();
       overlay.remove();
       onStart?.();
     }

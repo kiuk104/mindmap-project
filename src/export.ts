@@ -217,8 +217,8 @@ export function exportSvgFile(filename) {
  * @param {number} [scale=2] 출력 해상도 배율
  * @returns {Promise<Blob>}
  */
-export function exportPngBlob(scale = 2) {
-  return new Promise((resolve, reject) => {
+export function exportPngBlob(scale = 2): Promise<Blob> {
+  return new Promise<Blob>((resolve, reject) => {
     const out = buildExportSvg();
     if (!out) { reject(new Error('내보낼 노드가 없습니다.')); return; }
 
@@ -233,7 +233,7 @@ export function exportPngBlob(scale = 2) {
       const canvas = document.createElement('canvas');
       canvas.width  = w;
       canvas.height = h;
-      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      canvas.getContext('2d')!.drawImage(img, 0, 0, w, h);
       URL.revokeObjectURL(url);
       canvas.toBlob((pngBlob) => {
         if (pngBlob) resolve(pngBlob);

@@ -27,10 +27,16 @@ export interface NodeTextStyle {
 }
 
 // ── 노드 → 부모 연결선 스타일 오버라이드 ──
+export interface CurveHandle {
+  c1: { dx: number; dy: number };
+  c2: { dx: number; dy: number };
+}
 export interface NodeBranchStyle {
   color?: string | null;
   width?: number | null;
   dash?: 'solid' | 'dashed' | 'dotted' | null;
+  /** 사용자가 곡선 핸들을 드래그해 조정한 control point 오프셋 */
+  handles?: CurveHandle;
 }
 
 // ── 노드 본문 임베드 이미지/비디오 ──
@@ -86,17 +92,19 @@ export interface Relation {
   toId: string;
   label?: string;
   style?: RelationStyle;
-  cp1?: { x: number; y: number };
-  cp2?: { x: number; y: number };
+  /** 사용자 조정 곡선 핸들 (utils.getRelationControls 참고) */
+  handles?: CurveHandle;
+  /** 옛 quadratic 데이터 — 중점 기준 단일 오프셋 (점진적으로 handles로 마이그레이션) */
+  curveOffset?: { dx: number; dy: number };
 }
 
-// ── 콜아웃 ──
+// ── 콜아웃 (부모 노드 기준 dx/dy 오프셋으로 위치 표현) ──
 export interface Callout {
   id: string;
   parentId: string;
+  dx: number;
+  dy: number;
   text: string;
-  x: number;
-  y: number;
   color?: string;
   textColor?: string;
 }
@@ -182,3 +190,14 @@ export interface LastSave {
   name: string;
   driveFileId?: string;
 }
+
+// ── Google API 글로벌 (drive.ts) ──
+// gapi.client.drive 및 google.accounts.oauth2는 외부 스크립트로 로드되므로
+// 자세한 타입을 강제하지 않고 any로 두되 typecheck를 통과시키기 위해 선언만 추가.
+declare global {
+  interface Window {
+    gapi: any;
+    google: any;
+  }
+}
+export {};
