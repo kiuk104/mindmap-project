@@ -1780,3 +1780,749 @@ tryLoadFromDriveParam();
 | **4-A** | **OG 태그 + 맵 제목** | **2~3h** | **메신저 공유** |
 | **4-B** | **Web Share API** | **1h** | **메신저 공유** |
 | **4-C** | **뷰어 전용 모드** | **3~4h** | **협업** |
+
+---
+
+## Phase 5 — TypeScript 도입 (점진적 마이그레이션) ⭐⭐⭐
+
+> **배경:** 코드가 10,900줄 / 28개 모듈을 넘어섰고 `modal.js` 1500줄, `main.js` 1000줄 규모에서
+> JSDoc `@typedef`만으로는 런타임 전까지 타입 오류를 잡을 수 없습니다.
+> Vite는 별도 플러그인 없이 `.ts` 파일을 그대로 처리합니다.
+> **Big Bang 전환이 아닌 4단계 점진 마이그레이션**으로 리스크를 최소화합니다.
+
+```
+이 프로젝트는 Vite + Vanilla JS 마인드맵 앱입니다 (10,900줄 / 28모듈).
+CLAUDE.md를 먼저 읽고 전체 구조를 파악하세요.
+TypeScript를 점진적으로 도입합니다 — 한 번에 전체를 바꾸지 않고 4단계로 나눕니다.
+각 단계 완료 후 `npm run dev`와 `npm run build`가 정상 동작하는지 확인하고 커밋하세요.
+
+## 전략 원칙
+- `allowJs: true` — 아직 변환 안 된 .js 파일도 계속 작동
+- `strict: false` 시작 → 마이그레이션 완료 후 `strict: true`로 전환
+- 단계별로 파일 이름을 .ts로 바꾸면서 타입을 붙임
+- 기존 JSDoc @typedef는 TypeScript 인터페이스로 1:1 치환
+
+---
+
+## Step TS-1 — 환경 세팅 (30분)
+
+### 1. tsconfig.json 생성 (프로젝트 루트)
+
+```json
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+
+    "allowJs": true,
+    "checkJs": false,
+    "strict": false,
+    "noImplicitAny": false,
+    "strictNullChecks": false,
+
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "noEmit": true,
+
+    "baseUrl": ".",
+    "paths": { "@/*": ["src/*"] }
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}
+```
+
+### 2. package.json scripts에 타입 검사 명령 추가
+
+```json
+"scripts": {
+  "dev":       "vite",
+  "build":     "vite build",
+  "preview":   "vite preview",
+  "typecheck": "tsc --noEmit",
+  "icons":     "node scripts/fetch-icons.mjs"
+}
+```
+
+### 3. TypeScript 컴파일러 설치 (devDependency만)
+
+```bash
+npm install -D typescript
+```
+
+**검증:** `npm run typecheck` 실행 — 이 시점에는 .js 파일을 체크하지 않으므로 오류 0개 예상.
+
+---
+
+## Step TS-2 — 핵심 타입 파일 생성 (1시간)
+
+`src/types.ts` 신규 파일을 생성합니다.
+기존 `state.js`의 JSDoc `@typedef`를 TypeScript 인터페이스로 치환합니다.
+**state.js 자체는 아직 건드리지 않습니다.**
+
+```typescript
+// src/types.ts
+// ── 링크 타입 ──────────────────────────────────────────────────
+export type LinkType = 'drive' | 'youtube' | 'image' | 'url' | 'gphotos';
+
+export interface Link {
+  type: LinkType;
+  url: string;
+  label: string;
+}
+
+// ── 태스크 (노드 내 할 일 목록 항목) ───────────────────────────
+export interface Task {
+  text: string;
+  done: boolean;
+}
+
+// ── 브랜치 스타일 오버라이드 ──────────────────────────────────
+export interface BranchStyle {
+  color?: string;
+  dash?: string;
+  width?: number;
+}
+
+// ── 노드 ──────────────────────────────────────────────────────
+export interface MindNode {
+  id: string;
+  text: string;
+  x: number;
+  y: number;
+  parentId: string | null;
+  color: string;                    // hex 색상
+  icon?: string;                    // 이모지 1개 또는 ''
+  collapsed?: boolean;
+  image?: { url: string } | null;
+  links: Link[];
+  tasks?: Task[];
+  note?: string;
+
+  // 스타일 오버라이드 (선택)
+  bold?: boolean;
+  italic?: boolean;
+  underline?: boolean;
+  strike?: boolean;
+  fontSize?: string;
+  align?: 'left' | 'center' | 'right';
+  shape?: 'rounded' | 'sharp' | 'pill';
+  borderWidth?: 'none' | 'thin' | 'normal' | 'thick' | 'xthick' | 'huge';
+  outline?: 'none' | 'thin' | 'normal' | 'thick' | 'huge';
+  outlineColor?: string;
+  textColor?: string;
+  strokeWidth?: number;
+  strokeColor?: string;
+  numbering?: string;
+  branchStyle?: BranchStyle;
+}
+
+// ── 관계선 ────────────────────────────────────────────────────
+export interface RelationStyle {
+  color?: string;
+  dash?: string;
+  width?: string;
+  arrow?: 'end' | 'start' | 'both' | 'none';
+}
+
+export interface Relation {
+  id: string;
+  fromId: string;
+  toId: string;
+  label?: string;
+  style?: RelationStyle;
+  // 베지어 컨트롤 포인트 (곡선 핸들 드래그 시 저장)
+  cp1?: { x: number; y: number };
+  cp2?: { x: number; y: number };
+}
+
+// ── 콜아웃 ────────────────────────────────────────────────────
+export interface Callout {
+  id: string;
+  parentId: string;
+  text: string;
+  x: number;
+  y: number;
+  color?: string;
+  textColor?: string;
+}
+
+// ── 존 ───────────────────────────────────────────────────────
+export interface Zone {
+  id: string;
+  nodeIds: string[];
+  label?: string;
+  color?: string;
+  opacity?: number;
+  borderColor?: string;
+  borderDash?: string;
+  borderWidth?: number;
+}
+
+// ── 맵 스타일 ─────────────────────────────────────────────────
+export interface MapStyle {
+  theme: string;
+  bgColor: string | null;
+  lineWidth: 'thin' | 'normal' | 'thick';
+  coloredBranch: boolean;
+  font: string;
+  fontEn: string | null;
+  fontKr: string | null;
+  curveStrength: number;
+}
+
+// ── 전체 앱 상태 ──────────────────────────────────────────────
+export interface AppState {
+  nodes: Record<string, MindNode>;
+  relations: Relation[];
+  callouts: Callout[];
+  zones: Zone[];
+  mapTitle?: string;
+
+  selectedId: string | null;
+  selectedIds: string[];
+  selectedRelationId: string | null;
+  selectedRelationIds: string[];
+  selectedCalloutId: string | null;
+  selectedZoneId: string | null;
+
+  relationDraft: { fromId: string } | null;
+  ctxTargetId: string | null;
+  modalKind: string | null;
+
+  searchQuery: string;
+  searchHits: string[];
+  searchIdx: number;
+
+  lineStyle: 'straight' | 'curved' | 'stepped';
+  style: MapStyle;
+}
+
+// ── Drive ─────────────────────────────────────────────────────
+export interface DriveFile {
+  id: string;
+  name: string;
+  modifiedTime: string;
+  size?: string;
+}
+
+export interface AuthSnapshot {
+  available: boolean;
+  initialized: boolean;
+  signedIn: boolean;
+  email: string | null;
+}
+
+// ── 직렬화 포맷 ───────────────────────────────────────────────
+export interface SerializedMap {
+  nodes: Record<string, MindNode>;
+  relations: Relation[];
+  callouts: Callout[];
+  zones: Zone[];
+  style: MapStyle;
+  lineStyle: string;
+  mapTitle?: string;
+  version: number;
+}
+```
+
+**검증:** `npm run typecheck` — 오류 없어야 함 (types.ts만 추가했으므로).
+
+---
+
+## Step TS-3 — 핵심 모듈 4개 변환 (2~3시간)
+
+우선순위 순으로 변환합니다. **각 파일 변환 후 `npm run dev`로 앱 동작 확인.**
+변환 방법: 파일명 `.js` → `.ts` 변경 + 임포트에 타입 추가.
+
+### 변환 순서 및 주요 작업
+
+#### ① state.js → state.ts
+
+```typescript
+import type { AppState } from './types.js';
+
+export const state: AppState = {
+  nodes: {},
+  relations: [],
+  callouts: [],
+  zones: [],
+  // ... 기존 내용 그대로, 타입 어노테이션만 추가
+};
+```
+
+기존 파일 하단의 JSDoc `@typedef` 블록은 모두 삭제합니다 (types.ts로 이관됨).
+
+#### ② utils.js → utils.ts
+
+주요 변경:
+```typescript
+// 기존
+export const $ = (id) => document.getElementById(id);
+// 변경
+export const $ = (id: string): HTMLElement | null => document.getElementById(id);
+
+// uid 함수
+export const uid = (): string =>
+  'n' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+
+// makeNode 함수 반환 타입
+import type { MindNode } from './types.js';
+export function makeNode(id: string, text: string, x: number, y: number, parentId: string | null): MindNode { ... }
+```
+
+#### ③ history.js → history.ts
+
+```typescript
+import type { AppState } from './types.js';
+
+interface HistoryEntry {
+  nodes: AppState['nodes'];
+  relations: AppState['relations'];
+  style: AppState['style'];
+  lineStyle: AppState['lineStyle'];
+  selectedId: string | null;
+  selectedIds: string[];
+}
+
+type ApplyHook = () => void;
+type ChangeListener = (canUndo: boolean, canRedo: boolean) => void;
+```
+
+#### ④ io.js → io.ts
+
+```typescript
+import type { SerializedMap } from './types.js';
+
+export function serialize(): string { ... }
+export function loadFromString(jsonStr: string): boolean { ... }
+```
+
+**검증:** 4개 파일 변환 후 `npm run typecheck` + `npm run build` 모두 통과.
+
+---
+
+## Step TS-4 — 나머지 모듈 점진 변환 + strict 강화 (별도 PR)
+
+이 단계는 기능 개발과 병행하지 말고 **리팩토링 전용 커밋**으로 분리합니다.
+
+### 변환 우선순위
+
+| 파일 | 난이도 | 주요 타입 작업 |
+|------|--------|--------------|
+| `nodes.js` | 쉬움 | `MindNode` 파라미터, 반환값 |
+| `canvas.js` | 중간 | `PointerEvent`, `view` 객체 타입 |
+| `drive.js` | 쉬움 | `DriveFile`, `AuthSnapshot` 이미 정의됨 |
+| `render.js` | 어려움 | 핸들러 함수 시그니처, SVG 타입 |
+| `modal.js` | 어려움 | 1500줄 — 분리(Phase 4-C)와 병행 권장 |
+| `main.js` | 어려움 | 모든 모듈 참조 — 마지막에 변환 |
+
+### tsconfig.json 점진 강화
+
+모든 파일 변환 완료 후 아래 순서로 옵션을 켜고 오류를 수정합니다:
+
+```json
+// 1단계: null 체크
+"strictNullChecks": true
+
+// 2단계: implicit any 금지
+"noImplicitAny": true
+
+// 3단계: 전체 strict 모드
+"strict": true
+```
+
+### 자주 나오는 패턴과 해결법
+
+```typescript
+// ① getElementById 반환값 null 체크
+const btn = document.getElementById('btn-save') as HTMLButtonElement;
+// 또는
+const btn = document.getElementById('btn-save');
+if (!btn) return;
+
+// ② Object.values(state.nodes) 타입
+Object.values(state.nodes).forEach((node: MindNode) => { ... });
+
+// ③ 이벤트 타입
+canvas.addEventListener('pointerdown', (e: PointerEvent) => { ... });
+
+// ④ 옵셔널 프로퍼티 접근
+const color = node.branchStyle?.color ?? 'var(--line)';
+```
+
+## 검증 체크리스트 (전체)
+- [ ] Step TS-1: `npm install -D typescript` 완료, tsconfig.json 생성
+- [ ] Step TS-1: `npm run typecheck` 오류 0개
+- [ ] Step TS-2: src/types.ts 생성, MindNode·Relation·AppState 등 핵심 인터페이스 정의
+- [ ] Step TS-3: state.ts — AppState 타입 적용, JSDoc typedef 제거
+- [ ] Step TS-3: utils.ts — $(), uid(), makeNode() 타입 어노테이션
+- [ ] Step TS-3: history.ts — HistoryEntry 인터페이스, 콜백 타입
+- [ ] Step TS-3: io.ts — serialize/loadFromString 반환 타입
+- [ ] Step TS-3 완료 후: `npm run build` 정상 빌드, 앱 기능 이상 없음
+- [ ] Step TS-4: 나머지 모듈 점진 변환 (기능 개발 PR과 분리)
+- [ ] Step TS-4: strictNullChecks → noImplicitAny → strict 순서로 강화
+- [ ] 최종: `npm run typecheck` strict 모드에서 오류 0개
+
+## 주의사항
+- `.ts` 파일에서 다른 `.ts` 파일을 import할 때 확장자는 `.js`로 유지합니다
+  (Vite/ESM 번들러 규칙: `import { state } from './state.js'`)
+- `icon-assets.js`는 자동 생성 파일이므로 마지막에 변환하거나 `.d.ts` 선언 파일만 추가
+- `vite.config.js`는 `vite.config.ts`로 바꿔도 되고 그대로 둬도 무방
+```
+
+
+
+---
+
+## Phase 5 — TypeScript 점진적 마이그레이션 ⭐⭐⭐
+
+> **배경:** 10,900줄·28모듈 규모에서 JSDoc `@typedef`만으로는 런타임 전까지 타입 오류를 잡을 수 없습니다.
+> Vite는 `.ts` 파일을 별도 플러그인 없이 처리합니다.
+> **Big Bang 전환이 아닌 4단계 점진 마이그레이션**으로 리스크를 최소화합니다.
+
+```
+이 프로젝트는 Vite + Vanilla JS 마인드맵 앱입니다 (10,900줄 / 28모듈).
+CLAUDE.md를 먼저 읽고 전체 구조를 파악하세요.
+TypeScript를 4단계로 점진 도입합니다. 각 Step 완료 후 npm run dev와 npm run build가
+통과하는지 확인하고 커밋한 뒤 다음 Step으로 넘어가세요.
+
+## 전략 원칙
+- allowJs: true — 아직 변환 안 된 .js 파일도 계속 동작
+- strict: false 시작 → 마이그레이션 완료 후 strict: true 전환
+- 파일명 .js → .ts 변경 + 타입 어노테이션 추가 방식으로 점진 변환
+- 기존 JSDoc @typedef는 TypeScript 인터페이스로 1:1 치환
+
+---
+
+## Step TS-1 — 환경 세팅 (30분)
+
+### 1. TypeScript 설치
+
+```bash
+npm install -D typescript
+```
+
+### 2. tsconfig.json 생성 (프로젝트 루트)
+
+```json
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+
+    "allowJs": true,
+    "checkJs": false,
+    "strict": false,
+    "noImplicitAny": false,
+    "strictNullChecks": false,
+
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "noEmit": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}
+```
+
+### 3. package.json scripts에 타입 검사 명령 추가
+
+```json
+"typecheck": "tsc --noEmit"
+```
+
+검증: npm run typecheck → 오류 0개 (아직 .js는 체크 안 하므로).
+
+---
+
+## Step TS-2 — src/types.ts 핵심 타입 파일 생성 (1시간)
+
+state.js의 JSDoc @typedef를 TypeScript 인터페이스로 치환해 src/types.ts를 새로 만듭니다.
+state.js 자체는 이 단계에서 건드리지 않습니다.
+
+src/types.ts 내용:
+
+```typescript
+// ── 링크 ──
+export type LinkType = 'drive' | 'youtube' | 'image' | 'url' | 'gphotos';
+export interface Link {
+  type: LinkType;
+  url: string;
+  label: string;
+}
+
+// ── 태스크 ──
+export interface Task {
+  text: string;
+  done: boolean;
+}
+
+// ── 브랜치 스타일 오버라이드 ──
+export interface BranchStyle {
+  color?: string;
+  dash?: string;
+  width?: number;
+}
+
+// ── 노드 ──
+export interface MindNode {
+  id: string;
+  text: string;
+  x: number;
+  y: number;
+  parentId: string | null;
+  color: string;
+  icon?: string;
+  collapsed?: boolean;
+  image?: { url: string } | null;
+  links: Link[];
+  tasks?: Task[];
+  note?: string;
+  // 스타일 오버라이드
+  bold?: boolean;
+  italic?: boolean;
+  underline?: boolean;
+  strike?: boolean;
+  fontSize?: string;
+  align?: 'left' | 'center' | 'right';
+  shape?: 'rounded' | 'sharp' | 'pill';
+  borderWidth?: 'none' | 'thin' | 'normal' | 'thick' | 'xthick' | 'huge';
+  outline?: 'none' | 'thin' | 'normal' | 'thick' | 'huge';
+  outlineColor?: string;
+  textColor?: string;
+  strokeWidth?: number;
+  strokeColor?: string;
+  numbering?: string;
+  branchStyle?: BranchStyle;
+}
+
+// ── 관계선 ──
+export interface RelationStyle {
+  color?: string;
+  dash?: string;
+  width?: string;
+  arrow?: 'end' | 'start' | 'both' | 'none';
+}
+export interface Relation {
+  id: string;
+  fromId: string;
+  toId: string;
+  label?: string;
+  style?: RelationStyle;
+  cp1?: { x: number; y: number };
+  cp2?: { x: number; y: number };
+}
+
+// ── 콜아웃 ──
+export interface Callout {
+  id: string;
+  parentId: string;
+  text: string;
+  x: number;
+  y: number;
+  color?: string;
+  textColor?: string;
+}
+
+// ── 존 ──
+export interface Zone {
+  id: string;
+  nodeIds: string[];
+  label?: string;
+  color?: string;
+  opacity?: number;
+  borderColor?: string;
+  borderDash?: string;
+  borderWidth?: number;
+}
+
+// ── 맵 스타일 ──
+export interface MapStyle {
+  theme: string;
+  bgColor: string | null;
+  lineWidth: 'thin' | 'normal' | 'thick';
+  coloredBranch: boolean;
+  font: string;
+  fontEn: string | null;
+  fontKr: string | null;
+  curveStrength: number;
+}
+
+// ── 앱 전체 상태 ──
+export interface AppState {
+  nodes: Record<string, MindNode>;
+  relations: Relation[];
+  callouts: Callout[];
+  zones: Zone[];
+  mapTitle?: string;
+  selectedId: string | null;
+  selectedIds: string[];
+  selectedRelationId: string | null;
+  selectedRelationIds: string[];
+  selectedCalloutId: string | null;
+  selectedZoneId: string | null;
+  relationDraft: { fromId: string } | null;
+  ctxTargetId: string | null;
+  modalKind: string | null;
+  searchQuery: string;
+  searchHits: string[];
+  searchIdx: number;
+  lineStyle: 'straight' | 'curved' | 'stepped';
+  style: MapStyle;
+}
+
+// ── Drive ──
+export interface DriveFile {
+  id: string;
+  name: string;
+  modifiedTime: string;
+  size?: string;
+}
+export interface AuthSnapshot {
+  available: boolean;
+  initialized: boolean;
+  signedIn: boolean;
+  email: string | null;
+}
+
+// ── 직렬화 포맷 ──
+export interface SerializedMap {
+  nodes: Record<string, MindNode>;
+  relations: Relation[];
+  callouts: Callout[];
+  zones: Zone[];
+  style: MapStyle;
+  lineStyle: string;
+  mapTitle?: string;
+  version: number;
+}
+```
+
+검증: npm run typecheck → 오류 0개.
+
+---
+
+## Step TS-3 — 핵심 모듈 4개 변환 (2~3시간)
+
+각 파일 변환 후 npm run dev로 앱 동작 확인. 오류 없으면 다음 파일로.
+
+### ① state.js → state.ts
+
+파일명 변경 후:
+```typescript
+import type { AppState } from './types.js';
+
+export const state: AppState = {
+  nodes: {},
+  relations: [],
+  // ... 기존 내용 그대로
+};
+```
+파일 하단의 JSDoc @typedef 블록은 모두 삭제 (types.ts로 이관됨).
+
+### ② utils.js → utils.ts
+
+주요 타입 추가:
+```typescript
+import type { MindNode } from './types.js';
+
+export const $ = (id: string): HTMLElement | null => document.getElementById(id);
+export const uid = (): string => ...;
+export function makeNode(id: string, text: string, x: number, y: number,
+  parentId: string | null): MindNode { ... }
+```
+
+### ③ history.js → history.ts
+
+```typescript
+import type { AppState } from './types.js';
+
+interface HistoryEntry {
+  nodes: AppState['nodes'];
+  relations: AppState['relations'];
+  style: AppState['style'];
+  lineStyle: AppState['lineStyle'];
+  selectedId: string | null;
+  selectedIds: string[];
+}
+type ApplyHook = () => void;
+type ChangeListener = (canUndo: boolean, canRedo: boolean) => void;
+```
+
+### ④ io.js → io.ts
+
+```typescript
+import type { SerializedMap } from './types.js';
+
+export function serialize(): string { ... }
+export function loadFromString(jsonStr: string): boolean { ... }
+```
+
+검증: npm run typecheck + npm run build 모두 통과, 앱 기능 이상 없음.
+
+---
+
+## Step TS-4 — 나머지 모듈 점진 변환 + strict 강화
+
+기능 개발 PR과 분리해 리팩토링 전용 커밋으로 처리합니다.
+
+변환 우선순위:
+
+| 파일 | 난이도 | 주요 작업 |
+|------|--------|----------|
+| nodes.js | 쉬움 | MindNode 파라미터 타입 |
+| canvas.js | 중간 | PointerEvent, view 객체 타입 |
+| drive.js | 쉬움 | DriveFile, AuthSnapshot 이미 정의됨 |
+| render.js | 어려움 | 핸들러 함수 시그니처, SVG 타입 |
+| modal.js | 어려움 | 1500줄 — modal.js 분리(Medium 이슈)와 병행 권장 |
+| main.js | 어려움 | 모든 모듈 참조 — 마지막에 변환 |
+
+tsconfig.json strict 점진 강화 순서:
+1. "strictNullChecks": true → 오류 수정
+2. "noImplicitAny": true → 오류 수정
+3. "strict": true → 오류 수정
+4. 최종 npm run typecheck 오류 0개
+
+자주 나오는 패턴과 해결법:
+
+```typescript
+// getElementById null 체크
+const btn = document.getElementById('btn-save') as HTMLButtonElement;
+
+// Object.values 타입
+Object.values(state.nodes).forEach((node: MindNode) => { ... });
+
+// PointerEvent 타입
+canvas.addEventListener('pointerdown', (e: PointerEvent) => { ... });
+
+// 옵셔널 체이닝
+const color = node.branchStyle?.color ?? 'var(--line)';
+
+// .ts 파일에서 다른 .ts import 시 확장자는 .js 유지 (Vite/ESM 규칙)
+import { state } from './state.js';
+```
+
+## 검증 체크리스트
+- [ ] TS-1: npm install -D typescript 완료, tsconfig.json 생성
+- [ ] TS-1: npm run typecheck 오류 0개
+- [ ] TS-2: src/types.ts 생성 — MindNode / Relation / AppState 등 전체 인터페이스 정의
+- [ ] TS-2: npm run typecheck 오류 0개
+- [ ] TS-3: state.ts — AppState 타입 적용, JSDoc @typedef 제거
+- [ ] TS-3: utils.ts — $(), uid(), makeNode() 타입 어노테이션
+- [ ] TS-3: history.ts — HistoryEntry 인터페이스, 콜백 타입
+- [ ] TS-3: io.ts — serialize/loadFromString 반환 타입
+- [ ] TS-3 후: npm run build 정상, 앱 기능 이상 없음 → 커밋
+- [ ] TS-4: 나머지 모듈 점진 변환 (기능 개발 PR과 분리)
+- [ ] TS-4: strictNullChecks → noImplicitAny → strict 순으로 강화
+- [ ] 최종: strict 모드 npm run typecheck 오류 0개
+
+## 주의사항
+- icon-assets.js는 자동 생성 파일 — 마지막에 변환하거나 .d.ts 선언 파일만 추가
+- vite.config.js는 그대로 두거나 vite.config.ts로 바꿔도 무방
+- checkJs: false 유지 (기존 .js 파일에 오류 발생 방지)
+```
