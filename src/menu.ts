@@ -69,14 +69,25 @@ export function showBgMenu(e: MouseEvent) {
   positionMenu($('ctx-bg-menu'), e.clientX, e.clientY);
 }
 
-/** 화면 안에 들어오도록 위치 보정 */
+/** 화면 안에 들어오도록 위치 보정 — 모바일에서 메뉴가 viewport보다 길 때 top이 음수로 가지 않도록 clamp */
 function positionMenu(menu: HTMLElement, x: number, y: number) {
+  const MARGIN = 8;
   menu.style.display = 'block';
   menu.style.left    = x + 'px';
   menu.style.top     = y + 'px';
   const rect = menu.getBoundingClientRect();
-  if (rect.right  > innerWidth)  menu.style.left = (x - rect.width)  + 'px';
-  if (rect.bottom > innerHeight) menu.style.top  = (y - rect.height) + 'px';
+
+  let left = x;
+  let top  = y;
+  if (rect.right  > innerWidth)  left = x - rect.width;
+  if (rect.bottom > innerHeight) top  = y - rect.height;
+
+  // viewport 경계 안으로 clamp — 길게 누른 위치가 화면 가장자리여도 첫 항목이 잘리지 않게
+  left = Math.max(MARGIN, Math.min(left, innerWidth  - rect.width  - MARGIN));
+  top  = Math.max(MARGIN, Math.min(top,  innerHeight - rect.height - MARGIN));
+
+  menu.style.left = left + 'px';
+  menu.style.top  = top  + 'px';
 }
 
 /** 노드 우클릭 메뉴 숨기기 */

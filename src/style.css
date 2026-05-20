@@ -318,6 +318,8 @@ body.no-node-shadow .callout:hover {
   position: fixed; background: var(--bg-elev); border: 1px solid var(--border);
   border-radius: 10px; padding: 5px 0; min-width: 195px;
   z-index: 1000; box-shadow: var(--shadow-menu); display: none;
+  max-height: calc(100vh - 16px); overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .ctx-item {
   padding: 9px 15px; cursor: pointer; font-size: 13px;

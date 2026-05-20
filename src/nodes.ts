@@ -161,10 +161,11 @@ export function expandAncestors(nodeId: string): boolean {
 /**
  * 노드 텍스트 인라인 편집
  * textarea를 DOM에 직접 삽입하는 방식
- * @param {MouseEvent} e
- * @param {string} id
+ * @param e
+ * @param id
+ * @param cursorOffset 지정 시 select-all 대신 그 오프셋에 캐럿만 배치 (재선택 클릭으로 진입 시 사용)
  */
-export function startEdit(e: Event, id: string) {
+export function startEdit(e: Event, id: string, cursorOffset?: number) {
   e.stopPropagation();
   const el = $('nd-' + id);
   if (!el) return;
@@ -184,7 +185,12 @@ export function startEdit(e: Event, id: string) {
 
   textDiv.replaceWith(ta);
   ta.focus();
-  ta.select();
+  if (typeof cursorOffset === 'number') {
+    const off = Math.max(0, Math.min(cursorOffset, ta.value.length));
+    ta.setSelectionRange(off, off);
+  } else {
+    ta.select();
+  }
 
   let escaped = false;
   // 첫 focus 직후 일부 브라우저/핸들러의 부수효과로 즉시 blur가 발사되어

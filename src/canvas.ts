@@ -14,6 +14,7 @@ import { $, setNodeSelection, clearNodeSelection, setRelationSelection, clearRel
 import { pushHistory, beginPending, commitPending, cancelPending } from './history.js';
 import { newRelationStyle } from './settings.js';
 import { startEdit } from './nodes.js';
+import { isAssetIcon } from './icon-assets.js';
 
 // ── Pan/드래그 상태 ──
 let panning = false;
@@ -72,6 +73,54 @@ export function getLastNodeInteractAt() { return lastNodeInteractAt; }
 const DBL_POINTER_MS = 600; // ms — Galaxy/Android 더블탭 인식 여유 (구: 400)
 let lastNodePointerDownAt = 0;
 let lastNodePointerDownId: string | null = null;
+
+// "이미 선택된 단일 노드를 다시 클릭 → 클릭 지점에 캐럿 두고 편집" 패턴 (Finder/Explorer 두 번 누름 rename)
+// pointerdown 시 조건 만족하면 좌표만 기억해두고, pointerup 시 드래그/롱프레스가 없었으면 startEdit.
+let pendingEditNodeId: string | null = null;
+let pendingEditX = 0;
+let pendingEditY = 0;
+
+/**
+ * .node-text 안에서 (clientX, clientY) 클릭이 가리키는 캐럿 오프셋을 node.text 기준으로 계산.
+ * 렌더 구조: [numbering span] [icon span/img] [text node]
+ *   - 이모지 아이콘이면 텍스트 노드 앞에 " "가 붙어있어 lead=1 만큼 빼야 한다 (render.ts 참조)
+ *   - 그 외(asset 아이콘, 아이콘 없음, 숫자 prefix만)는 lead=0
+ */
+function caretOffsetInNodeText(
+  textDiv: Element, clientX: number, clientY: number, node: any,
+): number | undefined {
+  let target: Node | null = null;
+  let offset = 0;
+
+  const docAny = document as any;
+  if (typeof docAny.caretPositionFromPoint === 'function') {
+    const pos = docAny.caretPositionFromPoint(clientX, clientY);
+    if (pos) { target = pos.offsetNode; offset = pos.offset; }
+  } else if (typeof docAny.caretRangeFromPoint === 'function') {
+    const r = docAny.caretRangeFromPoint(clientX, clientY);
+    if (r) { target = r.startContainer; offset = r.startOffset; }
+  }
+  if (!target) return undefined;
+  if (target !== textDiv && !textDiv.contains(target)) return undefined;
+
+  const lastText = Array.from(textDiv.childNodes).reverse().find(
+    (n): n is Text => n.nodeType === Node.TEXT_NODE,
+  );
+  const hasEmojiIcon = !!node.icon && !isAssetIcon(node.icon);
+  const lead = hasEmojiIcon ? 1 : 0;
+  const textLen = (node.text ?? '').length;
+
+  if (lastText && target === lastText) {
+    return Math.max(0, Math.min(offset - lead, textLen));
+  }
+  // textDiv 자체를 가리키면 offset은 자식 인덱스 — lastText 이후면 끝, 아니면 시작
+  if (target === textDiv && lastText) {
+    const idx = Array.from(textDiv.childNodes).indexOf(lastText);
+    return offset > idx ? textLen : 0;
+  }
+  // numbering/아이콘 영역을 가리킨 경우 → 텍스트 시작점
+  return 0;
+}
 
 // 드래그 중 부모 재연결을 위한 drop target 추적
 let dropTargetId: string | null = null;
@@ -344,7 +393,10 @@ export function onNodeMouseDown(e: PointerEvent, nodeId: string) {
     lastNodePointerDownId = null;
     e.stopPropagation();
     e.preventDefault();
-    startEdit(e, nodeId);
+    const el = $('nd-' + nodeId);
+    const textDiv = el ? el.querySelector('.node-text') : null;
+    const off = textDiv ? caretOffsetInNodeText(textDiv, e.clientX, e.clientY, state.nodes[nodeId]) : undefined;
+    startEdit(e, nodeId, off);
     return;
   }
   lastNodePointerDownAt = now;
@@ -375,6 +427,7 @@ export function onNodeMouseDown(e: PointerEvent, nodeId: string) {
 
   // 선택 로직: shift = 토글, 일반 클릭 = 단일 선택 (이미 선택돼 있으면 유지하고 다중 드래그)
   const alreadySelected = state.selectedIds.includes(nodeId);
+  const wasSingleSelection = alreadySelected && state.selectedIds.length === 1;
   if (e.shiftKey) {
     if (alreadySelected) {
       setNodeSelection(state, state.selectedIds.filter((id) => id !== nodeId));
@@ -383,6 +436,15 @@ export function onNodeMouseDown(e: PointerEvent, nodeId: string) {
     }
   } else if (!alreadySelected) {
     setNodeSelection(state, [nodeId]);
+  }
+
+  // 이미 단일 선택된 노드를 다시 클릭 → pointerup 시 startEdit (드래그/롱프레스 없을 때만)
+  if (wasSingleSelection && !e.shiftKey) {
+    pendingEditNodeId = nodeId;
+    pendingEditX = e.clientX;
+    pendingEditY = e.clientY;
+  } else {
+    pendingEditNodeId = null;
   }
   // 관계선이 선택돼 있었으면 SVG 스타일도 갱신해야 하므로 전체 render
   // 그 외엔 노드 .selected 클래스만 토글 — 노드 div가 교체되지 않아야 dblclick(편집)이 정상 동작
@@ -470,6 +532,13 @@ export function initCanvas() {
   document.addEventListener('pointermove', (e) => {
     if (pinching) return;
     checkLongPressMove(e);
+
+    // 재선택 편집 의도가 있던 클릭이 임계값 이상 이동했으면 편집 취소 (드래그로 간주)
+    if (pendingEditNodeId) {
+      const ddx = Math.abs(e.clientX - pendingEditX);
+      const ddy = Math.abs(e.clientY - pendingEditY);
+      if (ddx > 6 || ddy > 6) pendingEditNodeId = null;
+    }
 
     if (panning) {
       panRightDragMoved = true;
@@ -626,6 +695,33 @@ export function initCanvas() {
       render();
     }
     if (dragging) {
+      // "재선택 클릭 → 편집 진입" — 같은 노드를 단일 선택 상태에서 다시 클릭했고, 드래그/롱프레스 없이 떼면
+      // 클릭 지점에 캐럿을 두고 인라인 편집 (Finder/Explorer 두 번 누름 rename과 동일한 UX)
+      const editCandidate =
+        !dragMoved && !longPressFired &&
+        pendingEditNodeId && pendingEditNodeId === dragId &&
+        state.selectedIds.length === 1 && state.selectedIds[0] === dragId;
+
+      if (editCandidate && dragId) {
+        const editId = dragId;
+        const ex = pendingEditX, ey = pendingEditY;
+        cancelPending();          // 드래그 pending 정리 (이동 없었음)
+        clearDropTarget();
+        multiDragOffsets = null;
+        dragMoved = false;
+        dragging = false;
+        dragId = null;
+        pendingEditNodeId = null;
+        panning = false;
+        cancelLongPress();
+
+        const el = $('nd-' + editId);
+        const textDiv = el ? el.querySelector('.node-text') : null;
+        const off = textDiv ? caretOffsetInNodeText(textDiv, ex, ey, state.nodes[editId]) : undefined;
+        startEdit(new MouseEvent('mouseup'), editId, off);
+        return;
+      }
+
       // drop target이 있으면 부모 재연결 — 위치 변경과 같은 history 엔트리에 묶임
       if (dropTargetId && dragMoved && !multiDragOffsets && dragId) {
         const n = state.nodes[dragId];
@@ -636,6 +732,7 @@ export function initCanvas() {
       else cancelPending();
       multiDragOffsets = null;
       dragMoved = false;
+      pendingEditNodeId = null;
       render();
     }
     if (selBoxActive) {
