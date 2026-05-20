@@ -238,24 +238,42 @@ export function defaultFilename(): string {
   return '마인드맵_' + new Date().toISOString().slice(0, 10);
 }
 
-/** JSON 파일 불러오기 — file input change 이벤트 핸들러 */
+/** 파일 확장자 기반 멀티 포맷 임포트 디스패처 */
+export async function importFromFile(file: File): Promise<boolean> {
+  const ext = (file.name.split('.').pop() ?? '').toLowerCase();
+  const baseName = file.name.replace(/\.[^/.]+$/, '');
+
+  let ok = false;
+  try {
+    if (ext === 'opml') {
+      const text = await file.text();
+      const { loadFromOPML } = await import('./format-opml.js');
+      ok = loadFromOPML(text);
+      if (ok) toastSuccess('📄 OPML 불러오기 완료');
+    } else {
+      // 기본 JSON
+      const text = await file.text();
+      ok = loadFromString(text);
+    }
+  } catch (e) {
+    console.warn('파일 불러오기 실패:', e);
+    ok = false;
+  }
+
+  if (ok) {
+    setLastSave({ kind: 'download', name: baseName });
+  } else {
+    toastError('파일 형식이 올바르지 않습니다');
+  }
+  return ok;
+}
+
+/** 파일 input change 이벤트 핸들러 */
 export function doImport(event: Event): void {
   const input = event.target as HTMLInputElement;
   const file = input.files?.[0];
   if (!file) return;
-
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    if (loadFromString(String(e.target?.result ?? ''))) {
-      // 이 파일을 현재 저장 대상으로 기억 → 다음 Ctrl+S 시 같은 이름으로 다운로드
-      const baseName = file.name.replace(/\.json$/i, '');
-      setLastSave({ kind: 'download', name: baseName });
-    } else {
-      alert('올바른 마인드맵 JSON 파일이 아닙니다.');
-    }
-  };
-  reader.readAsText(file);
-
+  importFromFile(file);
   // 같은 파일을 다시 불러올 수 있도록 초기화
   input.value = '';
 }
