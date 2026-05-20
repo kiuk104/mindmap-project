@@ -745,19 +745,41 @@ initDriveUnifiedButton();
 drive.initDrive()
   .then(() => {
     // ?drive=fileId가 있는데 미로그인이면 안내; 로그인되면 즉시 로드.
-    if (!pendingDriveLoad) return;
-    if (drive.isSignedIn()) {
-      tryAutoLoadDriveFile(pendingDriveLoad);
-    } else if (!detectInAppBrowser()) {
-      // 인앱 브라우저면 별도 가이드 모달이 자동으로 뜨므로 여기선 토스트 생략.
-      toastSuccess('🔗 공유된 파일을 열려면 ☁️ Drive 메뉴에서 Google 계정으로 연결해주세요. 연결 후 자동으로 불러옵니다.');
-      // 로그인 시점에 자동 로드
-      const off = drive.onAuthChange(({ signedIn }) => {
-        if (signedIn && pendingDriveLoad) {
-          off();
-          tryAutoLoadDriveFile(pendingDriveLoad);
+    if (pendingDriveLoad) {
+      if (drive.isSignedIn()) {
+        tryAutoLoadDriveFile(pendingDriveLoad);
+      } else if (!detectInAppBrowser()) {
+        // 인앱 브라우저면 별도 가이드 모달이 자동으로 뜨므로 여기선 토스트 생략.
+        toastSuccess('🔗 공유된 파일을 열려면 ☁️ Drive 메뉴에서 Google 계정으로 연결해주세요. 연결 후 자동으로 불러옵니다.');
+        // 로그인 시점에 자동 로드
+        const off = drive.onAuthChange(({ signedIn }) => {
+          if (signedIn && pendingDriveLoad) {
+            off();
+            tryAutoLoadDriveFile(pendingDriveLoad);
+          }
+        });
+      }
+      return;
+    }
+
+    // 마지막으로 작업한 Drive 파일이 있고 로그인 상태면 복구 안내 (세션당 1회)
+    const ls = getLastSave();
+    const FLAG = 'mindmap.drive.restorePromptSeen';
+    if (ls?.kind === 'drive' && ls.driveFileId && drive.isSignedIn() &&
+        sessionStorage.getItem(FLAG) !== '1') {
+      sessionStorage.setItem(FLAG, '1');
+      setTimeout(async () => {
+        const ok = confirm(`☁️ 최근 Drive 파일 "${ls.name}" 을 불러올까요?\n\n취소하면 현재 자동저장된 상태가 그대로 유지됩니다.`);
+        if (!ok) return;
+        try {
+          const json = await drive.loadFromDrive(ls.driveFileId);
+          loadFromStringFromIO(json);
+          resetView();
+          toastSuccess(`☁️ "${ls.name}" 불러옴`);
+        } catch (e) {
+          toastError('불러오기 실패: ' + e.message);
         }
-      });
+      }, 600);
     }
   })
   .catch((e) => console.warn('Drive init 실패:', e));
