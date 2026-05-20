@@ -260,6 +260,16 @@ export async function importFromFile(file: File): Promise<boolean> {
       const { loadFromMM } = await import('./format-mm.js');
       ok = loadFromMM(text);
       if (ok) toastSuccess('🧠 FreeMind 불러오기 완료');
+    } else if (ext === 'xmind') {
+      const buf = await file.arrayBuffer();
+      const { loadFromXMind } = await import('./format-xmind.js');
+      ok = await loadFromXMind(buf);
+      if (ok) {
+        toastSuccess('🧭 XMind 불러오기 완료');
+      } else {
+        toastError('XMind 파일을 읽을 수 없습니다');
+        return false; // 일반 에러 토스트 추가 방지
+      }
     } else {
       // 기본 JSON
       const text = await file.text();
