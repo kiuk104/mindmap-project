@@ -882,6 +882,9 @@ drive.initDrive()
         try {
           const json = await drive.loadFromDrive(ls.driveFileId!);
           loadFromStringFromIO(json);
+          // loadFromString은 JSON의 title을 읽어 lastSave를 'download'로 덮어쓰는 부작용이 있으므로
+          // Drive 정보(name + fileId)를 명시적으로 복원 → 다음 Ctrl+S가 Drive 덮어쓰기로 동작
+          setLastSave({ kind: 'drive', name: ls.name, driveFileId: ls.driveFileId });
           resetView();
           toastSuccess(`☁️ "${ls.name}" 불러옴`);
         } catch (e: any) {
