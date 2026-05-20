@@ -14,13 +14,13 @@ import { lighten, computeHiddenIds, getRelationControls, DASH_PATTERNS, NODE_SIZ
 import { isAssetIcon, assetIdToUrl } from './icon-assets.js';
 
 /** XML 특수문자 이스케이프 */
-function escapeXml(s) {
-  return String(s ?? '').replace(/[&<>"']/g, (c) => ({
+function escapeXml(s: any): string {
+  return String(s ?? '').replace(/[&<>"']/g, (c) => (({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;',
-  }[c]));
+  } as Record<string, string>)[c]));
 }
 
-function sanitizeFilename(name) {
+function sanitizeFilename(name?: string): string {
   return (name || '마인드맵').replace(/[\\/:*?"<>|]+/g, '_').trim() || '마인드맵';
 }
 
@@ -42,7 +42,7 @@ function getBoundingBox(hiddenIds) {
 
   Object.values(state.nodes).forEach((n) => {
     if (hiddenIds.has(n.id)) return;
-    const fontSize = parseInt(NODE_SIZES[n.textStyle?.size] ?? NODE_SIZES.medium, 10);
+    const fontSize = parseInt((NODE_SIZES as Record<string, string>)[n.textStyle?.size ?? 'medium'] ?? NODE_SIZES.medium, 10);
     const hasImage = !!n.image?.url;
     const w = Math.max(estimateNodeWidth(n, fontSize), hasImage ? IMG_W + 16 : 0);
     const h = fontSize + 20 + (hasImage ? IMG_H + 10 : 0);
@@ -93,7 +93,7 @@ export function buildExportSvg() {
     const bs = n.branchStyle ?? {};
     const stroke = bs.color || (state.style?.coloredBranch && n.color ? n.color : lineColor);
     const sw = bs.width || 2;
-    const dash = DASH_PATTERNS[bs.dash] || '';
+    const dash = (DASH_PATTERNS as Record<string, string>)[bs.dash ?? ''] || '';
     const dashAttr = dash ? `stroke-dasharray="${dash}"` : '';
     let d;
     if (lineStyle === 'curved') {
@@ -141,7 +141,7 @@ export function buildExportSvg() {
   Object.values(state.nodes).forEach((n) => {
     if (hiddenIds.has(n.id)) return;
     const ts = n.textStyle ?? {};
-    const fontSize = parseInt(NODE_SIZES[ts.size] ?? NODE_SIZES.medium, 10);
+    const fontSize = parseInt((NODE_SIZES as Record<string, string>)[ts.size ?? 'medium'] ?? NODE_SIZES.medium, 10);
     const hasImage = !!n.image?.url;
     const nodeW = Math.max(estimateNodeWidth(n, fontSize), hasImage ? IMG_W + 16 : 0);
     const nodeH = fontSize + 20 + (hasImage ? IMG_H + 10 : 0);
@@ -163,7 +163,7 @@ export function buildExportSvg() {
       const ix = n.x - IMG_W / 2;
       const iy = ny + 8;
       svg += `<image x="${ix}" y="${iy}" width="${IMG_W}" height="${IMG_H}"
-        href="${escapeXml(n.image.url)}"
+        href="${escapeXml(n.image!.url)}"
         preserveAspectRatio="xMidYMid meet"/>`;
     }
 
@@ -181,7 +181,7 @@ export function buildExportSvg() {
     const text = (n.icon && !isAsset ? n.icon + ' ' : '') + (n.text ?? '');
     const weight = ts.bold ? '700' : '400';
     const style  = ts.italic ? 'italic' : 'normal';
-    const decoParts = [];
+    const decoParts: string[] = [];
     if (ts.underline)     decoParts.push('underline');
     if (ts.strikethrough) decoParts.push('line-through');
     const deco = decoParts.length ? `text-decoration="${decoParts.join(' ')}"` : '';

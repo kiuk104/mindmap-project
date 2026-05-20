@@ -43,8 +43,9 @@ function itemContentHTML(value, label) {
 }
 
 /** <select>에 커스텀 dropdown UI를 입힌다. 이미 처리됐으면 옵션 재빌드만. */
-export function enhanceDashPicker(selectEl: HTMLSelectElement | null): void {
-  if (!selectEl) return;
+export function enhanceDashPicker(maybeEl: HTMLSelectElement | null): void {
+  if (!maybeEl) return;
+  const selectEl: HTMLSelectElement = maybeEl;
 
   // 이미 처리됐다면 — 옵션이 바뀌었을 수 있어 미리보기/패널 재구성
   if (selectEl.dataset.enhanced === '1') {

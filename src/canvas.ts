@@ -22,10 +22,10 @@ let panStartY = 0;
 let panRightDragMoved = false;  // 우클릭 드래그가 실제로 이동했는지 (contextmenu 억제용)
 
 let dragging = false;
-let dragId   = null;
+let dragId: string | null = null;
 let dragOffX = 0;
 let dragOffY = 0;
-let multiDragOffsets = null;    // 여러 노드 동시 드래그 시 각 노드 상대 좌표
+let multiDragOffsets: Array<{ id: string; dx: number; dy: number }> | null = null;
 let dragMoved        = false;   // 실제로 노드가 이동했는지 (history commit 판단용)
 let relHandleMoved   = false;   // 관계선 핸들이 실제로 이동했는지
 
@@ -36,13 +36,13 @@ let selBoxClientStart = { x: 0, y: 0 };  // 화면 좌표
 
 // ── 관계선 곡률 핸들 드래그 상태 ──
 let relHandleDragging = false;
-let relHandleId       = null;
-let relHandleKey      = null;  // 'c1' | 'c2'
+let relHandleId:  string | null = null;
+let relHandleKey: 'c1' | 'c2' | null = null;
 
 // ── 부모-자식 분기선 곡률 핸들 드래그 상태 ──
 let branchHandleDragging = false;
-let branchHandleNodeId   = null;   // 자식 노드 ID (이 노드와 그 부모를 잇는 선)
-let branchHandleKey      = null;   // 'c1'(부모쪽) | 'c2'(자식쪽)
+let branchHandleNodeId:   string | null = null;
+let branchHandleKey:      'c1' | 'c2' | null = null;
 let branchHandleMoved    = false;
 
 // ── 핀치 줌 상태 ──
@@ -52,8 +52,8 @@ let pinchStartSc   = 1;
 let pinchCenter    = { x: 0, y: 0 };
 
 // ── 길게 누름 상태 (터치만) ──
-let longPressTimer = null;
-let longPressTarget = null;
+let longPressTimer: ReturnType<typeof setTimeout> | null = null;
+let longPressTarget: EventTarget | null = null;
 let longPressX = 0;
 let longPressY = 0;
 let longPressFired = false;
@@ -74,7 +74,7 @@ let lastNodePointerDownAt = 0;
 let lastNodePointerDownId = null;
 
 // 드래그 중 부모 재연결을 위한 drop target 추적
-let dropTargetId = null;
+let dropTargetId: string | null = null;
 
 /** nodeId가 ancestorId의 후손(자기 자신 포함)인가 — 부모 재연결 시 순환 방지 */
 function isDescendantOf(ancestorId, nodeId) {
@@ -104,7 +104,7 @@ function updateDropTarget(clientX, clientY) {
   const dragNode = state.nodes[dragId];
   const threshold = DROP_DISTANCE_PX / (view.sc || 1);  // zoom 보정 — 화면 60px = 캔버스 60/sc
 
-  let bestId = null;
+  let bestId: string | null = null;
   let bestDist = Infinity;
   for (const id in state.nodes) {
     if (id === dragId) continue;
@@ -530,7 +530,7 @@ export function initCanvas() {
       const y2 = Math.max(selBoxStart.y, cp.y);
 
       // 노드: 실제 DOM 크기 기준 AABB 교차 검사
-      const insideNodes = [];
+      const insideNodes: string[] = [];
       Object.values(state.nodes).forEach((n) => {
         const el = $('nd-' + n.id);
         const w = el ? el.offsetWidth  : 150;  // fallback 추정치
@@ -546,7 +546,7 @@ export function initCanvas() {
       });
 
       // 관계선: cubic Bezier 곡선을 20개 점으로 샘플링, 한 점이라도 박스 안이면 선택
-      const insideRels = [];
+      const insideRels: string[] = [];
       state.relations.forEach((r) => {
         const a = state.nodes[r.fromId];
         const b = state.nodes[r.toId];
@@ -626,7 +626,7 @@ export function initCanvas() {
     }
     if (dragging) {
       // drop target이 있으면 부모 재연결 — 위치 변경과 같은 history 엔트리에 묶임
-      if (dropTargetId && dragMoved && !multiDragOffsets) {
+      if (dropTargetId && dragMoved && !multiDragOffsets && dragId) {
         const n = state.nodes[dragId];
         if (n && n.parentId !== dropTargetId) n.parentId = dropTargetId;
       }

@@ -71,10 +71,10 @@ function countDescendants(nodeId) {
 }
 
 /** SVG text 내부에 안전하게 들어가도록 XML 특수문자 이스케이프 */
-function escapeXml(s) {
-  return String(s ?? '').replace(/[&<>"']/g, (c) => ({
+function escapeXml(s: any): string {
+  return String(s ?? '').replace(/[&<>"']/g, (c) => (({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;',
-  }[c]));
+  } as Record<string, string>)[c]));
 }
 
 /**
@@ -459,11 +459,11 @@ function buildNodeEl(n, ctx) {
     const ts = n.textStyle ?? {};
     if (ts.bold)   el.style.fontWeight = '700';
     if (ts.italic) el.style.fontStyle  = 'italic';
-    const deco = [];
+    const deco: string[] = [];
     if (ts.underline)     deco.push('underline');
     if (ts.strikethrough) deco.push('line-through');
     if (deco.length) el.style.textDecoration = deco.join(' ');
-    el.style.fontSize  = NODE_SIZES[ts.size]   ?? NODE_SIZES.medium;
+    el.style.fontSize  = (NODE_SIZES as Record<string, string>)[ts.size ?? 'medium'] ?? NODE_SIZES.medium;
     el.style.textAlign = ts.align              ?? 'center';
     // 텍스트 스트로크 (외곽선) — 0이면 적용 안 함
     // 색은 ts.strokeColor 우선, 없으면 폰트 색을 그대로 따름 (auto)
@@ -543,7 +543,7 @@ function buildNodeEl(n, ctx) {
         // Illustration — 풀컬러 <img>
         const iconImg = document.createElement('img');
         iconImg.className = 'node-icon-img';
-        iconImg.src       = url;
+        iconImg.src       = url ?? '';
         iconImg.alt       = '';
         iconImg.draggable = false;
         iconImg.addEventListener('error', () => { iconImg.style.display = 'none'; });

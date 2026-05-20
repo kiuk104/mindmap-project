@@ -98,8 +98,8 @@ export const COLORS = COLOR_THEMES.default;
  * @param {string} themeKey
  * @param {Array<{id, name, palette: string[]}>} [customThemes]
  */
-export function resolvePalette(themeKey, customThemes = []) {
-  if (COLOR_THEMES[themeKey]) return COLOR_THEMES[themeKey];
+export function resolvePalette(themeKey: string, customThemes: Array<{ id: string; palette: string[] }> = []): string[] {
+  if ((COLOR_THEMES as Record<string, string[]>)[themeKey]) return (COLOR_THEMES as Record<string, string[]>)[themeKey];
   const custom = customThemes.find((t) => t.id === themeKey);
   return custom?.palette?.length ? custom.palette : COLOR_THEMES.default;
 }
@@ -219,18 +219,21 @@ export const KOREAN_FONT_NAMES = {
  * state.style의 폰트 설정을 CSS font-family 문자열로 합성.
  * customFonts 배열을 두 번째 인자로 받아 빌트인 외 사용자 폰트도 조회.
  */
-export function composeFontFamily(style, customFonts = []) {
+export function composeFontFamily(style: any, customFonts: Array<{ id: string; family: string }> = []): string {
   const fEn = style?.fontEn;
   const fKr = style?.fontKr;
   if (fEn || fKr) {
-    const parts = [];
-    if (fEn && ENGLISH_FONTS[fEn]) parts.push(ENGLISH_FONTS[fEn]);
-    if (fKr && KOREAN_FONTS[fKr])  parts.push(KOREAN_FONTS[fKr]);
+    const parts: string[] = [];
+    const englishFonts = ENGLISH_FONTS as Record<string, string>;
+    const koreanFonts  = KOREAN_FONTS  as Record<string, string>;
+    if (fEn && englishFonts[fEn]) parts.push(englishFonts[fEn]);
+    if (fKr && koreanFonts[fKr])  parts.push(koreanFonts[fKr]);
     parts.push('sans-serif');
     return parts.join(', ');
   }
   // 빌트인 우선
-  if (FONT_FAMILIES[style?.font]) return FONT_FAMILIES[style.font];
+  const fontFamilies = FONT_FAMILIES as Record<string, string>;
+  if (style?.font && fontFamilies[style.font]) return fontFamilies[style.font];
   // 커스텀 (settings.customFonts) 조회
   const cf = customFonts.find((c) => c.id === style?.font);
   if (cf && cf.family) return cf.family;

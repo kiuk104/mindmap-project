@@ -82,10 +82,10 @@ export interface MindNode {
 
 // ── 관계선 ──
 export interface RelationStyle {
-  color?: string;
-  dash?: 'solid' | 'dashed' | 'dotted';
-  width?: number;
-  arrow?: 'end' | 'start' | 'both' | 'none';
+  color?: string | null;
+  dash?: 'solid' | 'dashed' | 'dotted' | null;
+  width?: number | null;
+  arrow?: 'end' | 'start' | 'both' | 'none' | null;
 }
 export interface Relation {
   id: string;
@@ -117,7 +117,8 @@ export interface Zone {
   label?: string;
   color?: string;
   opacity?: number;
-  borderColor?: string;
+  /** null = 자동(선택 시 accent, 아니면 흐릿한 흰색) */
+  borderColor?: string | null;
   borderDash?: string;
   borderWidth?: number;
 }

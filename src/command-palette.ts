@@ -1,10 +1,22 @@
 /**
- * command-palette.js — Ctrl+K 명령 팔레트
+ * command-palette.ts — Ctrl+K 명령 팔레트
  */
 
-let overlay, input, list, commands = [];
+interface Command {
+  label: string;
+  icon?: string;
+  keywords?: string[];
+  shortcut?: string;
+  hint?: string;
+  /** boolean이거나 매 렌더마다 동적으로 평가하는 함수 */
+  disabled?: boolean | (() => boolean);
+  action: () => void;
+}
 
-export function registerCommands(cmds) {
+let overlay: any, input: any, list: any;
+let commands: Command[] = [];
+
+export function registerCommands(cmds: Command[]) {
   commands = cmds;
 }
 

@@ -68,7 +68,7 @@ export function copyClipboard() {
 
 /** 잘라내기 — copy 후 원본 삭제 (루트 보호) */
 export function cutClipboard() {
-  if (!copyClipboard()) return false;
+  if (!copyClipboard() || !buffer) return false;
 
   const rootId = Object.keys(state.nodes).find((k) => !state.nodes[k].parentId);
   // 루트는 잘라낼 수 없음 — sourceIds에 루트가 포함되면 그것은 건너뜀
@@ -115,11 +115,12 @@ export function pasteClipboard() {
   }
 
   // 원본 ID → 새 ID 매핑
-  const idMap = {};
-  buffer.nodes.forEach((n) => { idMap[n.id] = uid(); });
+  const idMap: Record<string, string> = {};
+  const buf = buffer; // narrow 유지
+  buf.nodes.forEach((n) => { idMap[n.id] = uid(); });
 
   // 노드 추가
-  buffer.nodes.forEach((orig) => {
+  buf.nodes.forEach((orig) => {
     const clone = deepClone(orig);
     clone.id = idMap[orig.id];
 
@@ -135,7 +136,7 @@ export function pasteClipboard() {
     clone.y = (clone.y ?? 0) + 40;
 
     // 접힘 상태는 유지하되, 붙여넣은 최상위 노드는 펴서 보여줌 (UX)
-    if (buffer.sourceIds.includes(orig.id)) clone.collapsed = false;
+    if (buf.sourceIds.includes(orig.id)) clone.collapsed = false;
 
     state.nodes[clone.id] = clone;
   });

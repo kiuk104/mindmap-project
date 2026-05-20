@@ -196,7 +196,7 @@ export function initContextMenu() {
 
   $('ctx-relation').addEventListener('click', () => {
     hideContextMenu();
-    state.relationDraft = { fromId: state.ctxTargetId };
+    if (state.ctxTargetId) state.relationDraft = { fromId: state.ctxTargetId };
     document.body.classList.add('relation-drafting');
     render();
   });

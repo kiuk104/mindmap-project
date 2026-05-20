@@ -35,7 +35,7 @@ let activeThemeTab = (() => {
   } catch { return 'Colorful'; }
 })();
 
-let _onStyleApplied = null;
+let _onStyleApplied: (() => void) | null = null;
 let _initialized = false;
 
 /** 라인 스타일 변경 시 호출될 콜백 (main.js의 toolbar 라벨 동기화용) */
@@ -326,10 +326,10 @@ function buildThemeGrid() {
   return builtInHTML + customHTML + addHTML;
 }
 
-function escapeHTML(s) {
-  return String(s ?? '').replace(/[&<>"']/g, (c) => ({
+function escapeHTML(s: any): string {
+  return String(s ?? '').replace(/[&<>"']/g, (c) => (({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
-  }[c]));
+  } as Record<string, string>)[c]));
 }
 
 /** 컨트롤 빌드 + 이벤트 바인딩 (앱 시작 시 1회) */
@@ -465,7 +465,7 @@ export function initStylePanel() {
     co.text = e.target.value;
     render();
   });
-  let coTextDraft = null;
+  let coTextDraft: string | null = null;
   $('co-text')?.addEventListener('focus', () => {
     const co = state.callouts?.find((c) => c.id === state.selectedCalloutId);
     coTextDraft = co?.text ?? '';
@@ -510,7 +510,7 @@ export function initStylePanel() {
     fn(z);
     render();
   }
-  let zoneLabelDraft = null;
+  let zoneLabelDraft: string | null = null;
   $('zone-label')?.addEventListener('focus', () => {
     const z = state.zones?.find((zz) => zz.id === state.selectedZoneId);
     zoneLabelDraft = z?.label ?? '';
@@ -668,7 +668,7 @@ export function initStylePanel() {
   // ── 라인 스타일 ──
   $('sp-linestyle').addEventListener('change', (e: any) => {
     pushHistory();
-    state.lineStyle = e.target.value;
+    state.lineStyle = e.target.value as 'straight' | 'curved' | 'stepped';
     // 커브 강도 행은 'curved'일 때만 표시
     if ($('sp-curve-row')) $('sp-curve-row').hidden = state.lineStyle !== 'curved';
     persist();

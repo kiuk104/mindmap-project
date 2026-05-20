@@ -85,10 +85,10 @@ function layoutOrg(rootId, ax, ay, dirDown) {
 
 // ── 타임라인 (BFS 평면화) ───────────────────────────────
 function layoutTimeline(rootId, ax, ay) {
-  const order = [];
-  const queue = [rootId];
+  const order: string[] = [];
+  const queue: string[] = [rootId];
   while (queue.length) {
-    const id = queue.shift();
+    const id = queue.shift() as string;
     order.push(id);
     childrenOf(id).forEach((c) => queue.push(c.id));
   }

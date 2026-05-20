@@ -25,12 +25,12 @@ const MIME   = 'application/json';
 const STORAGE_KEY = 'mindmap.drive.token';
 const REFRESH_BEFORE_EXPIRE_MS = 60 * 1000; // 만료 60초 전 미리 갱신
 
-let tokenClient = null;
+let tokenClient: any = null;
 let accessToken = null;
 let tokenExpiresAt = 0;        // ms epoch
 let currentEmail = null;
 let initialized = false;
-let refreshTimer = null;
+let refreshTimer: ReturnType<typeof setTimeout> | null = null;
 // AuthSnapshot은 외부 사용자가 받는 형태이고 type별칭 import 부담을 피해 any로 잡음.
 const listeners = new Set<(snap: any) => void>();
 

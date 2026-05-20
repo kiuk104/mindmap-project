@@ -305,7 +305,7 @@ function createSamples() {
 }
 
 // ?drive=fileId 공유 URL 처리 — Drive 로그인 상태에 따라 즉시 또는 지연 로드
-let pendingDriveLoad = null;
+let pendingDriveLoad: string | null = null;
 function readDriveQuery() {
   return new URLSearchParams(location.search).get('drive');
 }
@@ -430,12 +430,13 @@ function anchorDropdown(btn) {
 function initImportDropdown() {
   const btn = $('btn-import');
   if (!btn) return;
-  let dd = document.getElementById('import-dropdown');
-  if (!dd) {
-    dd = document.createElement('div');
-    dd.id = 'import-dropdown';
-    document.body.appendChild(dd);
+  let _dd = document.getElementById('import-dropdown');
+  if (!_dd) {
+    _dd = document.createElement('div');
+    _dd.id = 'import-dropdown';
+    document.body.appendChild(_dd);
   }
+  const dd: HTMLElement = _dd;
   function closeDd() { dd.classList.remove('open'); }
   btn.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -608,12 +609,13 @@ onSettingsChange((s) => {
 function initToolbarOverflow() {
   const btn = $('btn-tb-more');
   if (!btn) return;
-  let dd = document.getElementById('tb-more-dropdown');
-  if (!dd) {
-    dd = document.createElement('div');
-    dd.id = 'tb-more-dropdown';
-    document.body.appendChild(dd);
+  let _dd = document.getElementById('tb-more-dropdown');
+  if (!_dd) {
+    _dd = document.createElement('div');
+    _dd.id = 'tb-more-dropdown';
+    document.body.appendChild(_dd);
   }
+  const dd: HTMLElement = _dd;
   function closeDd() { dd.classList.remove('open'); }
   btn.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -655,12 +657,13 @@ function initDriveUnifiedButton() {
   if (!btn) return;
 
   // 드롭다운 DOM 동적 생성 (body에 추가)
-  let dd = document.getElementById('drive-dropdown');
-  if (!dd) {
-    dd = document.createElement('div');
-    dd.id = 'drive-dropdown';
-    document.body.appendChild(dd);
+  let _dd = document.getElementById('drive-dropdown');
+  if (!_dd) {
+    _dd = document.createElement('div');
+    _dd.id = 'drive-dropdown';
+    document.body.appendChild(_dd);
   }
+  const dd: HTMLElement = _dd;
 
   function closeDd() { dd.classList.remove('open'); }
 
@@ -1065,7 +1068,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') {
   const isStandalone =
     window.matchMedia?.('(display-mode: standalone)').matches ||
     window.navigator.standalone === true; // iOS Safari 전용
-  let deferredPrompt = null;
+  let deferredPrompt: any = null;
 
   if (installBtn && !isStandalone) {
     window.addEventListener('beforeinstallprompt', (e) => {

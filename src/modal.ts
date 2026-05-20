@@ -468,10 +468,10 @@ export function applyStyle() {
 /** 하위 호환 별칭 */
 export const applyBgColor = applyStyle;
 
-function escapeHTML(s) {
-  return String(s ?? '').replace(/[&<>"']/g, (c) => ({
+function escapeHTML(s: any): string {
+  return String(s ?? '').replace(/[&<>"']/g, (c) => (({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
-  }[c]));
+  } as Record<string, string>)[c]));
 }
 
 function formatTime(iso) {
@@ -1065,7 +1065,7 @@ export async function openFontBrowserModal(addFn, isAddedFn) {
 
 /** 노트 편집 모달 — 노드에 연결된 긴 텍스트 */
 // 맵 이름 변경 모달 — onRename 콜백을 module-level에 저장 (handleModalOK에서 사용)
-let _renameCallback = null;
+let _renameCallback: ((next: string) => void) | null = null;
 let _renameCurrent = '';
 export function openRenameModal(currentName, onRename) {
   state.modalKind = 'rename';
@@ -1108,7 +1108,8 @@ export function openNoteModal(nodeId) {
 }
 
 // 태스크 모달 — 취소 시 변경 무효화를 위해 draft 사본을 두고, OK 시점에 노드에 반영
-let tasksDraft = [];
+interface TaskDraft { id: string; text: string; done: boolean; }
+let tasksDraft: TaskDraft[] = [];
 
 /** 할 일 목록 편집 모달 */
 export function openTasksModal(nodeId) {
@@ -1176,7 +1177,9 @@ function renderTasksBody() {
 export function getTasksDraft() { return tasksDraft; }
 
 // 이미지/비디오 모달 상태 — 모달 인스턴스 단위로 관리
-let imageDraft = { url: null, sourceTab: 'url', type: 'auto' };
+let imageDraft: { url: string | null; sourceTab: string; type: 'image' | 'video' | 'auto' } = {
+  url: null, sourceTab: 'url', type: 'auto',
+};
 
 /**
  * 미디어(이미지/비디오) 임베드 모달 열기
@@ -1498,8 +1501,8 @@ function handleCustomThemeOK() {
     return;
   }
 
-  const colors = [];
-  $('modal-body').querySelectorAll('.ct-color').forEach((el) => {
+  const colors: string[] = [];
+  $('modal-body').querySelectorAll('.ct-color').forEach((el: any) => {
     colors[Number(el.dataset.idx)] = el.value;
   });
 
@@ -1583,6 +1586,7 @@ export function handleModalOK() {
 
   if (state.modalKind === 'note') {
     const text = $('note-text').value;
+    if (!state.ctxTargetId) { closeModal(); return; }
     const node = state.nodes[state.ctxTargetId];
     if (node && (node.note ?? '') !== text) {
       pushHistory();
@@ -1593,6 +1597,7 @@ export function handleModalOK() {
     return;
   }
   if (state.modalKind === 'tasks') {
+    if (!state.ctxTargetId) { closeModal(); return; }
     const node = state.nodes[state.ctxTargetId];
     if (!node) { closeModal(); return; }
     const before = JSON.stringify(node.tasks ?? []);
@@ -1613,6 +1618,7 @@ export function handleModalOK() {
 
     if (!url) { $('lk-url').focus(); return; }
 
+    if (!state.ctxTargetId) { closeModal(); return; }
     pushHistory();
     const node = state.nodes[state.ctxTargetId];
     if (!node.links) node.links = [];
@@ -1631,7 +1637,7 @@ export function handleModalOK() {
 
   } else if (state.modalKind === 'color') {
     const selected = $('modal-body').querySelector('.cdot.sel');
-    let ids = [];
+    let ids: string[] = [];
     if (selected) {
       ids = targetNodeIds(state.ctxTargetId);
       if (ids.length) {

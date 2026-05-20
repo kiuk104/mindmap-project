@@ -40,10 +40,10 @@ export function toggleSettingsPanel() {
   else                       openSettingsPanel();
 }
 
-function escapeHTML(s) {
-  return String(s ?? '').replace(/[&<>"']/g, (c) => ({
+function escapeHTML(s: any): string {
+  return String(s ?? '').replace(/[&<>"']/g, (c) => (({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
-  }[c]));
+  } as Record<string, string>)[c]));
 }
 
 // ── 본문 빌드 ───────────────────────────────────────────
@@ -486,7 +486,7 @@ function bindShortcutRow(row) {
   const resetBtn = row.querySelector('[data-reset]');
 
   let capturing = false;
-  let onKey = null;
+  let onKey: ((e: KeyboardEvent) => void) | null = null;
 
   btn.addEventListener('click', () => {
     if (capturing) return;

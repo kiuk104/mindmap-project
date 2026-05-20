@@ -52,8 +52,8 @@ export function registerShortcuts(map) {
  * macOS Cmd는 Ctrl로 통합 (e.metaKey || e.ctrlKey)
  * 화살표/Space/Enter 등 특수키는 e.key 그대로 사용.
  */
-export function eventToBinding(e) {
-  const parts = [];
+export function eventToBinding(e: KeyboardEvent): string | null {
+  const parts: string[] = [];
   if (e.ctrlKey || e.metaKey) parts.push('Ctrl');
   if (e.altKey)               parts.push('Alt');
   if (e.shiftKey)             parts.push('Shift');

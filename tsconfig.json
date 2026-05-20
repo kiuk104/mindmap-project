@@ -9,7 +9,7 @@
     "checkJs": false,
     "strict": false,
     "noImplicitAny": false,
-    "strictNullChecks": false,
+    "strictNullChecks": true,
 
     "skipLibCheck": true,
     "isolatedModules": true,
