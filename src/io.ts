@@ -250,6 +250,11 @@ export async function importFromFile(file: File): Promise<boolean> {
       const { loadFromOPML } = await import('./format-opml.js');
       ok = loadFromOPML(text);
       if (ok) toastSuccess('📄 OPML 불러오기 완료');
+    } else if (ext === 'md' || ext === 'markdown') {
+      const text = await file.text();
+      const { loadFromMarkdown } = await import('./format-markdown.js');
+      ok = loadFromMarkdown(text);
+      if (ok) toastSuccess('📝 Markdown 불러오기 완료');
     } else {
       // 기본 JSON
       const text = await file.text();

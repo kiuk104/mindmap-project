@@ -256,6 +256,7 @@ export function openSaveModal() {
         <option value="clipboard">📋 클립보드에 JSON 복사</option>
         <option value="drive" ${driveOptionEnabled ? '' : 'disabled'}>${driveLabel}</option>
         <option value="opml">📄 OPML 아웃라인 (.opml)</option>
+        <option value="md">📝 Markdown 아웃라인 (.md)</option>
         <option value="png">🖼️ PNG 이미지로 내보내기 (.png · 2x)</option>
         <option value="svg">📐 SVG 이미지로 내보내기 (.svg)</option>
       </select>
@@ -1695,6 +1696,11 @@ export function handleModalOK() {
     } else if (format === 'opml') {
       import('./format-opml.js').then(({ downloadOPML }) => {
         if (downloadOPML(name)) toastSuccess(`📄 "${name}.opml" 내보내기 완료`);
+        closeModal();
+      });
+    } else if (format === 'md') {
+      import('./format-markdown.js').then(({ downloadMarkdown }) => {
+        if (downloadMarkdown(name)) toastSuccess(`📝 "${name}.md" 내보내기 완료`);
         closeModal();
       });
     } else if (format === 'drive') {
